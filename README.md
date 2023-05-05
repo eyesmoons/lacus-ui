@@ -1,6 +1,6 @@
 ## 平台简介
 - 本仓库前端技术栈 [Vue3](https://v3.cn.vuejs.org) + [Element Plus](https://element-plus.org/zh-CN) + [Vite](https://cn.vitejs.dev) 版本。
-- 配套后端代码仓库地址[lacus](https://github.com/eyesmoons/lacus) 版本。
+- 配套后端代码仓库地址[lacus](https://github.com/eyesmoons/lacus)
 - 规范请参照该文档 [前端规范](https://gitee.com/MinJieLiu/web-standard#/MinJieLiu/web-standard)
 
 ## 使用
