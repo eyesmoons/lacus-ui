@@ -148,12 +148,11 @@ function loadDatabaseList(node, resolve) {
 
 /**
  * 查询数据表列表
- * @param data
  */
-function getList(data) {
+function getList() {
     loading.value = true;
     tableApi
-        .listTable(data)
+        .listTable(queryParams.value)
         .then((response) => {
             tableList.value = response.rows;
             total.value = response.total;
@@ -184,11 +183,7 @@ function handleNodeClick(data) {
  */
 function handleQuery() {
     queryParams.value.pageNum = 1;
-    getList({
-        'datasourceId': queryParams.value.datasourceId,
-        'dbId': queryParams.value.dbId,
-        'tableName': queryParams.value.tableName,
-    });
+    getList();
 }
 
 /**
@@ -207,5 +202,5 @@ function handleDetail(row) {
 }
 
 loadDatasourceList();
-getList({});
+getList();
 </script>
