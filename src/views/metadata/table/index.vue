@@ -101,6 +101,7 @@ const loading = ref(true);
 const showSearch = ref(true);
 const total = ref(0);
 const dbTableOptions = ref([]);
+const datasourceName = ref('');
 const data = reactive({
     form: {},
     queryParams: {
@@ -123,10 +124,17 @@ const filterNode = (value, data) => {
  * 查询数据源下拉树
  */
 function loadDatasourceList() {
-    datasourceApi.getDatasourceList(null).then((response) => {
+    datasourceApi.getDatasourceList(queryParams.datasourceName).then((response) => {
         dbTableOptions.value = response;
     }).catch(() => {})
 }
+
+/**
+ * 通过名称筛选数据源
+ */
+watch(datasourceName, (val) => {
+    proxy.$refs.dbTableRef.filter(val);
+});
 
 /**
  * 根据数据源ID查询数据库列表
