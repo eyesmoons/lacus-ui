@@ -4,11 +4,7 @@ export function listTable(query) {
     return request({
         url: `/metadata/table/pageList`,
         method: 'get',
-        params: {
-            'datasourceId': query.datasourceId,
-            'dbId': query.dbId,
-            'tableName': query.tableName
-        }
+        params: query
     });
 }
 
