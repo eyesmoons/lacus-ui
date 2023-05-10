@@ -58,16 +58,16 @@
             <el-table-column label="操作" align="center">
                 <template #default="scope">
                     <el-button-group class="ml-4">
-                        <el-tooltip content="测试" placement="top">
+                        <el-tooltip content="测试" placement="top" v-if="scope.row.status === 1">
                             <el-button link type="primary" icon="VideoPlay" @click="handleTest(scope.row)" v-hasPermission="['metadata:datasource:edit']"/>
                         </el-tooltip>
-                        <el-tooltip content="编辑" placement="top">
+                        <el-tooltip content="编辑" placement="top"  v-if="scope.row.status === 1">
                             <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermission="['metadata:datasource:edit']"/>
                         </el-tooltip>
-                        <el-tooltip content="删除" placement="top">
+                        <el-tooltip content="删除" placement="top" v-if="scope.row.status === 0">
                             <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermission="['metadata:datasource:remove']"/>
                         </el-tooltip>
-                        <el-tooltip content="同步元数据" placement="top">
+                        <el-tooltip content="同步元数据" placement="top" v-if="scope.row.status === 1">
                             <el-button link type="primary" plain icon="Refresh" @click="handleSync(scope.row)" v-hasPermission="['metadata:datasource:edit']" />
                         </el-tooltip>
                     </el-button-group>
@@ -317,7 +317,7 @@ function submitForm() {
 function handleDelete(row) {
     const datasourceIds = row.datasourceId || ids.value;
     proxy.$modal
-        .confirm(`是否确认删除ID为"${datasourceIds}"的数据项？`)
+        .confirm(`是否确认删除ID为"${datasourceIds}"的数据源吗？`)
         .then(() => datasourceApi.deleteDatasource(datasourceIds))
         .then(() => {
             getList();
