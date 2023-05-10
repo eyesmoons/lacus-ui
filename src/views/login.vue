@@ -154,7 +154,7 @@ getCookie();
   justify-content: center;
   align-items: center;
   height: 100%;
-  background-image: url('../assets/images/background.png');
+  background-image: url('../assets/images/bg3.jpg');
   background-size: cover;
 }
 
