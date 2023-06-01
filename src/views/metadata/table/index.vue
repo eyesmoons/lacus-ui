@@ -1,7 +1,6 @@
 <template>
     <div class="app-container">
         <el-row :gutter="20">
-
             <!-- 数据源和数据库 -->
             <el-col :span="4" :xs="24">
                 <div class="head-container">
@@ -124,7 +123,7 @@ const filterNode = (value, data) => {
  * 查询数据源下拉树
  */
 function loadDatasourceList() {
-    datasourceApi.getDatasourceList(queryParams.datasourceName).then((response) => {
+    datasourceApi.getDatasourceList(queryParams.datasourceName, null).then((response) => {
         dbTableOptions.value = response;
     }).catch(() => {})
 }
@@ -160,7 +159,7 @@ function loadDatabaseList(node, resolve) {
 function getList() {
     loading.value = true;
     tableApi
-        .listTable(queryParams.value)
+        .pageList(queryParams.value)
         .then((response) => {
             tableList.value = response.rows;
             total.value = response.total;
@@ -206,7 +205,7 @@ function resetQuery() {
 
 function handleDetail(row) {
     const { tableId } = row;
-    router.push(`/metadata/table/detail/${tableId}`);
+    router.push(`/metadata/table-manager/detail/${tableId}`);
 }
 
 loadDatasourceList();

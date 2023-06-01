@@ -1,19 +1,11 @@
 <template>
     <div class="app-container">
         <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="90px">
-            <el-form-item label="数据源名称" prop="datasourceName">
-                <el-input v-model="queryParams.datasourceName" placeholder="请输入数据源名称" clearable @keyup.enter="handleQuery" />
+            <el-form-item label="任务名称" prop="datasourceName">
+                <el-input v-model="queryParams.datasourceName" placeholder="请输入任务名称" clearable @keyup.enter="handleQuery" />
             </el-form-item>
-            <el-form-item label="数据源类型" prop="type">
-                <el-select v-model="queryParams.type" placeholder="请输入数据源类型" clearable filterable>
-                    <el-option v-for="dict in datasource_type" :key="dict.value" :label="dict.label" :value="dict.label"/>
-                </el-select>
-            </el-form-item>
-            <el-form-item label="ip" prop="ip">
-                <el-input v-model="queryParams.ip" placeholder="请输入ip" clearable @keyup.enter="handleQuery" />
-            </el-form-item>
-            <el-form-item label="启用状态" prop="status">
-                <el-select v-model="queryParams.status" placeholder="启用状态" clearable>
+            <el-form-item label="任务分组" prop="status">
+                <el-select v-model="queryParams.status" placeholder="请选择任务分组" clearable>
                     <el-option v-for="dict in datasource_status" :key="dict.value" :label="dict.label" :value="dict.value" />
                 </el-select>
             </el-form-item>
@@ -25,50 +17,41 @@
 
         <el-row :gutter="10" class="mb8">
             <el-col :span="1.5">
-                <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermission="['metadata:datasource:add']">新增</el-button>
+                <el-button type="primary" plain icon="Plus" @click="toAddJobPage" v-hasPermission="['metadata:datasource:add']">新建任务</el-button>
             </el-col>
-            <el-col :span="1.5">
-                <el-button type="success" plain icon="Edit" :disabled="single" @click="handleUpdate" v-hasPermission="['metadata:datasource:edit']">修改</el-button>
-            </el-col>
-            <el-col :span="1.5">
-                <el-button type="danger" plain icon="Delete" :disabled="multiple" @click="handleDelete" v-hasPermission="['metadata:datasource:remove']">删除</el-button>
-            </el-col>
-            <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
         </el-row>
 
         <el-table v-loading="loading" :data="datasourceList" stripe @selection-change="handleSelectionChange">
             <el-table-column type="selection" width="55" align="center" />
-            <el-table-column label="数据源名称" align="left" prop="datasourceName" />
-            <el-table-column label="数据源类型" align="left" prop="type" />
-            <el-table-column label="ip/主机名" align="left" prop="ip" />
-            <el-table-column label="端口" align="left" prop="port" />
-            <el-table-column label="数据库名" align="left" prop="defaultDbName" />
-            <el-table-column label="用户名" align="left" prop="username" />
-            <el-table-column label="描述" align="left" prop="remark" show-overflow-tooltip/>
-            <el-table-column label="启用状态" align="center" prop="status">
+            <el-table-column label="任务名称" align="left" prop="jobName" />
+            <el-table-column label="任务分组" align="left" prop="catalogName" />
+            <el-table-column label="输入源" align="left" prop="sourceDatasourceName" />
+            <el-table-column label="输出源" align="left" prop="sinkDatasourceName" />
+            <el-table-column label="同步方式" align="left" prop="syncType" />
+            <el-table-column label="任务状态" align="left" prop="status">
                 <template #default="scope">
-                    <el-switch v-model="scope.row.status" :active-value="1" :inactive-value="0" @change ="handleStatusChange(scope.row)" />
+                    <span v-if="scope.row.status === 1">运行中</span>
                 </template>
             </el-table-column>
-            <el-table-column label="创建时间" align="center" prop="createTime" :show-overflow-tooltip="true" width="120">
-                <template #default="scope">
-                    <span>{{ parseTime(scope.row.createTime) }}</span>
-                </template>
-            </el-table-column>
+            <el-table-column label="任务描述" align="left" prop="remark" :show-overflow-tooltip="true" width="150"/>
+            <el-table-column label="创建时间" align="center" prop="createTime" :show-overflow-tooltip="true" width="120" />
             <el-table-column label="操作" align="center">
                 <template #default="scope">
                     <el-button-group class="ml-4">
-                        <el-tooltip content="测试" placement="top" v-if="scope.row.status === 1">
-                            <el-button link type="primary" icon="VideoPlay" @click="handleTest(scope.row)" v-hasPermission="['metadata:datasource:edit']"/>
+                        <el-tooltip content="启动任务" placement="top" v-if="scope.row.status === 1">
+                            <el-button link type="primary" plain icon="switch-button" @click="handleSync(scope.row)" v-hasPermission="['metadata:datasource:edit']" />
+                        </el-tooltip>
+                        <el-tooltip content="停止任务" placement="top" v-if="scope.row.status === 1">
+                            <el-button link type="primary" plain icon="VideoPause" @click="handleSync(scope.row)" v-hasPermission="['metadata:datasource:edit']" />
+                        </el-tooltip>
+                        <el-tooltip content="任务监控" placement="top" v-if="scope.row.status === 1">
+                            <el-button link type="primary" plain icon="view" @click="handleSync(scope.row)" v-hasPermission="['metadata:datasource:edit']" />
                         </el-tooltip>
                         <el-tooltip content="编辑" placement="top"  v-if="scope.row.status === 1">
                             <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermission="['metadata:datasource:edit']"/>
                         </el-tooltip>
                         <el-tooltip content="删除" placement="top" v-if="scope.row.status === 0">
                             <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermission="['metadata:datasource:remove']"/>
-                        </el-tooltip>
-                        <el-tooltip content="同步元数据" placement="top" v-if="scope.row.status === 1">
-                            <el-button link type="primary" plain icon="Refresh" @click="handleSync(scope.row)" v-hasPermission="['metadata:datasource:edit']" />
                         </el-tooltip>
                     </el-button-group>
                 </template>
@@ -181,14 +164,14 @@
             <el-form :model="form">
                 <el-form-item label="请选择库表：" :label-width="100">
                     <el-tree class="tree-border"
-                            :data="dbTableOptions"
-                            lazy
-                            :load="loadTables"
-                            show-checkbox
-                            ref="dbTableRef"
-                            node-key="uniqueFlag"
-                            empty-text="加载中，请稍候"
-                            :props="{label: 'label', isLeaf: 'isLeaf'}">
+                             :data="dbTableOptions"
+                             lazy
+                             :load="loadTables"
+                             show-checkbox
+                             ref="dbTableRef"
+                             node-key="uniqueFlag"
+                             empty-text="加载中，请稍候"
+                             :props="{label: 'label', isLeaf: 'isLeaf'}">
                     </el-tree>
                 </el-form-item>
             </el-form>
@@ -200,10 +183,11 @@
     </div>
 </template>
 
-<script setup name="datasource">
+<script setup name="job">
 import * as datasourceApi from '@/api/metadata/datasourceApi';
 import * as schemaApi from "@/api/metadata/schemaApi";
 
+const router = useRouter();
 const { proxy } = getCurrentInstance();
 const { datasource_status, datasource_type} = proxy.useDict('datasource_status', 'datasource_type');
 const datasourceList = ref([]);
@@ -253,13 +237,44 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data);
 
+function toAddJobPage() {
+    router.push(`/datasync/job-manager/addJob`);
+}
+
 /** 查询数据源列表 */
 function getList() {
     loading.value = true;
     datasourceApi
         .listDatasource(queryParams.value)
         .then((response) => {
-            datasourceList.value = response.rows;
+            datasourceList.value = [{
+                jobName: "订单数据同步",
+                catalogName: "商品分组",
+                sourceDatasourceName: "localhost",
+                sinkDatasourceName: "test_doris",
+                syncType: "初始快照",
+                remark: "此任务用于订单数据同步",
+                createTime: "2023-04-20 21:23:20",
+                status:1
+            },{
+                jobName: "商品数据同步",
+                catalogName: "商品分组",
+                sourceDatasourceName: "localhost",
+                sinkDatasourceName: "test_doris",
+                syncType: "初始快照",
+                remark: "此任务用于商品数据同步",
+                createTime: "2023-04-20 23:12:21",
+                status:1
+            },{
+                jobName: "日志数据同步",
+                catalogName: "日志分组",
+                sourceDatasourceName: "localhost",
+                sinkDatasourceName: "test_doris",
+                syncType: "初始快照",
+                remark: "此任务用于日志数据同步",
+                createTime: "2023-04-21 22:21:10",
+                status:1
+            }]
             total.value = response.total;
         })
         .finally(() => {
