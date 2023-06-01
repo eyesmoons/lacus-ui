@@ -36,6 +36,7 @@ import ImagePreview from '@/components/ImagePreview';
 import TreeSelect from '@/components/TreeSelect';
 // 字典标签组件
 import DictTag from '@/components/DictTag';
+import {Message} from "@element-plus/icons-vue";
 
 const app = createApp(App);
 

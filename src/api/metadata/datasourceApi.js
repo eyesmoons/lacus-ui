@@ -1,10 +1,13 @@
 import request from '@/utils/request';
 
-export function getDatasourceList(datasourceName) {
+export function getDatasourceList(datasourceName, sourceType) {
     return request({
         url: `/metadata/datasource/list`,
         method: 'get',
-        params: datasourceName,
+        params: {
+            "datasourceName": datasourceName,
+            "sourceType": sourceType
+        },
     });
 }
 

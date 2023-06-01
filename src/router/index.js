@@ -63,13 +63,20 @@ export const constantRoutes = [{
         meta: {title: '分配用户', activeMenu: '/system/role'},
     },],
 }, {
-    path: '/metadata/table', component: Layout, hidden: true, children: [{
+    path: '/metadata/table-manager', component: Layout, hidden: true, children: [{
         path: 'detail/:tableId(\\d+)',
         component: () => import('@/views/metadata/table/detail'),
         name: 'TableDetail',
         meta: {title: '表详情', activeMenu: '/metadata/table'},
     },],
-},];
+}, {
+    path: '/datasync/job-manager', component: Layout, hidden: true, children: [{
+        path: 'addJob',
+        component: () => import('@/views/datasync/job/addJob'),
+        name: 'addJob',
+        meta: {title: '新建任务', activeMenu: '/datasync/job'},
+    },],
+}];
 
 const router = createRouter({
     history: createWebHistory(), routes: constantRoutes, scrollBehavior(to, from, savedPosition) {
