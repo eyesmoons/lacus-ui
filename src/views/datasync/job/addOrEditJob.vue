@@ -15,7 +15,7 @@
                         <el-col :span="12" :pull="12">
                             <el-form-item label="输入源" prop="sourceDatasourceId">
                                 <el-select
-                                        v-model="form.sourceDatasourceId"
+                                        v-model="jobDetail.sourceDatasourceId"
                                         value-key="datasourceId"
                                         @change="selectSourceDatasource($event)"
                                         placeholder="请选择输入源"
@@ -31,7 +31,7 @@
                         <el-col :span="12" :push="12">
                             <el-form-item label="数据库" prop="sourceDbName">
                                 <el-select
-                                        v-model="form.sourceDbName"
+                                        v-model="jobDetail.sourceDbName"
                                         value-key="dbName"
                                         @change="selectSourceDb($event)"
                                         placeholder="请选择数据库"
@@ -65,7 +65,7 @@
                         <el-col :span="12" :pull="12">
                             <el-form-item label="输出源" prop="sinkDatasourceId">
                                 <el-select
-                                        v-model="form.sinkDatasourceId"
+                                        v-model="jobDetail.sinkDatasourceId"
                                         value-key="datasourceId"
                                         @change="selectSinkDatasource($event)"
                                         placeholder="请选择输出源"
@@ -81,7 +81,7 @@
                         <el-col :span="12" :push="12">
                             <el-form-item label="数据库" prop="sinkDbName">
                                 <el-select
-                                        v-model="form.sinkDbName"
+                                        v-model="jobDetail.sinkDbName"
                                         value-key="dbName"
                                         @change="selectSinkDb($event)"
                                         placeholder="请选择数据库"
@@ -103,7 +103,7 @@
                     <div class="left-table table-wrapper">
                         <el-table ref="sourceTableRef" :data="sourceTableRight" border style="width: 100%">
                             <el-table-column type="index" label="序号" width="60" />
-                            <el-table-column prop="tableName" label="输入表" />
+                            <el-table-column prop="sourceTableName" label="输入表" />
                         </el-table>
                     </div>
                     <!-- 映射关系line -->
@@ -134,7 +134,7 @@
                             </el-table-column>
                             <el-table-column label="操作">
                                 <template #default="scope">
-                                    <el-button link type="primary" @click="checkColumnMapping(scope.row)">字段映射配置</el-button>
+                                    <el-button link type="primary" @click="columnMappingConf(scope.row)">字段映射配置</el-button>
                                 </template>
                             </el-table-column>
                         </el-table>
@@ -155,8 +155,8 @@
                             </el-form-item>
                         </el-col>
                         <el-col :span="8" :push="6">
-                            <el-form-item label="所属分组：" prop="catalogName">
-                                <el-select v-model="form.catalogName" placeholder="请选择所属分组">
+                            <el-form-item label="所属分组：" prop="catalogId">
+                                <el-select v-model="form.catalogId" placeholder="请选择所属分组">
                                     <el-option v-for="item in catalogOption"
                                                :key="item.catalogId"
                                                :label="item.catalogName"
@@ -297,16 +297,19 @@ import * as tableApi from "@/api/metadata/tableApi";
 import * as catalogApi from "@/api/datasync/catalogApi";
 import * as jobApi from "@/api/datasync/jobApi";
 import * as columnApi from "@/api/metadata/columnApi";
+import {ref} from "vue";
 
 const { proxy } = getCurrentInstance();
+const route = useRoute();
 const active = ref('1');
 const columnMappingDialog = ref(false);
 const sourceDatasourceOption = ref([])
 const sinkDatasourceOption = ref([])
 const sourceDbOption = ref([])
 const sinkDbOption = ref([])
-const sourceTableLeft = ref([])
+const leftTable = ref([])
 const sourceTableRight = ref([])
+const rightTable = ref([])
 const sourceTable = ref({})
 const sinkTable = ref([])
 const sinkTableRef = ref(null)
@@ -325,6 +328,8 @@ const appContainerOptions = [
         label: 'kubernetes'
     }
 ];
+const jobId = ref(null)
+const jobDetail = ref({})
 const data = reactive({
     form: {
         sourceDatasourceId:undefined,
@@ -353,7 +358,6 @@ function initSteps() {
  */
 function next() {
     if (active.value++ > 2) active.value = 1;
-
     // 第二步初始化输出源
     if (active.value === 2) {
         if (sourceTableRight.value.length > 0) {
@@ -369,11 +373,18 @@ function next() {
     }
 }
 
+/**
+ * 保存任务信息
+ */
 function submit() {
-    console.log(form.value)
     console.log(sinkTableRef.value.data)
-    alert('准备提交任务')
+    form.value.tableMappings = sinkTableRef.value.data
+    console.log(form.value)
+    jobApi.add(form.value).then((response) => {
+        proxy.$message({ message: '任务新建成功', type: 'success' })
+    })
 }
+
 /**
  * 初始化分组下拉框
  */
@@ -422,7 +433,7 @@ function listSinkDatasource() {
  * @param e
  */
 function selectSourceDatasource(e) {
-    this.form.sourceDatasourceId = e;
+    form.sourceDatasourceId = e;
     if (e === '') {
         sourceDbOption.value = [];
     } else {
@@ -437,7 +448,7 @@ function selectSourceDatasource(e) {
  * @param e
  */
 function selectSinkDatasource(e) {
-    this.form.sinkDatasourceId = e;
+    form.sinkDatasourceId = e;
     if (e === '') {
         sinkDbOption.value = [];
     } else {
@@ -452,25 +463,37 @@ function selectSinkDatasource(e) {
  * @param e
  */
 function selectSourceDb(e) {
-    this.form.sourceDbName = e;
+    form.sourceDbName = e
     let tableQuery = {
-        "datasourceId":this.form.sourceDatasourceId,
+        "datasourceId": form.sourceDatasourceId,
         "dbName":e
     }
-    tableApi
-        .listTable(tableQuery)
+    let savedDbTables = ref([])
+    jobApi.listSavedDbTableByDbName(tableQuery)
         .then((response) => {
-            sourceTableLeft.value = response;
-            sourceTableLeft.value = sourceTableLeft.value.map(item => {
+            savedDbTables.value = response
+        })
+    tableApi.listTable(tableQuery)
+        .then((response) => {
+            leftTable.value = response;
+            leftTable.value = leftTable.value.map(item => {
+                let disabledValue = false;
+                if (savedDbTables.value !== undefined && savedDbTables.value !== null) {
+                    let matchedTable = savedDbTables.value.find(dbTable => dbTable.tableName === (item.dbName + "." + item.tableName));
+                    if (matchedTable === null || matchedTable === undefined) {
+                        disabledValue = true
+                    }
+                }
                 return {
                     ...item,
                     key:item.dbName + "." + item.tableName,
-                    label:item.dbName + "." + item.tableName
+                    label:item.dbName + "." + item.tableName,
+                    disabled: disabledValue
                 }
             })
             sourceTable.value = {
-                data: sourceTableLeft.value,
-                value:sourceTableRight.value
+                data: leftTable.value,
+                value: rightTable.value
             }
         })
 }
@@ -480,9 +503,9 @@ function selectSourceDb(e) {
  * @param e
  */
 function selectSinkDb(e) {
-    this.form.sinkDbName = e;
+    form.sinkDbName = e;
     let tableQuery = {
-        "datasourceId":this.form.sinkDatasourceId,
+        "datasourceId": form.sinkDatasourceId,
         "dbName":e
     };
     tableApi
@@ -494,29 +517,30 @@ function selectSinkDb(e) {
 
 // 右侧列表元素变化
 function sourceTableRightChange(data) {
-    sourceTableRight.value = [];
+    sourceTableRight.value = []
     for (let i in data) {
         let sourceTable = {
-            tableName: data[i]
+            sourceTableName: data[i]
         }
-        sourceTableRight.value.push(sourceTable);
+        sourceTableRight.value.push(sourceTable)
     }
 }
 
 /**
- * 检查表映射
+ * 字段映射配置
  * @param row
  */
-function checkColumnMapping(row) {
-    columnMappingDialog.value = true;
+function columnMappingConf(row) {
+    columnMappingDialog.value = true
     let query = {
         sourceDatasourceId: form.value.sourceDatasourceId,
         sourceDbName: form.value.sourceDbName,
-        sourceTableName: row.tableName,
+        sourceTableName: row.sourceTableName,
         sinkDatasourceId: form.value.sinkDatasourceId,
         sinkDbName: form.value.sinkDbName,
         sinkTableName: row.sinkTableName
     }
+
     jobApi.listMappedColumn(query).then((response) => {
         mappedColumn.value = {
             mappedSourceColumns: response.mappedSourceColumns,
@@ -540,6 +564,9 @@ function selectSinkColumn(columnName, index, row) {
     row.comment = resultColumn.comment
     row.dataType = resultColumn.dataType
     row.columnLength = resultColumn.columnLength
+    row.tableName = resultColumn.tableName
+    row.dbName = resultColumn.dbName
+    row.datasourceId = resultColumn.datasourceId
 }
 
 /**
@@ -553,13 +580,52 @@ function cancelDialog() {
  * 字段映射确定按钮
  */
 function doCheckColumnMapping() {
-    console.log(sourceColumnRef.value.data)
-    console.log(sinkColumnRef.value.data)
-    columnMappingDialog.value = false;
+    let sourceTableName = sourceColumnRef.value.data[0].tableName
+    let sinkTableName
+    sinkColumnRef.value.data.forEach((v, i) => {
+        if (v.tableName != null) {
+            sinkTableName = v.tableName
+        }
+    })
+    if (sinkTableName === null || sinkTableName === undefined) {
+        proxy.$message({ message: '至少选择一个字段', type: 'error' })
+    } else {
+        sinkTableRef.value.data.forEach((v, i) => {
+            if (v.sourceTableName === sourceTableName) {
+                v.sourceColumns = sourceColumnRef.value.data;
+            }
+            if (v.sinkTableName === sinkTableName) {
+                v.sinkColumns = sinkColumnRef.value.data;
+            }
+        })
+        columnMappingDialog.value = false;
+    }
 }
 
 initSteps();
 listSourceDatasource();
+(() => {
+    jobId.value = route.params && route.params.jobId;
+    if (jobId.value) {
+        jobApi.detail(jobId.value).then((response) => {
+            jobDetail.value = response
+            selectSourceDatasource(jobDetail.value.sourceDatasourceId)
+            selectSourceDb(jobDetail.value.sourceDbName)
+            let mappedSourceDbTables = jobDetail.value.mappedSourceDbTable
+
+            for (let i in mappedSourceDbTables) {
+                sourceTableRight.value.push({
+                    sourceTableName: mappedSourceDbTables[i].tableName
+                })
+                rightTable.value.push(mappedSourceDbTables[i].tableName)
+            }
+            console.log(sourceTable.value)
+            selectSinkDatasource(jobDetail.value.sinkDatasourceId)
+            selectSinkDb(jobDetail.value.sinkDbName)
+        });
+    }
+})();
+
 </script>
 
 <style>

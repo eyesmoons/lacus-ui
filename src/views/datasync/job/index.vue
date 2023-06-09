@@ -2,10 +2,10 @@
     <div class="app-container">
         <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="90px">
             <el-form-item label="任务名称" prop="datasourceName">
-                <el-input v-model="queryParams.datasourceName" placeholder="请输入任务名称" clearable @keyup.enter="handleQuery" />
+                <el-input v-model="queryParams.jobName" placeholder="请输入任务名称" clearable @keyup.enter="handleQuery" />
             </el-form-item>
-            <el-form-item label="任务分组" prop="status">
-                <el-select v-model="queryParams.status" placeholder="请选择任务分组" clearable>
+            <el-form-item label="任务分组" prop="catalogName">
+                <el-select v-model="queryParams.catalogName" placeholder="请选择任务分组" clearable>
                     <el-option v-for="dict in datasource_status" :key="dict.value" :label="dict.label" :value="dict.value" />
                 </el-select>
             </el-form-item>
@@ -21,290 +21,123 @@
             </el-col>
         </el-row>
 
-        <el-table v-loading="loading" :data="datasourceList" stripe @selection-change="handleSelectionChange">
+        <el-table v-loading="loading" :data="jobList" stripe>
             <el-table-column type="selection" width="55" align="center" />
             <el-table-column label="任务名称" align="left" prop="jobName" />
             <el-table-column label="任务分组" align="left" prop="catalogName" />
             <el-table-column label="输入源" align="left" prop="sourceDatasourceName" />
             <el-table-column label="输出源" align="left" prop="sinkDatasourceName" />
-            <el-table-column label="同步方式" align="left" prop="syncType" />
-            <el-table-column label="任务状态" align="left" prop="status">
+            <el-table-column label="同步方式" align="left" prop="syncTypeName" />
+            <el-table-column label="source状态" align="left" prop="sourceStatus">
                 <template #default="scope">
-                    <span v-if="scope.row.status === 1">运行中</span>
+                    <el-tooltip content="运行中" placement="top" v-if="scope.row.sourceStatus === 1">
+                        <el-button link type="success" plain icon="video-play">运行中</el-button>
+                    </el-tooltip>
+                    <el-tooltip content="已停止" placement="top" v-if="scope.row.sourceStatus !== 1">
+                        <el-button link type="danger" plain icon="video-pause" >已停止</el-button>
+                    </el-tooltip>
+                </template>
+            </el-table-column>
+            <el-table-column label="sink状态" align="left" prop="sinkStatus">
+                <template #default="scope">
+                    <el-tooltip content="运行中" placement="top" v-if="scope.row.sinkStatus === 1">
+                        <el-button link type="success" plain icon="video-play">运行中</el-button>
+                    </el-tooltip>
+                    <el-tooltip content="已停止" placement="top" v-if="scope.row.sinkStatus !== 1">
+                        <el-button link type="danger" plain icon="video-pause">已停止</el-button>
+                    </el-tooltip>
                 </template>
             </el-table-column>
             <el-table-column label="任务描述" align="left" prop="remark" :show-overflow-tooltip="true" width="150"/>
-            <el-table-column label="创建时间" align="center" prop="createTime" :show-overflow-tooltip="true" width="120" />
+            <el-table-column label="创建时间" align="center" prop="createTime" :show-overflow-tooltip="true" width="180">
+                <template #default="scope">
+                    <span>{{ parseTime(scope.row.createTime) }}</span>
+                </template>
+            </el-table-column>
             <el-table-column label="操作" align="center">
                 <template #default="scope">
                     <el-button-group class="ml-4">
-                        <el-tooltip content="启动任务" placement="top" v-if="scope.row.status === 1">
-                            <el-button link type="primary" plain icon="switch-button" @click="handleSync(scope.row)" v-hasPermission="['metadata:datasource:edit']" />
+                        <el-tooltip content="启动任务" placement="top" v-if="scope.row.sourceStatus !== 1 || scope.row.sinkStatus !== 1">
+                            <el-button link type="primary" plain icon="switch-button" @click="handleStart(scope.row)" v-hasPermission="['datasync:job:edit']" />
                         </el-tooltip>
-                        <el-tooltip content="停止任务" placement="top" v-if="scope.row.status === 1">
-                            <el-button link type="primary" plain icon="VideoPause" @click="handleSync(scope.row)" v-hasPermission="['metadata:datasource:edit']" />
+                        <el-tooltip content="停止任务" placement="top" v-if="scope.row.sourceStatus === 1 && scope.row.sinkStatus === 1">
+                            <el-button link type="primary" plain icon="VideoPause" @click="handleStop(scope.row)" v-hasPermission="['datasync:job:edit']" />
                         </el-tooltip>
-                        <el-tooltip content="任务监控" placement="top" v-if="scope.row.status === 1">
-                            <el-button link type="primary" plain icon="view" @click="handleSync(scope.row)" v-hasPermission="['metadata:datasource:edit']" />
+                        <el-tooltip content="任务监控" placement="top" v-if="scope.row.sourceStatus === 1 && scope.row.sinkStatus === 1">
+                            <el-button link type="primary" plain icon="view" @click="handleMonitor(scope.row)" v-hasPermission="['datasync:job:edit']" />
                         </el-tooltip>
-                        <el-tooltip content="编辑" placement="top"  v-if="scope.row.status === 1">
-                            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermission="['metadata:datasource:edit']"/>
+                        <el-tooltip content="编辑" placement="top"  v-if="scope.row.sourceStatus !== 1 || scope.row.sinkStatus !== 1">
+                            <el-button link type="primary" icon="Edit" @click="toEditJobPage(scope.row)" v-hasPermission="['datasync:job:edit']"/>
                         </el-tooltip>
-                        <el-tooltip content="删除" placement="top" v-if="scope.row.status === 0">
-                            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermission="['metadata:datasource:remove']"/>
+                        <el-tooltip content="删除" placement="top" v-if="scope.row.sourceStatus !== 1 || scope.row.sinkStatus !== 1">
+                            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermission="['datasync:job:remove']"/>
                         </el-tooltip>
                     </el-button-group>
                 </template>
             </el-table-column>
         </el-table>
-
         <!-- 分页 -->
         <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList"/>
-
-        <!-- 添加或修改对话框 -->
-        <el-dialog :title="title" v-model="open" width="600px" append-to-body style="width: 70%">
-            <div class="datasource-body">
-                <el-form ref="datasourceRef" :model="form" :rules="rules" label-width="100px">
-                    <el-divider direction="vertical"></el-divider><span class="divider-text">服务器配置</span>
-                    <div class="datasource-form">
-                        <el-row :gutter="24">
-                            <el-col :span="8">
-                                <el-form-item label="数据源名称" prop="datasourceName">
-                                    <el-input v-model="form.datasourceName" placeholder="请输入数据源名称" />
-                                </el-form-item>
-                            </el-col>
-                            <el-col :span="8" :push="2">
-                                <el-form-item label="数据源类型" prop="type" :span="8">
-                                    <el-select v-model="form.type" placeholder="请选择数据源类型">
-                                        <el-option v-for="dict in datasource_type" :key="dict.value" :label="dict.label" :value="dict.label" />
-                                    </el-select>
-                                </el-form-item>
-                            </el-col>
-                        </el-row>
-                        <el-row :gutter="24">
-                            <el-col :span="8">
-                                <el-form-item label="输入/输出源" prop="sourceType">
-                                    <el-select v-model="form.sourceType" placeholder="请选择输入/输出源类型">
-                                        <el-option v-for="item in sourceTypeOptions" :key="item.value" :label="item.label" :value="item.value" />
-                                    </el-select>
-                                </el-form-item>
-                            </el-col>
-                            <el-col :span="8" :push="2">
-                                <el-form-item label="ip/主机名" prop="ip">
-                                    <el-input v-model="form.ip" placeholder="请输入ip"/>
-                                </el-form-item>
-                            </el-col>
-                        </el-row>
-                        <el-row :gutter="24">
-                            <el-col :span="8">
-                                <el-form-item label="端口" prop="port">
-                                    <el-input-number v-model="form.port" placeholder="请输入端口"/>
-                                </el-form-item>
-                            </el-col>
-                            <el-col :span="8" :push="2">
-                                <el-form-item label="数据库名" prop="defaultDbName">
-                                    <el-input v-model="form.defaultDbName" placeholder="请输入数据库名"/>
-                                </el-form-item>
-                            </el-col>
-                        </el-row>
-                        <el-row :gutter="24">
-                            <el-col :span="24">
-                                <el-form-item label="启用状态" prop="status">
-                                    <el-radio-group v-model="form.status">
-                                        <el-radio v-for="dict in datasource_status" :key="dict.value" :label="dict.value">{{ dict.label }}</el-radio>
-                                    </el-radio-group>
-                                </el-form-item>
-                            </el-col>
-                        </el-row>
-                    </div>
-                    <el-divider direction="vertical"></el-divider><span class="divider-text">认证信息</span>
-                    <div class="datasource-form">
-                        <el-row :gutter="24">
-                            <el-col :span="8">
-                                <el-form-item label="用户名" prop="username">
-                                    <el-input v-model="form.username" placeholder="请输入用户名"/>
-                                </el-form-item>
-                            </el-col>
-                            <el-col :span="8" :push="2">
-                                <el-form-item label="密码" prop="password">
-                                    <el-input v-model="form.password" placeholder="不修改密码保持空即可" />
-                                </el-form-item>
-                            </el-col>
-                        </el-row>
-                    </div>
-                    <el-divider direction="vertical"></el-divider><span class="divider-text">高级配置</span>
-                    <div class="datasource-form">
-                        <el-row :gutter="24">
-                            <el-col :span="15">
-                                <el-form-item label="描述" prop="remark">
-                                    <el-input type="textarea" autosize v-model="form.remark" placeholder="请输入描述"/>
-                                </el-form-item>
-                            </el-col>
-                        </el-row>
-                        <el-row :gutter="24">
-                            <el-col :span="15">
-                                <el-form-item label="连接参数" prop="connectionParams">
-                                    <el-input type="textarea" autosize v-model="form.connectionParams" placeholder="请输入连接参数"/>
-                                </el-form-item>
-                            </el-col>
-                        </el-row>
-                    </div>
-                </el-form>
-            </div>
-            <template #footer>
-                <div class="dialog-footer">
-                    <el-button type="primary" @click="submitForm">确 定</el-button>
-                    <el-button @click="cancel">取 消</el-button>
-                </div>
-            </template>
-        </el-dialog>
-
-        <!-- 同步元数据弹框 -->
-        <el-dialog title="同步元数据" v-model="syncMetaDialog" append-to-body>
-            <el-form :model="form">
-                <el-form-item label="请选择库表：" :label-width="100">
-                    <el-tree class="tree-border"
-                             :data="dbTableOptions"
-                             lazy
-                             :load="loadTables"
-                             show-checkbox
-                             ref="dbTableRef"
-                             node-key="uniqueFlag"
-                             empty-text="加载中，请稍候"
-                             :props="{label: 'label', isLeaf: 'isLeaf'}">
-                    </el-tree>
-                </el-form-item>
-            </el-form>
-            <div slot="footer" class="dialog-footer">
-                <el-button @click="cancelSync">取消</el-button>
-                <el-button type="primary" @click="syncDbTables">确定</el-button>
-            </div>
-        </el-dialog>
     </div>
 </template>
 
 <script setup name="job">
-import * as datasourceApi from '@/api/metadata/datasourceApi';
-import * as schemaApi from "@/api/metadata/schemaApi";
+import * as jobApi from "@/api/datasync/jobApi";
 
 const router = useRouter();
 const { proxy } = getCurrentInstance();
-const { datasource_status, datasource_type} = proxy.useDict('datasource_status', 'datasource_type');
-const datasourceList = ref([]);
-const open = ref(false);
-const syncMetaDialog = ref(false);
+const jobList = ref([]);
 const loading = ref(true);
 const showSearch = ref(true);
-const ids = ref([]);
-const single = ref(true);
-const multiple = ref(true);
 const total = ref(0);
-const title = ref('');
-const dbTableOptions = ref([]);
-const checkedKeys = ref([]);
-const expandedKeys = ref([]);
-const dbTableRef = ref(null);
-const sourceTypeOptions = [
-    {
-        value: 1,
-        label: '输入源'
-    },
-    {
-        value: 2,
-        label: '输出源'
-    }
-];
 
 const data = reactive({
     form: {},
     queryParams: {
         pageNum: 1,
         pageSize: 10,
-        datasourceName: undefined,
-        type: undefined,
-        ip: undefined,
-        status: undefined,
-    },
-    rules: {
-        datasourceName: [{ required: true, message: '数据源名称不能为空', trigger: 'blur' }],
-        type: [{ required: true, message: '数据源类型不能为空', trigger: 'blur' }],
-        ip: [{ required: true, message: 'ip不能为空', trigger: 'blur' }],
-        port: [{ required: true, message: '端口不能为空', trigger: 'blur' }],
-        defaultDbName: [{ required: true, message: '数据库不能为空', trigger: 'blur' }],
-        username: [{ required: true, message: '用户名不能为空', trigger: 'blur' }],
-    },
+        jobName: undefined,
+        catalogName: undefined
+    }
 });
 
-const { queryParams, form, rules } = toRefs(data);
+const { queryParams, form } = toRefs(data);
 
+/**
+ * 跳转新增页面
+ */
 function toAddJobPage() {
-    router.push(`/datasync/job-manager/addJob`);
+    router.push(`/datasync/job-manager/addJob`)
 }
 
-/** 查询数据源列表 */
+/**
+ * 跳转编辑页面
+ */
+function toEditJobPage(row) {
+    const { jobId } = row;
+    router.push(`/datasync/job-manager/editJob/${jobId}`)
+}
+
+/** 查询任务列表 */
 function getList() {
     loading.value = true;
-    datasourceApi
-        .listDatasource(queryParams.value)
+    jobApi.pageList(queryParams.value)
         .then((response) => {
-            datasourceList.value = [{
-                jobName: "订单数据同步",
-                catalogName: "商品分组",
-                sourceDatasourceName: "localhost",
-                sinkDatasourceName: "test_doris",
-                syncType: "初始快照",
-                remark: "此任务用于订单数据同步",
-                createTime: "2023-04-20 21:23:20",
-                status:1
-            },{
-                jobName: "商品数据同步",
-                catalogName: "商品分组",
-                sourceDatasourceName: "localhost",
-                sinkDatasourceName: "test_doris",
-                syncType: "初始快照",
-                remark: "此任务用于商品数据同步",
-                createTime: "2023-04-20 23:12:21",
-                status:1
-            },{
-                jobName: "日志数据同步",
-                catalogName: "日志分组",
-                sourceDatasourceName: "localhost",
-                sinkDatasourceName: "test_doris",
-                syncType: "初始快照",
-                remark: "此任务用于日志数据同步",
-                createTime: "2023-04-21 22:21:10",
-                status:1
-            }]
-            total.value = response.total;
+            jobList.value = response.rows
+            total.value = response.total
         })
         .finally(() => {
             loading.value = false;
         });
 }
 
-/** 取消按钮 */
-function cancel() {
-    open.value = false;
-    reset();
-}
-
 /** 表单重置 */
 function reset() {
     form.value = {
-        datasourceId: undefined,
         datasourceName: undefined,
-        type: undefined,
-        ip: undefined,
-        port: 0,
-        status: '0',
         remark: undefined,
     };
-    proxy.resetForm('datasourceRef');
-}
-
-function resetTreeChecked() {
-    checkedKeys.value = [];
-    expandedKeys.value = [];
+    proxy.resetForm('jobRef');
 }
 
 /** 搜索按钮操作 */
@@ -318,163 +151,5 @@ function resetQuery() {
     proxy.resetForm('queryRef');
     handleQuery();
 }
-
-/** 多选框选中数据 */
-function handleSelectionChange(selection) {
-    ids.value = selection.map((item) => item.datasourceId);
-    single.value = selection.length != 1;
-    multiple.value = !selection.length;
-}
-
-/** 新增按钮操作 */
-function handleAdd() {
-    reset();
-    open.value = true;
-    title.value = '新增数据源';
-}
-
-function handleTest(row) {
-    reset();
-    const datasourceId = row.datasourceId || ids.value;
-    datasourceApi.testDatasource(datasourceId).then((response) => {
-        if (response) {
-            proxy.$modal.msgSuccess("测试成功");
-        } else {
-            proxy.$modal.msgError("测试失败");
-        }
-    }).catch(() => {});
-}
-
-/** 修改按钮操作 */
-function handleUpdate(row) {
-    reset();
-    const datasourceId = row.datasourceId || ids.value;
-    datasourceApi.getDatasource(datasourceId).then((response) => {
-        form.value = response;
-        open.value = true;
-        title.value = '修改数据源';
-    });
-}
-
-function handleStatusChange(row) {
-    const text = row.status ? '启用' : '停用';
-    proxy.$modal
-        .confirm(`确认要"${text}""${row.datasourceName}"数据源吗?`)
-        .then(() => datasourceApi.changeStatus(row.datasourceId, row.status))
-        .then(() => {
-            proxy.$modal.msgSuccess(`${text}成功`);
-        })
-        .catch(() => {
-            row.status = row.status === '0' ? '1' : '0';
-        });
-}
-
-/** 提交按钮 */
-function submitForm() {
-    proxy.$refs.datasourceRef.validate((valid) => {
-        if (valid) {
-            if (form.value.datasourceId !== undefined) {
-                datasourceApi.updateDatasource(form.value).then((response) => {
-                    proxy.$modal.msgSuccess('修改成功');
-                    open.value = false;
-                    getList();
-                });
-            } else {
-                datasourceApi.addDatasource(form.value).then((response) => {
-                    proxy.$modal.msgSuccess('新增成功');
-                    open.value = false;
-                    getList();
-                });
-            }
-        }
-    });
-}
-
-/** 删除按钮操作 */
-function handleDelete(row) {
-    const datasourceIds = row.datasourceId || ids.value;
-    proxy.$modal
-        .confirm(`是否确认删除ID为"${datasourceIds}"的数据源吗？`)
-        .then(() => datasourceApi.deleteDatasource(datasourceIds))
-        .then(() => {
-            getList();
-            proxy.$modal.msgSuccess('删除成功');
-        })
-        .catch(() => {});
-}
-
-function handleSync(row) {
-    form.value.datasourceId = row.datasourceId;
-    getSchemaDbList(row.datasourceId);
-    syncMetaDialog.value = true;
-}
-
-function getSchemaDbList(datasourceId) {
-    schemaApi.getSchemaDbList(datasourceId).then((response) => {
-        dbTableOptions.value = response.schemaDbList;
-        checkedKeys.value = response.checkedKeys;
-        expandedKeys.value = response.expandedKeys;
-    }).catch(() => {})
-}
-
-function loadTables(node, resolve) {
-    const data = node.data;
-    if (node.level === 0) {
-        return resolve([{ name: '' }]);
-    }
-    if (node.level > 1) return resolve([]);
-    setTimeout(() => {
-        schemaApi.getSchemaTableList(data.datasourceId, data.dbName).then((response) => {
-            resolve(response);
-        });
-    }, 500);
-}
-
-function cancelSync() {
-    syncMetaDialog.value = false;
-    reset();
-    resetTreeChecked();
-}
-
-function syncDbTables() {
-    form.value.dbTables = getAllCheckedKeys();
-    schemaApi.syncDbTables(form.value).then((response) => {
-        proxy.$modal.msgSuccess('同步成功');
-        syncMetaDialog.value = false;
-        resetTreeChecked();
-        getList();
-    });
-}
-
-function getAllCheckedKeys() {
-    // 目前被选中的节点
-    const checkedKeys = dbTableRef.value.getCheckedKeys();
-    // 半选中的节点
-    const halfCheckedKeys = dbTableRef.value.getHalfCheckedKeys();
-    checkedKeys.unshift.apply(checkedKeys, halfCheckedKeys);
-    return checkedKeys;
-}
 getList();
 </script>
-<style>
-.datasource-form {
-    margin-top: 15px;
-    border: 1px dashed #e2dcd2;
-    padding: 15px 20px;
-}
-
-.el-divider--vertical {
-    border-left: 2px #1c84c6 solid;
-    margin: 0 5px;
-}
-
-.divider-text {
-    display: inline-block;
-    margin-top: 10px;
-}
-
-.datasource-body {
-    height:500px;
-    overflow-y: scroll
-}
-</style>
