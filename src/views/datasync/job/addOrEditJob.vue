@@ -151,12 +151,12 @@
                     <el-row :gutter="24">
                         <el-col :span="8" :push="2">
                             <el-form-item label="任务名称：" prop="jobName">
-                                <el-input v-model="form.jobName" placeholder="请输入任务名称"/>
+                                <el-input v-model="jobDetail.jobName" placeholder="请输入任务名称"/>
                             </el-form-item>
                         </el-col>
                         <el-col :span="8" :push="6">
                             <el-form-item label="所属分组：" prop="catalogId">
-                                <el-select v-model="form.catalogId" placeholder="请选择所属分组">
+                                <el-select v-model="jobDetail.catalogId" placeholder="请选择所属分组">
                                     <el-option v-for="item in catalogOption"
                                                :key="item.catalogId"
                                                :label="item.catalogName"
@@ -168,7 +168,7 @@
                     <el-row :gutter="24">
                         <el-col :span="8" :push="2">
                             <el-form-item label="调度容器：" prop="appContainer">
-                                <el-select v-model="form.appContainer" placeholder="请选择" clearable>
+                                <el-select v-model="jobDetail.appContainer" placeholder="请选择" clearable>
                                     <el-option v-for="item in appContainerOptions"
                                                :key="item.value"
                                                :label="item.label"
@@ -178,7 +178,7 @@
                         </el-col>
                         <el-col :span="8" :push="6">
                             <el-form-item label="任务描述：" prop="remark">
-                                <el-input v-model="form.remark" placeholder="请输入任务描述"/>
+                                <el-input v-model="jobDetail.remark" placeholder="请输入任务描述"/>
                             </el-form-item>
                         </el-col>
                     </el-row>
@@ -188,7 +188,7 @@
                     <el-row :gutter="24">
                         <el-col :span="8" :push="2">
                             <el-form-item label="窗口间隔：" prop="windowSize">
-                                <el-select v-model="form.windowSize" placeholder="请选择" clearable>
+                                <el-select v-model="jobDetail.windowSize" placeholder="请选择" clearable>
                                     <el-option :value="5" :label="5" :key="5"/>
                                     <el-option :value="10" :label="10" :key="10"/>
                                     <el-option :value="30" :label="30" :key="30"/>
@@ -200,7 +200,7 @@
                         </el-col>
                         <el-col :span="8" :push="2">
                             <el-form-item label="最大条数：" prop="maxCount">
-                                <el-select v-model="form.maxCount" placeholder="请选择" clearable>
+                                <el-select v-model="jobDetail.maxCount" placeholder="请选择" clearable>
                                     <el-option :value="1" :label="1" :key="1"/>
                                     <el-option :value="2" :label="2" :key="2"/>
                                     <el-option :value="5" :label="5" :key="5"/>
@@ -215,7 +215,7 @@
                     <el-row :gutter="24">
                         <el-col :span="8" :push="2">
                             <el-form-item label="最大数据量：" prop="maxSize">
-                                <el-select v-model="form.maxSize" placeholder="请选择" clearable>
+                                <el-select v-model="jobDetail.maxSize" placeholder="请选择" clearable>
                                     <el-option :value="10" :label="10" :key="10"/>
                                     <el-option :value="20" :label="20" :key="20"/>
                                 </el-select>
