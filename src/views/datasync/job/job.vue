@@ -10,12 +10,12 @@
         <div v-show="active===1" class="layout">
             <div class="select-header">
                 <div class="select-header-title">输入源配置</div>
-                <el-form :model="form" ref="queryRef">
+                <el-form :model="form" ref="sourceConfRef">
                     <el-row :gutter="10">
                         <el-col :span="12" :pull="12">
                             <el-form-item label="输入源" prop="sourceDatasourceId">
                                 <el-select
-                                        v-model="jobDetail.sourceDatasourceId"
+                                        v-model="form.sourceDatasourceId"
                                         value-key="datasourceId"
                                         @change="selectSourceDatasource($event)"
                                         placeholder="请选择输入源"
@@ -31,7 +31,7 @@
                         <el-col :span="12" :push="12">
                             <el-form-item label="数据库" prop="sourceDbName">
                                 <el-select
-                                        v-model="jobDetail.sourceDbName"
+                                        v-model="form.sourceDbName"
                                         value-key="dbName"
                                         @change="selectSourceDb($event)"
                                         placeholder="请选择数据库"
@@ -60,12 +60,12 @@
         <div v-show="active===2" class="layout">
             <div class="select-header">
                 <div class="select-header-title">输出源配置</div>
-                <el-form :model="form" ref="queryRef">
+                <el-form :model="form" ref="sinkConfRef">
                     <el-row :gutter="10">
                         <el-col :span="12" :pull="12">
                             <el-form-item label="输出源" prop="sinkDatasourceId">
                                 <el-select
-                                        v-model="jobDetail.sinkDatasourceId"
+                                        v-model="form.sinkDatasourceId"
                                         value-key="datasourceId"
                                         @change="selectSinkDatasource($event)"
                                         placeholder="请选择输出源"
@@ -81,7 +81,7 @@
                         <el-col :span="12" :push="12">
                             <el-form-item label="数据库" prop="sinkDbName">
                                 <el-select
-                                        v-model="jobDetail.sinkDbName"
+                                        v-model="form.sinkDbName"
                                         value-key="dbName"
                                         @change="selectSinkDb($event)"
                                         placeholder="请选择数据库"
@@ -118,10 +118,10 @@
                     </div>
                     <!-- 输出表 -->
                     <div class="right-table table-wrapper">
-                        <el-table ref="sinkTableRef" :data="sourceTableRight" border style="width: 100%">
+                        <el-table ref="sinkTableRef" :data="mappedSinkTable" border style="width: 100%">
                             <el-table-column prop="sinkTableName" label="输出表">
                                 <template #default="scope">
-                                    <el-select v-model="scope.row.sinkTableName"
+                                    <el-select v-model="scope.row.tableName"
                                                placeholder="请选择表"
                                                clearable
                                                filterable>
@@ -134,7 +134,7 @@
                             </el-table-column>
                             <el-table-column label="操作">
                                 <template #default="scope">
-                                    <el-button link type="primary" @click="columnMappingConf(scope.row)">字段映射配置</el-button>
+                                    <el-button link type="primary" @click="columnMappingConf(scope.$index, scope.row)">字段映射配置</el-button>
                                 </template>
                             </el-table-column>
                         </el-table>
@@ -145,18 +145,18 @@
 
         <!-- 任务参数配置 -->
         <div v-show="active===3" class="layout">
-            <el-form ref="datasourceRef" :model="form" :rules="rules" label-width="100px">
+            <el-form ref="taskFormRef" :model="form" :rules="rules" label-width="100px">
                 <el-divider direction="vertical"></el-divider><span class="divider-text">基础配置</span>
                 <div class="task-params-form">
                     <el-row :gutter="24">
                         <el-col :span="8" :push="2">
                             <el-form-item label="任务名称：" prop="jobName">
-                                <el-input v-model="jobDetail.jobName" placeholder="请输入任务名称"/>
+                                <el-input v-model="form.jobName" placeholder="请输入任务名称"/>
                             </el-form-item>
                         </el-col>
                         <el-col :span="8" :push="6">
                             <el-form-item label="所属分组：" prop="catalogId">
-                                <el-select v-model="jobDetail.catalogId" placeholder="请选择所属分组">
+                                <el-select v-model="form.catalogId" placeholder="请选择所属分组">
                                     <el-option v-for="item in catalogOption"
                                                :key="item.catalogId"
                                                :label="item.catalogName"
@@ -168,7 +168,7 @@
                     <el-row :gutter="24">
                         <el-col :span="8" :push="2">
                             <el-form-item label="调度容器：" prop="appContainer">
-                                <el-select v-model="jobDetail.appContainer" placeholder="请选择" clearable>
+                                <el-select v-model="form.appContainer" placeholder="请选择" clearable>
                                     <el-option v-for="item in appContainerOptions"
                                                :key="item.value"
                                                :label="item.label"
@@ -178,7 +178,7 @@
                         </el-col>
                         <el-col :span="8" :push="6">
                             <el-form-item label="任务描述：" prop="remark">
-                                <el-input v-model="jobDetail.remark" placeholder="请输入任务描述"/>
+                                <el-input v-model="form.remark" placeholder="请输入任务描述"/>
                             </el-form-item>
                         </el-col>
                     </el-row>
@@ -188,7 +188,7 @@
                     <el-row :gutter="24">
                         <el-col :span="8" :push="2">
                             <el-form-item label="窗口间隔：" prop="windowSize">
-                                <el-select v-model="jobDetail.windowSize" placeholder="请选择" clearable>
+                                <el-select v-model="form.windowSize" placeholder="请选择" clearable>
                                     <el-option :value="5" :label="5" :key="5"/>
                                     <el-option :value="10" :label="10" :key="10"/>
                                     <el-option :value="30" :label="30" :key="30"/>
@@ -200,7 +200,7 @@
                         </el-col>
                         <el-col :span="8" :push="2">
                             <el-form-item label="最大条数：" prop="maxCount">
-                                <el-select v-model="jobDetail.maxCount" placeholder="请选择" clearable>
+                                <el-select v-model="form.maxCount" placeholder="请选择" clearable>
                                     <el-option :value="1" :label="1" :key="1"/>
                                     <el-option :value="2" :label="2" :key="2"/>
                                     <el-option :value="5" :label="5" :key="5"/>
@@ -215,7 +215,7 @@
                     <el-row :gutter="24">
                         <el-col :span="8" :push="2">
                             <el-form-item label="最大数据量：" prop="maxSize">
-                                <el-select v-model="jobDetail.maxSize" placeholder="请选择" clearable>
+                                <el-select v-model="form.maxSize" placeholder="请选择" clearable>
                                     <el-option :value="10" :label="10" :key="10"/>
                                     <el-option :value="20" :label="20" :key="20"/>
                                 </el-select>
@@ -232,7 +232,7 @@
             <el-button v-if="this.active === 1" style="margin-top: 15px" @click="cancel">取消</el-button>
             <el-button v-if="this.active !== 1" style="margin-top: 15px" @click="back">上一步</el-button>
             <el-button v-if="this.active !== 3" type="primary" style="margin-top: 15px" @click="next">下一步</el-button>
-            <el-button v-if="this.active === 3" type="primary" style="margin-top: 15px" @click="submit">提交</el-button>
+            <el-button v-if="this.active === 3" type="primary" style="margin-top: 15px" @click="saveJob">提交</el-button>
         </div>
 
         <!-- 字段映射弹框 -->
@@ -290,7 +290,7 @@
     </div>
 </template>
 
-<script setup name="addJob">
+<script setup name="job">
 import * as datasourceApi from "@/api/metadata/datasourceApi";
 import * as dbApi from "@/api/metadata/dbApi";
 import * as tableApi from "@/api/metadata/tableApi";
@@ -312,9 +312,13 @@ const sourceTableRight = ref([])
 const rightTable = ref([])
 const sourceTable = ref({})
 const sinkTable = ref([])
+const mappedSinkTable  = ref([])
+const sourceConfRef = ref(null)
+const sinkConfRef = ref(null)
 const sinkTableRef = ref(null)
 const sourceColumnRef = ref(null)
 const sinkColumnRef = ref(null)
+const taskFormRef = ref(null)
 const catalogOption = ref([])
 const mappedColumn = ref({})
 const sinkColumns = ref([])
@@ -332,10 +336,6 @@ const jobId = ref(null)
 const jobDetail = ref({})
 const data = reactive({
     form: {
-        sourceDatasourceId:undefined,
-        sourceDbName:undefined,
-        sinkDatasourceId:undefined,
-        sinkDbName:undefined
     },
     rules: {
         jobName: [{ required: true, message: '任务名称不能为空', trigger: 'blur' }],
@@ -376,13 +376,18 @@ function next() {
 /**
  * 保存任务信息
  */
-function submit() {
-    console.log(sinkTableRef.value.data)
+function saveJob() {
     form.value.tableMappings = sinkTableRef.value.data
-    console.log(form.value)
-    jobApi.add(form.value).then((response) => {
-        proxy.$message({ message: '任务新建成功', type: 'success' })
-    })
+    if (jobId.value) {
+        form.value.jobId = jobId.value
+        jobApi.update(form.value).then((response) => {
+            proxy.$message({ message: '任务更新成功', type: 'success' })
+        })
+    } else {
+        jobApi.add(form.value).then((response) => {
+            proxy.$message({ message: '任务保存成功', type: 'success' })
+        })
+    }
 }
 
 /**
@@ -518,27 +523,32 @@ function selectSinkDb(e) {
 // 右侧列表元素变化
 function sourceTableRightChange(data) {
     sourceTableRight.value = []
+    mappedSinkTable.value = []
     for (let i in data) {
         let sourceTable = {
             sourceTableName: data[i]
         }
         sourceTableRight.value.push(sourceTable)
+        mappedSinkTable.value.push(sourceTable)
     }
 }
 
 /**
  * 字段映射配置
+ * @param index
  * @param row
  */
-function columnMappingConf(row) {
+function columnMappingConf(index, row) {
     columnMappingDialog.value = true
+    let sourceTableName = sourceTableRight.value[index].sourceTableName
     let query = {
-        sourceDatasourceId: form.value.sourceDatasourceId,
-        sourceDbName: form.value.sourceDbName,
-        sourceTableName: row.sourceTableName,
-        sinkDatasourceId: form.value.sinkDatasourceId,
-        sinkDbName: form.value.sinkDbName,
-        sinkTableName: row.sinkTableName
+        sourceDatasourceId: form.sourceDatasourceId,
+        sourceDbName: form.sourceDbName,
+        sourceTableName: sourceTableName,
+        sinkDatasourceId: form.sinkDatasourceId,
+        sinkDbName: form.sinkDbName,
+        sinkTableName: row.tableName,
+        jobId: jobId.value
     }
 
     jobApi.listMappedColumn(query).then((response) => {
@@ -548,7 +558,7 @@ function columnMappingConf(row) {
         };
     }).catch(() => {})
 
-    columnApi.listTableByName(form.value.sinkDatasourceId, form.value.sinkDbName, row.sinkTableName).then((response) => {
+    columnApi.listTableByName(form.sinkDatasourceId, form.sinkDbName, row.tableName).then((response) => {
         sinkColumns.value = response
     })
 }
@@ -591,11 +601,13 @@ function doCheckColumnMapping() {
         proxy.$message({ message: '至少选择一个字段', type: 'error' })
     } else {
         sinkTableRef.value.data.forEach((v, i) => {
-            if (v.sourceTableName === sourceTableName) {
+            if (sourceColumnRef.value.data[i].tableName === sourceTableName) {
                 v.sourceColumns = sourceColumnRef.value.data;
+                v.sourceTableName = sourceTableName;
             }
-            if (v.sinkTableName === sinkTableName) {
+            if (v.tableName === sinkTableName) {
                 v.sinkColumns = sinkColumnRef.value.data;
+                v.sinkTableName = sinkTableName;
             }
         })
         columnMappingDialog.value = false;
@@ -604,22 +616,42 @@ function doCheckColumnMapping() {
 
 initSteps();
 listSourceDatasource();
+
 (() => {
     jobId.value = route.params && route.params.jobId;
     if (jobId.value) {
         jobApi.detail(jobId.value).then((response) => {
             jobDetail.value = response
+            form.value.sourceDatasourceId = jobDetail.value.sourceDatasourceId
+            form.value.sourceDbName = jobDetail.value.sourceDbName
+            form.value.sinkDatasourceId = jobDetail.value.sinkDatasourceId
+            form.value.sinkDbName = jobDetail.value.sinkDbName
+            form.value.jobName = jobDetail.value.jobName
+            form.value.catalogId = jobDetail.value.catalogId
+            form.value.appContainer = jobDetail.value.appContainer
+            form.value.remark = jobDetail.value.remark
+            form.value.windowSize = jobDetail.value.windowSize
+            form.value.maxCount = jobDetail.value.maxCount
+            form.value.maxSize = jobDetail.value.maxSize
+
             selectSourceDatasource(jobDetail.value.sourceDatasourceId)
             selectSourceDb(jobDetail.value.sourceDbName)
-            let mappedSourceDbTables = jobDetail.value.mappedSourceDbTable
+            let mappedTable = jobDetail.value.mappedTable
 
+            let mappedSourceDbTables = mappedTable.mappedSourceTables
+            let mappedSinkDbTables = mappedTable.mappedSinkTables
             for (let i in mappedSourceDbTables) {
                 sourceTableRight.value.push({
                     sourceTableName: mappedSourceDbTables[i].tableName
                 })
                 rightTable.value.push(mappedSourceDbTables[i].tableName)
             }
-            console.log(sourceTable.value)
+            for (let i in mappedSinkDbTables) {
+                mappedSinkTable.value.push({
+                    tableId: mappedSinkDbTables[i].metaTableId,
+                    tableName: mappedSinkDbTables[i].tableName
+                })
+            }
             selectSinkDatasource(jobDetail.value.sinkDatasourceId)
             selectSinkDb(jobDetail.value.sinkDbName)
         });

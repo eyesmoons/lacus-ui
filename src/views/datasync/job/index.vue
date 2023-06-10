@@ -1,12 +1,15 @@
 <template>
     <div class="app-container">
-        <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="90px">
-            <el-form-item label="任务名称" prop="datasourceName">
+        <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch">
+            <el-form-item label="任务名称" prop="jobName">
                 <el-input v-model="queryParams.jobName" placeholder="请输入任务名称" clearable @keyup.enter="handleQuery" />
             </el-form-item>
             <el-form-item label="任务分组" prop="catalogName">
                 <el-select v-model="queryParams.catalogName" placeholder="请选择任务分组" clearable>
-                    <el-option v-for="dict in datasource_status" :key="dict.value" :label="dict.label" :value="dict.value" />
+                    <el-option v-for="item in catalogOption"
+                               :key="item.catalogId"
+                               :label="item.catalogName"
+                               :value="item.catalogId"/>
                 </el-select>
             </el-form-item>
             <el-form-item>
@@ -21,10 +24,14 @@
             </el-col>
         </el-row>
 
-        <el-table v-loading="loading" :data="jobList" stripe>
-            <el-table-column type="selection" width="55" align="center" />
-            <el-table-column label="任务名称" align="left" prop="jobName" />
-            <el-table-column label="任务分组" align="left" prop="catalogName" />
+        <el-table
+                v-if="refreshTable"
+                v-loading="loading"
+                :data="jobList"
+                row-key="jobId"
+                :default-expand-all="isExpandAll"
+                :tree-props="{ children: 'children', hasChildren: 'hasChildren' }">
+            <el-table-column prop="jobName" label="任务 / 分组名称" :show-overflow-tooltip="true" width="160" />
             <el-table-column label="输入源" align="left" prop="sourceDatasourceName" />
             <el-table-column label="输出源" align="left" prop="sinkDatasourceName" />
             <el-table-column label="同步方式" align="left" prop="syncTypeName" />
@@ -48,41 +55,30 @@
                     </el-tooltip>
                 </template>
             </el-table-column>
-            <el-table-column label="任务描述" align="left" prop="remark" :show-overflow-tooltip="true" width="150"/>
-            <el-table-column label="创建时间" align="center" prop="createTime" :show-overflow-tooltip="true" width="180">
-                <template #default="scope">
-                    <span>{{ parseTime(scope.row.createTime) }}</span>
-                </template>
-            </el-table-column>
-            <el-table-column label="操作" align="center">
+            <el-table-column label="任务 / 分组描述" align="left" prop="remark" :show-overflow-tooltip="true" width="150"/>
+            <el-table-column label="操作" align="center" width="200" class-name="small-padding fixed-width">
                 <template #default="scope">
                     <el-button-group class="ml-4">
-                        <el-tooltip content="启动任务" placement="top" v-if="scope.row.sourceStatus !== 1 || scope.row.sinkStatus !== 1">
-                            <el-button link type="primary" plain icon="switch-button" @click="handleStart(scope.row)" v-hasPermission="['datasync:job:edit']" />
+                        <el-tooltip content="启动任务" placement="top"  v-if="scope.row.catalogId === '0' && (scope.row.sourceStatus !== 1 || scope.row.sinkStatus !== 1)">
+                            <el-button link type="primary" icon="switch-button" @click="handleStart(scope.row)" v-hasPermission="['datasync:job:edit']"/>
                         </el-tooltip>
-                        <el-tooltip content="停止任务" placement="top" v-if="scope.row.sourceStatus === 1 && scope.row.sinkStatus === 1">
-                            <el-button link type="primary" plain icon="VideoPause" @click="handleStop(scope.row)" v-hasPermission="['datasync:job:edit']" />
-                        </el-tooltip>
-                        <el-tooltip content="任务监控" placement="top" v-if="scope.row.sourceStatus === 1 && scope.row.sinkStatus === 1">
-                            <el-button link type="primary" plain icon="view" @click="handleMonitor(scope.row)" v-hasPermission="['datasync:job:edit']" />
-                        </el-tooltip>
-                        <el-tooltip content="编辑" placement="top"  v-if="scope.row.sourceStatus !== 1 || scope.row.sinkStatus !== 1">
+                        <el-tooltip content="编辑" placement="top"  v-if="scope.row.catalogId !== '0' && (scope.row.sourceStatus !== 1 || scope.row.sinkStatus !== 1)">
                             <el-button link type="primary" icon="Edit" @click="toEditJobPage(scope.row)" v-hasPermission="['datasync:job:edit']"/>
                         </el-tooltip>
-                        <el-tooltip content="删除" placement="top" v-if="scope.row.sourceStatus !== 1 || scope.row.sinkStatus !== 1">
+                        <el-tooltip content="删除" placement="top" v-if="scope.row.catalogId !== '0' && (scope.row.sourceStatus !== 1 || scope.row.sinkStatus !== 1)">
                             <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermission="['datasync:job:remove']"/>
                         </el-tooltip>
                     </el-button-group>
                 </template>
             </el-table-column>
         </el-table>
-        <!-- 分页 -->
-        <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList"/>
     </div>
 </template>
 
-<script setup name="job">
+<script setup name="jobManager">
 import * as jobApi from "@/api/datasync/jobApi";
+import * as catalogApi from "@/api/datasync/catalogApi";
+import {ref} from "vue";
 
 const router = useRouter();
 const { proxy } = getCurrentInstance();
@@ -90,12 +86,13 @@ const jobList = ref([]);
 const loading = ref(true);
 const showSearch = ref(true);
 const total = ref(0);
+const isExpandAll = ref(false);
+const refreshTable = ref(true);
+const catalogOption = ref([])
 
 const data = reactive({
     form: {},
     queryParams: {
-        pageNum: 1,
-        pageSize: 10,
         jobName: undefined,
         catalogName: undefined
     }
@@ -118,13 +115,24 @@ function toEditJobPage(row) {
     router.push(`/datasync/job-manager/editJob/${jobId}`)
 }
 
-/** 查询任务列表 */
+/**
+ * 初始化分组下拉框
+ */
+function initCatalogOption() {
+    catalogApi.list(null)
+        .then((response) => {
+            catalogOption.value = response;
+        })
+}
+
+/**
+ * 树形列表
+ */
 function getList() {
     loading.value = true;
-    jobApi.pageList(queryParams.value)
+    jobApi.jobListTree(queryParams.value)
         .then((response) => {
-            jobList.value = response.rows
-            total.value = response.total
+            jobList.value = proxy.handleTree(response, 'jobId', 'catalogId');
         })
         .finally(() => {
             loading.value = false;
@@ -142,7 +150,6 @@ function reset() {
 
 /** 搜索按钮操作 */
 function handleQuery() {
-    queryParams.value.pageNum = 1;
     getList();
 }
 
@@ -151,5 +158,7 @@ function resetQuery() {
     proxy.resetForm('queryRef');
     handleQuery();
 }
+
+initCatalogOption();
 getList();
 </script>
