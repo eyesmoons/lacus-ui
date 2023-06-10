@@ -2,7 +2,7 @@ import request from '@/utils/request';
 
 export function listMappedColumn(data) {
     return request({
-        url: `/datasync/job/listMappedColumn`,
+        url: `/datasync/job/manager/listMappedColumn`,
         method: 'post',
         data
     });
@@ -10,15 +10,31 @@ export function listMappedColumn(data) {
 
 export function add(data) {
     return request({
-        url: `/datasync/job/add`,
+        url: `/datasync/job/manager/add`,
         method: 'post',
         data
     });
 }
 
+export function update(data) {
+    return request({
+        url: `/datasync/job/manager/modify`,
+        method: 'post',
+        data
+    });
+}
+
+export function jobListTree(query) {
+    return request({
+        url: `/datasync/job/manager/jobListTree`,
+        method: 'get',
+        params: query,
+    })
+}
+
 export function pageList(query) {
     return request({
-        url: `/datasync/job/pageList`,
+        url: `/datasync/job/manager/pageList`,
         method: 'get',
         params: query,
     })
@@ -26,7 +42,7 @@ export function pageList(query) {
 
 export function listSavedDbTableByDbName(query) {
     return request({
-        url: `/datasync/job/listSavedDbTableByDbName`,
+        url: `/datasync/job/manager/listSavedDbTableByDbName`,
         method: 'get',
         params: query,
     })
@@ -34,14 +50,14 @@ export function listSavedDbTableByDbName(query) {
 
 export function listSavedDbTableByJobId(jobId) {
     return request({
-        url: `/datasync/job/listSavedDbTableByDbName/${jobId}`,
+        url: `/datasync/job/manager/listSavedDbTableByDbName/${jobId}`,
         method: 'get'
     })
 }
 
 export function detail(jobId) {
     return request({
-        url: `/datasync/job/detail/${jobId}`,
+        url: `/datasync/job/manager/detail/${jobId}`,
         method: 'get'
     })
 }
