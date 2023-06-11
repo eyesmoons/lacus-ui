@@ -102,8 +102,8 @@
                     <!-- 输入表 -->
                     <div class="left-table table-wrapper">
                         <el-table ref="sourceTableRef" :data="sourceTableRight" border style="width: 100%">
-                            <el-table-column type="index" label="序号" width="60" />
-                            <el-table-column prop="sourceTableName" label="输入表" />
+                            <el-table-column type="index" label="序号" width="60"/>
+                            <el-table-column prop="sourceTableName" label="输入表"/>
                         </el-table>
                     </div>
                     <!-- 映射关系line -->
@@ -134,7 +134,9 @@
                             </el-table-column>
                             <el-table-column label="操作">
                                 <template #default="scope">
-                                    <el-button link type="primary" @click="columnMappingConf(scope.$index, scope.row)">字段映射配置</el-button>
+                                    <el-button link type="primary" @click="columnMappingConf(scope.$index, scope.row)">
+                                        字段映射配置
+                                    </el-button>
                                 </template>
                             </el-table-column>
                         </el-table>
@@ -146,7 +148,8 @@
         <!-- 任务参数配置 -->
         <div v-show="active===3" class="layout">
             <el-form ref="taskFormRef" :model="form" :rules="rules" label-width="100px">
-                <el-divider direction="vertical"></el-divider><span class="divider-text">基础配置</span>
+                <el-divider direction="vertical"></el-divider>
+                <span class="divider-text">基础配置</span>
                 <div class="task-params-form">
                     <el-row :gutter="24">
                         <el-col :span="8" :push="2">
@@ -160,7 +163,7 @@
                                     <el-option v-for="item in catalogOption"
                                                :key="item.catalogId"
                                                :label="item.catalogName"
-                                                :value="item.catalogId"/>
+                                               :value="item.catalogId"/>
                                 </el-select>
                             </el-form-item>
                         </el-col>
@@ -183,7 +186,8 @@
                         </el-col>
                     </el-row>
                 </div>
-                <el-divider direction="vertical"></el-divider><span class="divider-text">高级配置</span>
+                <el-divider direction="vertical"></el-divider>
+                <span class="divider-text">高级配置</span>
                 <div class="task-params-form">
                     <el-row :gutter="24">
                         <el-col :span="8" :push="2">
@@ -232,7 +236,8 @@
             <el-button v-if="this.active === 1" style="margin-top: 15px" @click="cancel">取消</el-button>
             <el-button v-if="this.active !== 1" style="margin-top: 15px" @click="back">上一步</el-button>
             <el-button v-if="this.active !== 3" type="primary" style="margin-top: 15px" @click="next">下一步</el-button>
-            <el-button v-if="this.active === 3" type="primary" style="margin-top: 15px" @click="saveJob">提交</el-button>
+            <el-button v-if="this.active === 3" type="primary" style="margin-top: 15px" @click="saveJob">提交
+            </el-button>
         </div>
 
         <!-- 字段映射弹框 -->
@@ -241,10 +246,11 @@
                 <div class="table-div">
                     <!-- 输入源字段 -->
                     <div class="left-table table-wrapper">
-                        <el-table ref="sourceColumnRef" :data="mappedColumn.mappedSourceColumns" border style="width: 100%">
-                            <el-table-column prop="comment" label="字段备注" />
-                            <el-table-column prop="dataType" label="字段类型" />
-                            <el-table-column prop="columnLength" label="字段长度" />
+                        <el-table ref="sourceColumnRef" :data="mappedColumn.mappedSourceColumns" border
+                                  style="width: 100%">
+                            <el-table-column prop="comment" label="字段备注"/>
+                            <el-table-column prop="dataType" label="字段类型"/>
+                            <el-table-column prop="columnLength" label="字段长度"/>
                             <el-table-column prop="columnName" label="输入字段"/>
                         </el-table>
                     </div>
@@ -271,13 +277,13 @@
                                         <el-option v-for="(item, index) in sinkColumns"
                                                    :key="item.columnId"
                                                    :label="item.columnName"
-                                                   :value="item.columnName" />
+                                                   :value="item.columnName"/>
                                     </el-select>
                                 </template>
                             </el-table-column>
-                            <el-table-column prop="comment" label="字段备注" />
-                            <el-table-column prop="dataType" label="字段类型" />
-                            <el-table-column prop="columnLength" label="字段长度" />
+                            <el-table-column prop="comment" label="字段备注"/>
+                            <el-table-column prop="dataType" label="字段类型"/>
+                            <el-table-column prop="columnLength" label="字段长度"/>
                         </el-table>
                     </div>
                 </div>
@@ -299,9 +305,9 @@ import * as jobApi from "@/api/datasync/jobApi";
 import * as columnApi from "@/api/metadata/columnApi";
 import {ref} from "vue";
 
-const { proxy } = getCurrentInstance();
+const {proxy} = getCurrentInstance();
 const route = useRoute();
-const active = ref('1');
+const active = ref(1);
 const columnMappingDialog = ref(false);
 const sourceDatasourceOption = ref([])
 const sinkDatasourceOption = ref([])
@@ -312,10 +318,11 @@ const sourceTableRight = ref([])
 const rightTable = ref([])
 const sourceTable = ref({})
 const sinkTable = ref([])
-const mappedSinkTable  = ref([])
+const mappedSinkTable = ref([])
 const sourceConfRef = ref(null)
 const sinkConfRef = ref(null)
 const sinkTableRef = ref(null)
+const sourceTableRef = ref(null)
 const sourceColumnRef = ref(null)
 const sinkColumnRef = ref(null)
 const taskFormRef = ref(null)
@@ -335,22 +342,21 @@ const appContainerOptions = [
 const jobId = ref(null)
 const jobDetail = ref({})
 const data = reactive({
-    form: {
-    },
+    form: {},
     rules: {
-        jobName: [{ required: true, message: '任务名称不能为空', trigger: 'blur' }],
-        catalogName: [{ required: true, message: '分组名称不能为空', trigger: 'blur' }],
-        appContainer: [{ required: true, message: '调度容器不能为空', trigger: 'blur' }]
+        jobName: [{required: true, message: '任务名称不能为空', trigger: 'blur'}],
+        catalogName: [{required: true, message: '分组名称不能为空', trigger: 'blur'}],
+        appContainer: [{required: true, message: '调度容器不能为空', trigger: 'blur'}]
     },
 });
 
-const { queryParams, form, rules } = toRefs(data);
+const {queryParams, form, rules} = toRefs(data);
 
 /**
  * 初始化步骤
  */
 function initSteps() {
-    active.value=1;
+    active.value = 1;
 }
 
 /**
@@ -365,7 +371,7 @@ function next() {
         } else {
             // 没有选择表，则停留在第一步
             active.value = 1;
-            proxy.$message({ message: '请选择需要接入的表', type: 'error' })
+            proxy.$message({message: '请选择需要接入的表', type: 'error'})
         }
     } else if (active.value === 3) {
         // 初始化分组下拉框
@@ -381,11 +387,11 @@ function saveJob() {
     if (jobId.value) {
         form.value.jobId = jobId.value
         jobApi.update(form.value).then((response) => {
-            proxy.$message({ message: '任务更新成功', type: 'success' })
+            proxy.$message({message: '任务更新成功', type: 'success'})
         })
     } else {
         jobApi.add(form.value).then((response) => {
-            proxy.$message({ message: '任务保存成功', type: 'success' })
+            proxy.$message({message: '任务保存成功', type: 'success'})
         })
     }
 }
@@ -421,7 +427,8 @@ function cancel() {
 function listSourceDatasource() {
     datasourceApi.getDatasourceList(null, 1).then((response) => {
         sourceDatasourceOption.value = response;
-    }).catch(() => {})
+    }).catch(() => {
+    })
 }
 
 /**
@@ -430,7 +437,8 @@ function listSourceDatasource() {
 function listSinkDatasource() {
     datasourceApi.getDatasourceList(null, 2).then((response) => {
         sinkDatasourceOption.value = response;
-    }).catch(() => {})
+    }).catch(() => {
+    })
 }
 
 /**
@@ -471,7 +479,7 @@ function selectSourceDb(e) {
     form.sourceDbName = e
     let tableQuery = {
         "datasourceId": form.sourceDatasourceId,
-        "dbName":e
+        "dbName": e
     }
     let savedDbTables = ref([])
     jobApi.listSavedDbTableByDbName(tableQuery)
@@ -485,15 +493,23 @@ function selectSourceDb(e) {
                 let disabledValue = false;
                 if (savedDbTables.value !== undefined && savedDbTables.value !== null) {
                     let matchedTable = savedDbTables.value.find(dbTable => dbTable.tableName === (item.dbName + "." + item.tableName));
-                    if (matchedTable === null || matchedTable === undefined) {
+                    if (matchedTable !== 'undefined' && matchedTable !== undefined && matchedTable !== null) {
                         disabledValue = true
                     }
                 }
-                return {
-                    ...item,
-                    key:item.dbName + "." + item.tableName,
-                    label:item.dbName + "." + item.tableName,
-                    disabled: disabledValue
+                if (disabledValue) {
+                    return {
+                        ...item,
+                        key: item.dbName + "." + item.tableName,
+                        label: item.dbName + "." + item.tableName,
+                        disabled: true
+                    }
+                } else {
+                    return {
+                        ...item,
+                        key: item.dbName + "." + item.tableName,
+                        label: item.dbName + "." + item.tableName
+                    }
                 }
             })
             sourceTable.value = {
@@ -511,7 +527,7 @@ function selectSinkDb(e) {
     form.sinkDbName = e;
     let tableQuery = {
         "datasourceId": form.sinkDatasourceId,
-        "dbName":e
+        "dbName": e
     };
     tableApi
         .listTable(tableQuery)
@@ -528,8 +544,8 @@ function sourceTableRightChange(data) {
         let sourceTable = {
             sourceTableName: data[i]
         }
-        sourceTableRight.value.push(sourceTable)
-        mappedSinkTable.value.push(sourceTable)
+        sourceTableRight.value.push(sourceTable);
+        mappedSinkTable.value.push(sourceTable);
     }
 }
 
@@ -556,7 +572,8 @@ function columnMappingConf(index, row) {
             mappedSourceColumns: response.mappedSourceColumns,
             mappedSinkColumns: response.mappedSinkColumns
         };
-    }).catch(() => {})
+    }).catch(() => {
+    })
 
     columnApi.listTableByName(form.sinkDatasourceId, form.sinkDbName, row.tableName).then((response) => {
         sinkColumns.value = response
@@ -590,24 +607,24 @@ function cancelDialog() {
  * 字段映射确定按钮
  */
 function doCheckColumnMapping() {
-    let sourceTableName = sourceColumnRef.value.data[0].tableName
-    let sinkTableName
+    let sourceTableName = sourceColumnRef.value.data[0].tableName;
+    let sinkTableName;
     sinkColumnRef.value.data.forEach((v, i) => {
         if (v.tableName != null) {
             sinkTableName = v.tableName
         }
     })
     if (sinkTableName === null || sinkTableName === undefined) {
-        proxy.$message({ message: '至少选择一个字段', type: 'error' })
+        proxy.$message({message: '至少选择一个字段', type: 'error'})
     } else {
-        sinkTableRef.value.data.forEach((v, i) => {
-            if (sourceColumnRef.value.data[i].tableName === sourceTableName) {
-                v.sourceColumns = sourceColumnRef.value.data;
-                v.sourceTableName = sourceTableName;
+        sinkTableRef.value.data.forEach(item => {
+            if (item.sourceTableName === sourceTableName) {
+                item.sourceColumns = sourceColumnRef.value.data;
+                item.sourceTableName = sourceTableName;
             }
-            if (v.tableName === sinkTableName) {
-                v.sinkColumns = sinkColumnRef.value.data;
-                v.sinkTableName = sinkTableName;
+            if (item.tableName === sinkTableName) {
+                item.sinkColumns = sinkColumnRef.value.data;
+                item.sinkTableName = sinkTableName;
             }
         })
         columnMappingDialog.value = false;
@@ -661,17 +678,19 @@ listSourceDatasource();
 </script>
 
 <style>
-.task-header{
-    box-shadow: 0 2px 10px 0 rgba(0,0,0,0.1);
+.task-header {
+    box-shadow: 0 2px 10px 0 rgba(0, 0, 0, 0.1);
     z-index: 10;
     text-align: center;
     padding: 15px 10px;
     background: #ffffff;
 }
-.layout{
+
+.layout {
     height: calc(100vh - 220px);
 }
-.select-header{
+
+.select-header {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -679,21 +698,25 @@ listSourceDatasource();
     border: 1px dashed #d2dae2;
     margin-top: 5px;
 }
-.select-header-title{
+
+.select-header-title {
     padding-bottom: 5px;
     font-size: 12px;
     font-weight: bold;
 }
-.el-transfer-panel{
+
+.el-transfer-panel {
     width: 42%;
 }
-.el-transfer{
+
+.el-transfer {
     width: 100%;
     height: 80%;
     margin-top: 10px;
     display: flex;
-    justify-content:space-between;
+    justify-content: space-between;
 }
+
 .el-transfer__buttons {
     display: flex;
     vertical-align: middle;
@@ -702,20 +725,24 @@ listSourceDatasource();
     justify-content: center;
     width: 16%;
 }
+
 .el-transfer-panel__body {
     height: 80%;
 }
+
 .el-transfer__button {
     margin: 5px 0 !important;
 }
-.task-bottom{
+
+.task-bottom {
     padding: 16px;
     margin-top: 5px;
     position: fixed;
     bottom: 0;
     right: 0;
 }
-.el-transfer-panel__list{
+
+.el-transfer-panel__list {
     height: 100%;
 }
 
@@ -749,6 +776,7 @@ listSourceDatasource();
     width: 42%;
     margin-top: 15px;
 }
+
 .table-div .line-div {
     width: 14%;
     display: flex;

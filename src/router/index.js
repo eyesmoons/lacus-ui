@@ -78,7 +78,7 @@ export const constantRoutes = [{
     },],
 }, {
     path: '/datasync/job-manager', component: Layout, hidden: true, children: [{
-        path: 'editJob/:jobId(\\d+)',
+        path: 'editJob/:jobId(.+)',
         component: () => import('@/views/datasync/job/job.vue'),
         name: 'editJob',
         meta: {title: '编辑任务', activeMenu: '/datasync/job'},
