@@ -2,7 +2,8 @@
     <div class="app-container">
         <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch">
             <el-form-item label="任务名称" prop="jobName">
-                <el-input v-model="queryParams.jobName" placeholder="请输入任务名称" clearable @keyup.enter="handleQuery" />
+                <el-input v-model="queryParams.jobName" placeholder="请输入任务名称" clearable
+                          @keyup.enter="handleQuery"/>
             </el-form-item>
             <el-form-item label="任务分组" prop="catalogName">
                 <el-select v-model="queryParams.catalogName" placeholder="请选择任务分组" clearable>
@@ -20,7 +21,9 @@
 
         <el-row :gutter="10" class="mb8">
             <el-col :span="1.5">
-                <el-button type="primary" plain icon="Plus" @click="toAddJobPage" v-hasPermission="['metadata:datasource:add']">新建任务</el-button>
+                <el-button type="primary" plain icon="Plus" @click="toAddJobPage"
+                           v-hasPermission="['metadata:datasource:add']">新建任务
+                </el-button>
             </el-col>
         </el-row>
 
@@ -31,17 +34,17 @@
                 row-key="jobId"
                 :default-expand-all="isExpandAll"
                 :tree-props="{ children: 'children', hasChildren: 'hasChildren' }">
-            <el-table-column prop="jobName" label="任务 / 分组名称" :show-overflow-tooltip="true" width="160" />
-            <el-table-column label="输入源" align="left" prop="sourceDatasourceName" />
-            <el-table-column label="输出源" align="left" prop="sinkDatasourceName" />
-            <el-table-column label="同步方式" align="left" prop="syncTypeName" />
+            <el-table-column prop="jobName" label="任务 / 分组名称" :show-overflow-tooltip="true" width="160"/>
+            <el-table-column label="输入源" align="left" prop="sourceDatasourceName"/>
+            <el-table-column label="输出源" align="left" prop="sinkDatasourceName"/>
+            <el-table-column label="同步方式" align="left" prop="syncTypeName"/>
             <el-table-column label="source状态" align="left" prop="sourceStatus">
                 <template #default="scope">
                     <el-tooltip content="运行中" placement="top" v-if="scope.row.sourceStatus === 1">
                         <el-button link type="success" plain icon="video-play">运行中</el-button>
                     </el-tooltip>
                     <el-tooltip content="已停止" placement="top" v-if="scope.row.sourceStatus !== 1">
-                        <el-button link type="danger" plain icon="video-pause" >已停止</el-button>
+                        <el-button link type="danger" plain icon="video-pause">已停止</el-button>
                     </el-tooltip>
                 </template>
             </el-table-column>
@@ -55,23 +58,57 @@
                     </el-tooltip>
                 </template>
             </el-table-column>
-            <el-table-column label="任务 / 分组描述" align="left" prop="remark" :show-overflow-tooltip="true" width="150"/>
+            <el-table-column label="任务 / 分组描述" align="left" prop="remark" :show-overflow-tooltip="true"
+                             width="150"/>
             <el-table-column label="操作" align="center" width="200" class-name="small-padding fixed-width">
                 <template #default="scope">
                     <el-button-group class="ml-4">
-                        <el-tooltip content="启动任务" placement="top"  v-if="scope.row.catalogId === '0' && (scope.row.sourceStatus !== 1 || scope.row.sinkStatus !== 1)">
-                            <el-button link type="primary" icon="switch-button" @click="handleStart(scope.row)" v-hasPermission="['datasync:job:edit']"/>
+                        <el-tooltip content="启动任务" placement="top"
+                                    v-if="scope.row.catalogId === '0' && (scope.row.sourceStatus !== 1 || scope.row.sinkStatus !== 1)">
+                            <el-button link type="primary" icon="switch-button" @click="openStartJobDialog(scope.row)"
+                                       v-hasPermission="['datasync:job:edit']"/>
                         </el-tooltip>
-                        <el-tooltip content="编辑" placement="top"  v-if="scope.row.catalogId !== '0' && (scope.row.sourceStatus !== 1 || scope.row.sinkStatus !== 1)">
-                            <el-button link type="primary" icon="Edit" @click="toEditJobPage(scope.row)" v-hasPermission="['datasync:job:edit']"/>
+                        <el-tooltip content="编辑" placement="top"
+                                    v-if="scope.row.catalogId !== '0' && (scope.row.sourceStatus !== 1 || scope.row.sinkStatus !== 1)">
+                            <el-button link type="primary" icon="Edit" @click="toEditJobPage(scope.row)"
+                                       v-hasPermission="['datasync:job:edit']"/>
                         </el-tooltip>
-                        <el-tooltip content="删除" placement="top" v-if="scope.row.catalogId !== '0' && (scope.row.sourceStatus !== 1 || scope.row.sinkStatus !== 1)">
-                            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermission="['datasync:job:remove']"/>
+                        <el-tooltip content="删除" placement="top"
+                                    v-if="scope.row.catalogId !== '0' && (scope.row.sourceStatus !== 1 || scope.row.sinkStatus !== 1)">
+                            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)"
+                                       v-hasPermission="['datasync:job:remove']"/>
                         </el-tooltip>
                     </el-button-group>
                 </template>
             </el-table-column>
         </el-table>
+
+        <!-- 启动参数 -->
+        <el-dialog title="启动参数设置" v-model="open" append-to-body>
+            <el-form :model="form" :label-width="100" style="height: 100px">
+                <el-form-item prop="syncType" label="请选择启动方式：" label-width="130px">
+                    <el-select
+                            v-model="form.syncType"
+                            placeholder="请输入数据源类型"
+                            @change="syncTypeSelect($event)"
+                            clearable
+                            filterable>
+                        <el-option v-for="item in syncTypeOptions" :key="item.value" :label="item.label" :value="item.value"/>
+                    </el-select>
+                </el-form-item>
+                <el-form-item v-if="dateTimeSelect === 'timestamp'" prop="specificOffset" label="请选择启动时间：" label-width="130px">
+                    <el-date-picker
+                            v-model="form.specificOffset"
+                            type="datetime"
+                            placeholder="选择日期"
+                            clearable />
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="closeDialog">取消</el-button>
+                <el-button type="primary" @click="submitJob">确定</el-button>
+            </div>
+        </el-dialog>
     </div>
 </template>
 
@@ -81,7 +118,9 @@ import * as catalogApi from "@/api/datasync/catalogApi";
 import {ref} from "vue";
 
 const router = useRouter();
-const { proxy } = getCurrentInstance();
+const {proxy} = getCurrentInstance();
+const open = ref(false);
+const dateTimeSelect = ref(null)
 const jobList = ref([]);
 const loading = ref(true);
 const showSearch = ref(true);
@@ -89,6 +128,24 @@ const total = ref(0);
 const isExpandAll = ref(false);
 const refreshTable = ref(true);
 const catalogOption = ref([])
+const syncTypeOptions = [
+    {
+        value: 'initial',
+        label: '全量快照'
+    }, {
+        value: 'earliest',
+        label: '最早binLog位点'
+    }, {
+        value: 'latest',
+        label: '最新binLog位点'
+    }, {
+        value: 'specificOffset',
+        label: '指定bigLog位点'
+    }, {
+        value: 'timestamp',
+        label: '指定时间戳'
+    }
+];
 
 const data = reactive({
     form: {},
@@ -98,7 +155,7 @@ const data = reactive({
     }
 });
 
-const { queryParams, form } = toRefs(data);
+const {queryParams, form} = toRefs(data);
 
 /**
  * 跳转新增页面
@@ -111,8 +168,25 @@ function toAddJobPage() {
  * 跳转编辑页面
  */
 function toEditJobPage(row) {
-    const { jobId } = row;
+    const {jobId} = row;
     router.push(`/datasync/job-manager/editJob/${jobId}`)
+}
+
+function openStartJobDialog(row) {
+    const {jobId} = row;
+    open.value =true;
+}
+
+function syncTypeSelect(data) {
+    dateTimeSelect.value = data
+}
+
+function submitJob(row) {
+
+}
+
+function closeDialog() {
+    open.value = false;
 }
 
 /**
