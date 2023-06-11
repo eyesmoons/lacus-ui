@@ -31,6 +31,7 @@
                 v-if="refreshTable"
                 v-loading="loading"
                 :data="jobList"
+                stripe
                 row-key="jobId"
                 :default-expand-all="isExpandAll"
                 :tree-props="{ children: 'children', hasChildren: 'hasChildren' }">
@@ -66,6 +67,11 @@
                         <el-tooltip content="启动任务" placement="top"
                                     v-if="scope.row.catalogId === '0' && (scope.row.sourceStatus !== 1 || scope.row.sinkStatus !== 1)">
                             <el-button link type="primary" icon="switch-button" @click="openStartJobDialog(scope.row)"
+                                       v-hasPermission="['datasync:job:edit']"/>
+                        </el-tooltip>
+                        <el-tooltip content="暂停任务" placement="top"
+                                    v-if="scope.row.catalogId === '0' && (scope.row.sourceStatus === 1 && scope.row.sinkStatus === 1)">
+                            <el-button link type="danger" icon="video-pause" @click="stopJob(scope.row)"
                                        v-hasPermission="['datasync:job:edit']"/>
                         </el-tooltip>
                         <el-tooltip content="编辑" placement="top"
@@ -182,6 +188,10 @@ function syncTypeSelect(data) {
 }
 
 function submitJob(row) {
+
+}
+
+function stopJob(data) {
 
 }
 
