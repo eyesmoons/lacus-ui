@@ -233,10 +233,11 @@
             </el-form>
         </div>
         <div class="task-bottom">
-            <el-button v-if="this.active === 1" style="margin-top: 15px" @click="cancel">取消</el-button>
-            <el-button v-if="this.active !== 1" style="margin-top: 15px" @click="back">上一步</el-button>
-            <el-button v-if="this.active !== 3" type="primary" style="margin-top: 15px" @click="next">下一步</el-button>
-            <el-button v-if="this.active === 3" type="primary" style="margin-top: 15px" @click="saveJob">提交
+            <el-button v-if="this.active === 1" style="margin-top: 15px" @click="cancel()">取消</el-button>
+            <el-button v-if="this.active !== 1" style="margin-top: 15px" @click="back()">上一步</el-button>
+            <el-button v-if="this.active !== 3 && tableChecked !== 0" type="primary" style="margin-top: 15px" @click="next()">下一步</el-button>
+            <el-button v-if="this.active !== 3 && tableChecked === 0" type="primary" style="margin-top: 15px" @click="preCheck()">预检查</el-button>
+            <el-button v-if="this.active === 3" type="primary" style="margin-top: 15px" @click="saveJob()">提交
             </el-button>
         </div>
 
@@ -308,6 +309,8 @@ import {ref} from "vue";
 const {proxy} = getCurrentInstance();
 const route = useRoute();
 const active = ref(1);
+const tableChecked = ref(null);
+const checkedTableMappings = ref([]);
 const columnMappingDialog = ref(false);
 const sourceDatasourceOption = ref([])
 const sinkDatasourceOption = ref([])
@@ -367,6 +370,7 @@ function next() {
     // 第二步初始化输出源
     if (active.value === 2) {
         if (sourceTableRight.value.length > 0) {
+            tableChecked.value = 0;
             listSinkDatasource();
         } else {
             // 没有选择表，则停留在第一步
@@ -380,10 +384,32 @@ function next() {
 }
 
 /**
+ * 预检查
+ */
+function preCheck() {
+    console.log(sourceTableRef.value.data)
+    console.log(sinkTableRef.value.data)
+    for (let i = 0; i < sinkTableRef.value.data.length; i++) {
+        let item = sinkTableRef.value.data[i];
+        item.sourceTableName = sourceTableRef.value.data[i].sourceTableName;
+        item.sinkTableName = sinkTableRef.value.data[i].tableName;
+    }
+    form.value.tableMappings = sinkTableRef.value.data
+    if (jobId.value) {
+        form.value.jobId = jobId.value
+    }
+    jobApi.preCheck(form.value).then((response) => {
+        tableChecked.value = 1;
+        checkedTableMappings.value = response;
+    })
+}
+
+/**
  * 保存任务信息
  */
 function saveJob() {
-    form.value.tableMappings = sinkTableRef.value.data
+    // form.value.tableMappings = sinkTableRef.value.data
+    form.value.tableMappings = checkedTableMappings.value;
     if (jobId.value) {
         form.value.jobId = jobId.value
         jobApi.update(form.value).then((response) => {
@@ -628,6 +654,7 @@ function doCheckColumnMapping() {
             }
         })
         columnMappingDialog.value = false;
+        tableChecked.value = 0;
     }
 }
 
