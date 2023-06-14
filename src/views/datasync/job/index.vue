@@ -91,7 +91,7 @@
 
         <!-- 启动参数 -->
         <el-dialog title="启动参数设置" v-model="open" append-to-body>
-            <el-form :model="form" :label-width="100" style="height: 100px">
+            <el-form ref="startForm" :model="form" :label-width="100" style="height: 100px">
                 <el-form-item prop="syncType" label="请选择启动方式：" label-width="130px">
                     <el-select
                             v-model="form.syncType"
@@ -111,8 +111,8 @@
                 </el-form-item>
             </el-form>
             <div slot="footer" class="dialog-footer">
-                <el-button @click="closeDialog">取消</el-button>
-                <el-button type="primary" @click="submitJob">确定</el-button>
+                <el-button @click="closeDialog()">取消</el-button>
+                <el-button type="primary" @click="submitJob()">确定</el-button>
             </div>
         </el-dialog>
     </div>
@@ -126,6 +126,7 @@ import {ref} from "vue";
 const router = useRouter();
 const {proxy} = getCurrentInstance();
 const open = ref(false);
+const currentCatalogId = ref(null)
 const dateTimeSelect = ref(null)
 const jobList = ref([]);
 const loading = ref(true);
@@ -167,7 +168,12 @@ const {queryParams, form} = toRefs(data);
  * 跳转新增页面
  */
 function toAddJobPage() {
-    router.push(`/datasync/job-manager/addJob`)
+    router.push({
+        path: `/datasync/job-manager/addJob`,
+        query: {
+            fromRouterPush: true
+        }
+    })
 }
 
 /**
@@ -175,11 +181,16 @@ function toAddJobPage() {
  */
 function toEditJobPage(row) {
     const {jobId} = row;
-    router.push(`/datasync/job-manager/editJob/${jobId}`)
+    router.push({
+        path: `/datasync/job-manager/editJob/${jobId}`,
+        query: {
+            fromRouterPush: true
+        }
+    })
 }
 
 function openStartJobDialog(row) {
-    const {jobId} = row;
+    currentCatalogId.value = row.jobId;
     open.value =true;
 }
 
@@ -187,8 +198,20 @@ function syncTypeSelect(data) {
     dateTimeSelect.value = data
 }
 
-function submitJob(row) {
-
+function submitJob() {
+    let data = {
+        catalogId: currentCatalogId.value,
+        syncType: form.value.syncType,
+        specificOffset: form.value.specificOffset
+    }
+    console.log(data)
+    jobApi.submitJob(data)
+        .then((response) => {
+            open.value = false;
+            dateTimeSelect.value = null;
+            proxy.resetForm('startForm');
+            proxy.$message({message: '任务启动 s成功', type: 'success'})
+        })
 }
 
 function stopJob(data) {
