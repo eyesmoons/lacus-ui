@@ -306,6 +306,7 @@ import * as jobApi from "@/api/datasync/jobApi";
 import * as columnApi from "@/api/metadata/columnApi";
 import {ref} from "vue";
 
+const router = useRouter();
 const {proxy} = getCurrentInstance();
 const route = useRoute();
 const active = ref(1);
@@ -387,8 +388,6 @@ function next() {
  * 预检查
  */
 function preCheck() {
-    console.log(sourceTableRef.value.data)
-    console.log(sinkTableRef.value.data)
     for (let i = 0; i < sinkTableRef.value.data.length; i++) {
         let item = sinkTableRef.value.data[i];
         item.sourceTableName = sourceTableRef.value.data[i].sourceTableName;
@@ -419,6 +418,9 @@ function saveJob() {
         jobApi.add(form.value).then((response) => {
             proxy.$message({message: '任务保存成功', type: 'success'})
         })
+    }
+    if (this.route.query.fromRouterPush) {
+        router.back();
     }
 }
 

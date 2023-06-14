@@ -69,3 +69,11 @@ export function detail(jobId) {
         method: 'get'
     })
 }
+
+export function submitJob(data) {
+    return request({
+        url: '/datasync/job/operation/submitJob',
+        method: 'post',
+        data,
+    });
+}
