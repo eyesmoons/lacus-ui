@@ -1,5 +1,13 @@
 import request from '@/utils/request';
 
+export function preCheck(data) {
+    return request({
+        url: `/datasync/job/manager/preCheck`,
+        method: 'post',
+        data
+    });
+}
+
 export function listMappedColumn(data) {
     return request({
         url: `/datasync/job/manager/listMappedColumn`,
