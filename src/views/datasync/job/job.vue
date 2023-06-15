@@ -509,35 +509,14 @@ function selectSourceDb(e) {
         "datasourceId": form.sourceDatasourceId,
         "dbName": e
     }
-    let savedDbTables = ref([])
-    jobApi.listSavedDbTableByDbName(tableQuery)
-        .then((response) => {
-            savedDbTables.value = response
-        })
     tableApi.listTable(tableQuery)
         .then((response) => {
             leftTable.value = response;
             leftTable.value = leftTable.value.map(item => {
-                let disabledValue = false;
-                if (savedDbTables.value !== undefined && savedDbTables.value !== null) {
-                    let matchedTable = savedDbTables.value.find(dbTable => dbTable.tableName === (item.dbName + "." + item.tableName));
-                    if (matchedTable !== 'undefined' && matchedTable !== undefined && matchedTable !== null) {
-                        disabledValue = true
-                    }
-                }
-                if (disabledValue) {
-                    return {
-                        ...item,
-                        key: item.dbName + "." + item.tableName,
-                        label: item.dbName + "." + item.tableName,
-                        disabled: true
-                    }
-                } else {
-                    return {
-                        ...item,
-                        key: item.dbName + "." + item.tableName,
-                        label: item.dbName + "." + item.tableName
-                    }
+                return {
+                    ...item,
+                    key: item.dbName + "." + item.tableName,
+                    label: item.dbName + "." + item.tableName
                 }
             })
             sourceTable.value = {
