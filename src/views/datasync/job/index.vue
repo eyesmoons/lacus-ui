@@ -210,7 +210,7 @@ function submitJob() {
             open.value = false;
             dateTimeSelect.value = null;
             proxy.resetForm('startForm');
-            proxy.$message({message: '任务启动 s成功', type: 'success'})
+            proxy.$message({message: '任务启动成功', type: 'success'})
         })
 }
 
