@@ -337,10 +337,6 @@ const appContainerOptions = [
     {
         value: 'yarn',
         label: 'yarn'
-    },
-    {
-        value: 'kubernetes',
-        label: 'kubernetes'
     }
 ];
 const jobId = ref(null)
