@@ -41,20 +41,20 @@
             <el-table-column label="同步方式" align="left" prop="syncTypeName"/>
             <el-table-column label="source状态" align="left" prop="sourceStatus">
                 <template #default="scope">
-                    <el-tooltip content="运行中" placement="top" v-if="scope.row.sourceStatus === 'RUNNING'">
+                    <el-tooltip content="运行中" placement="top" v-if="scope.row.catalogId === '0' && scope.row.sourceStatus === 'RUNNING'">
                         <el-button link type="success" plain icon="video-play">运行中</el-button>
                     </el-tooltip>
-                    <el-tooltip content="已停止" placement="top" v-if="scope.row.sourceStatus !== 'RUNNING'">
+                    <el-tooltip content="已停止" placement="top" v-if="scope.row.catalogId === '0' && scope.row.sourceStatus !== 'RUNNING'">
                         <el-button link type="danger" plain icon="video-pause">已停止</el-button>
                     </el-tooltip>
                 </template>
             </el-table-column>
             <el-table-column label="sink状态" align="left" prop="sinkStatus">
                 <template #default="scope">
-                    <el-tooltip content="运行中" placement="top" v-if="scope.row.sinkStatus === 'RUNNING'">
+                    <el-tooltip content="运行中" placement="top" v-if="scope.row.catalogId === '0' && scope.row.sinkStatus === 'RUNNING'">
                         <el-button link type="success" plain icon="video-play">运行中</el-button>
                     </el-tooltip>
-                    <el-tooltip content="已停止" placement="top" v-if="scope.row.sinkStatus !== 'RUNNING'">
+                    <el-tooltip content="已停止" placement="top" v-if="scope.row.catalogId === '0' && scope.row.sinkStatus !== 'RUNNING'">
                         <el-button link type="danger" plain icon="video-pause">已停止</el-button>
                     </el-tooltip>
                 </template>
@@ -65,12 +65,12 @@
                 <template #default="scope">
                     <el-button-group class="ml-4">
                         <el-tooltip content="启动任务" placement="top"
-                                    v-if="scope.row.catalogId === '0' && (scope.row.sourceStatus !== 'RUNNING' || scope.row.sinkStatus !== 'RUNNING')">
+                                    v-if="scope.row.catalogId === '0' && (scope.row.sourceStatus !== 'RUNNING' && scope.row.sinkStatus !== 'RUNNING')">
                             <el-button link type="primary" icon="switch-button" @click="openStartJobDialog(scope.row)"
                                        v-hasPermission="['datasync:job:edit']"/>
                         </el-tooltip>
                         <el-tooltip content="暂停任务" placement="top"
-                                    v-if="scope.row.catalogId === '0' && (scope.row.sourceStatus === 'RUNNING' && scope.row.sinkStatus === 'RUNNING')">
+                                    v-if="scope.row.catalogId === '0' && (scope.row.sourceStatus === 'RUNNING' || scope.row.sinkStatus === 'RUNNING')">
                             <el-button link type="danger" icon="video-pause" @click="stopJob(scope.row)"
                                        v-hasPermission="['datasync:job:edit']"/>
                         </el-tooltip>
@@ -244,6 +244,18 @@ function getList() {
         .finally(() => {
             loading.value = false;
         });
+}
+
+function handleDelete(row) {
+    let jobId = row.jobId;
+    proxy.$modal
+        .confirm(`是否确认删除ID为"${jobId}"的任务吗？`)
+        .then(() => jobApi.remove(jobId))
+        .then(() => {
+            getList();
+            proxy.$modal.msgSuccess('删除成功');
+        })
+        .catch(() => {});
 }
 
 /** 表单重置 */

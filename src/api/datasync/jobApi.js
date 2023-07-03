@@ -77,3 +77,10 @@ export function submitJob(data) {
         data,
     });
 }
+
+export function remove(jobId) {
+    return request({
+        url: `/datasync/job/manager/remove/${jobId}`,
+        method: 'get'
+    });
+}
