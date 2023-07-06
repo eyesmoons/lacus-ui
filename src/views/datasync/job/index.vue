@@ -215,9 +215,14 @@ function submitJob() {
 }
 
 function stopJob(row) {
-    jobApi.stopJob(row.jobId).then((response) => {
-        proxy.$message({message: '任务停止成功', type: 'success'})
-    })
+    proxy.$modal
+        .confirm(`是否确认停止任务["${row.jobName}"]吗？`)
+        .then(() => jobApi.stopJob(row.jobId))
+        .then(() => {
+            getList();
+            proxy.$modal.msgSuccess('任务停止成功');
+        })
+        .catch(() => {});
 }
 
 function closeDialog() {
