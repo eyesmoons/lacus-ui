@@ -70,6 +70,13 @@ export function detail(jobId) {
     })
 }
 
+export function remove(jobId) {
+    return request({
+        url: `/datasync/job/manager/remove/${jobId}`,
+        method: 'get'
+    });
+}
+
 export function submitJob(data) {
     return request({
         url: '/datasync/job/operation/submitJob',
@@ -78,9 +85,9 @@ export function submitJob(data) {
     });
 }
 
-export function remove(jobId) {
+export function stopJob(catalogId) {
     return request({
-        url: `/datasync/job/manager/remove/${jobId}`,
+        url: `/datasync/job/operation/stopJob/${catalogId}`,
         method: 'get'
     });
 }
