@@ -38,7 +38,7 @@
             <el-table-column prop="jobName" label="任务 / 分组名称" :show-overflow-tooltip="true" width="160"/>
             <el-table-column label="输入源" align="left" prop="sourceDatasourceName"/>
             <el-table-column label="输出源" align="left" prop="sinkDatasourceName"/>
-            <el-table-column label="同步方式" align="left" prop="syncTypeName"/>
+            <el-table-column label="同步方式" align="left" prop="syncType"/>
             <el-table-column label="source状态" align="left" prop="sourceStatus">
                 <template #default="scope">
                     <el-tooltip content="运行中" placement="top" v-if="scope.row.catalogId === '0' && scope.row.sourceStatus === 'RUNNING'">
@@ -214,8 +214,10 @@ function submitJob() {
         })
 }
 
-function stopJob(data) {
-
+function stopJob(row) {
+    jobApi.stopJob(row.jobId).then((response) => {
+        proxy.$message({message: '任务停止成功', type: 'success'})
+    })
 }
 
 function closeDialog() {
