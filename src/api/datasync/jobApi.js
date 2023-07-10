@@ -91,3 +91,15 @@ export function stopJob(catalogId) {
         method: 'get'
     });
 }
+
+export function jobDetail(catalogId, type) {
+    let query = {
+        catalogId: catalogId,
+        type: type
+    }
+    return request({
+        url: `/datasync/job/manager/jobDetail`,
+        method: 'get',
+        params: query
+    });
+}
