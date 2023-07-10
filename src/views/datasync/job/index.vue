@@ -74,6 +74,16 @@
                             <el-button link type="danger" icon="video-pause" @click="stopJob(scope.row)"
                                        v-hasPermission="['datasync:job:edit']"/>
                         </el-tooltip>
+                        <el-tooltip content="source任务详情" placement="top"
+                                    v-if="scope.row.catalogId === '0' && scope.row.sourceStatus === 'RUNNING'">
+                            <el-button link type="primary" icon="location" @click="toSourceJobDetail(scope.row)"
+                                       v-hasPermission="['datasync:job:query']"/>
+                        </el-tooltip>
+                        <el-tooltip content="sink任务详情" placement="top"
+                                    v-if="scope.row.catalogId === '0' && scope.row.sinkStatus === 'RUNNING'">
+                            <el-button link type="primary" icon="location" @click="toSinkJobDetail(scope.row)"
+                                       v-hasPermission="['datasync:job:query']"/>
+                        </el-tooltip>
                         <el-tooltip content="编辑" placement="top"
                                     v-if="scope.row.catalogId !== '0' && (scope.row.sourceStatus !== 'RUNNING' || scope.row.sinkStatus !== 'RUNNING')">
                             <el-button link type="primary" icon="Edit" @click="toEditJobPage(scope.row)"
@@ -95,7 +105,7 @@
                 <el-form-item prop="syncType" label="请选择启动方式：" label-width="130px">
                     <el-select
                             v-model="form.syncType"
-                            placeholder="请输入数据源类型"
+                            placeholder="请选择"
                             @change="syncTypeSelect($event)"
                             clearable
                             filterable>
@@ -122,6 +132,7 @@
 import * as jobApi from "@/api/datasync/jobApi";
 import * as catalogApi from "@/api/datasync/catalogApi";
 import {ref} from "vue";
+import {jobDetail} from "@/api/datasync/jobApi";
 
 const router = useRouter();
 const {proxy} = getCurrentInstance();
@@ -225,6 +236,20 @@ function stopJob(row) {
         .catch(() => {});
 }
 
+function toSourceJobDetail(row) {
+    jobApi.jobDetail(row.jobId, 1)
+        .then((response) => {
+            window.open(response.trackingUrl, '_blank')
+        })
+}
+
+function toSinkJobDetail(row) {
+    jobApi.jobDetail(row.jobId, 2)
+        .then((response) => {
+            window.open(response.trackingUrl, '_blank')
+        })
+}
+
 function closeDialog() {
     open.value = false;
 }
@@ -254,10 +279,9 @@ function getList() {
 }
 
 function handleDelete(row) {
-    let jobId = row.jobId;
     proxy.$modal
-        .confirm(`是否确认删除ID为"${jobId}"的任务吗？`)
-        .then(() => jobApi.remove(jobId))
+        .confirm(`确认删除"${row.jobName}"任务吗？`)
+        .then(() => jobApi.remove(row.jobId))
         .then(() => {
             getList();
             proxy.$modal.msgSuccess('删除成功');
