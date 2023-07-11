@@ -77,7 +77,7 @@
                     <el-table-column label="操作" align="center" width="150" class-name="small-padding fixed-width">
                         <template #default="scope">
                             <el-tooltip content="详情" placement="top">
-                                <el-button link type="primary" icon="Right" v-hasPermission="['metadata:table:query']" @click="handleDetail(scope.row)"/>
+                                <el-button link type="primary" icon="view" v-hasPermission="['metadata:table:query']" @click="handleDetail(scope.row)"/>
                             </el-tooltip>
                         </template>
                     </el-table-column>
