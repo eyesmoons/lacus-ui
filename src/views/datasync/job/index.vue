@@ -76,12 +76,12 @@
                         </el-tooltip>
                         <el-tooltip content="source任务详情" placement="top"
                                     v-if="scope.row.catalogId === '0' && scope.row.sourceStatus === 'RUNNING'">
-                            <el-button link type="primary" icon="location" @click="toSourceJobDetail(scope.row)"
+                            <el-button link type="primary" icon="view" @click="toSourceJobDetail(scope.row)"
                                        v-hasPermission="['datasync:job:query']"/>
                         </el-tooltip>
                         <el-tooltip content="sink任务详情" placement="top"
                                     v-if="scope.row.catalogId === '0' && scope.row.sinkStatus === 'RUNNING'">
-                            <el-button link type="primary" icon="location" @click="toSinkJobDetail(scope.row)"
+                            <el-button link type="primary" icon="view" @click="toSinkJobDetail(scope.row)"
                                        v-hasPermission="['datasync:job:query']"/>
                         </el-tooltip>
                         <el-tooltip content="编辑" placement="top"
