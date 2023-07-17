@@ -54,7 +54,7 @@
         </el-form>
         <!--  底部  -->
         <div class="el-login-footer">
-            <span>Copyright © 2018-2022 agileboot All Rights Reserved.</span>
+            <span>Copyright © 2022-2023 lacus All Rights Reserved.</span>
         </div>
     </div>
 </template>
