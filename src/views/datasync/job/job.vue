@@ -233,11 +233,11 @@
             </el-form>
         </div>
         <div class="task-bottom">
-            <el-button v-if="this.active === 1" style="margin-top: 15px" @click="cancel()">取消</el-button>
-            <el-button v-if="this.active !== 1" style="margin-top: 15px" @click="back()">上一步</el-button>
-            <el-button v-if="this.active !== 3 && tableChecked !== 0" type="primary" style="margin-top: 15px" @click="next()">下一步</el-button>
-            <el-button v-if="this.active !== 3 && tableChecked === 0" type="primary" style="margin-top: 15px" @click="preCheck()">预检查</el-button>
-            <el-button v-if="this.active === 3" type="primary" style="margin-top: 15px" @click="saveJob()">提交
+            <el-button v-if="active === 1" style="margin-top: 15px" @click="cancel()">取消</el-button>
+            <el-button v-if="active !== 1" style="margin-top: 15px" @click="back()">上一步</el-button>
+            <el-button v-if="active !== 3 && tableChecked !== 0" type="primary" style="margin-top: 15px" @click="next()">下一步</el-button>
+            <el-button v-if="active !== 3 && tableChecked === 0" type="primary" style="margin-top: 15px" @click="preCheck()">预检查</el-button>
+            <el-button v-if="active === 3" type="primary" style="margin-top: 15px" @click="saveJob()">提交
             </el-button>
         </div>
 
