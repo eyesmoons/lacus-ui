@@ -1,7 +1,8 @@
 <template>
     <div class="login">
         <el-form ref="loginRef" :model="loginForm" :rules="loginRules" class="login-form">
-            <h3 class="title">lacus</h3>
+            <h3 class="title">Lacus - 大数据平台</h3>
+            <div id="darkbannerwrap"></div>
             <el-form-item prop="username">
                 <el-input v-model="loginForm.username" type="link" size="large" auto-complete="off" placeholder="账号">
                     <template #prefix>
@@ -154,14 +155,25 @@ getCookie();
   justify-content: center;
   align-items: center;
   height: 100%;
-  background-image: url('../assets/images/bg3.jpg');
+  background-image: url('../assets/images/web_login_bg.jpg');
   background-size: cover;
 }
 
 .title {
-  margin: 0px auto 30px auto;
-  text-align: center;
-  color: #707070;
+  margin: 10px 0 0 -43px;
+  padding: 18px 10px 18px 60px;
+  background: #409eff;
+  position: relative;
+  color: #fff;
+  font-size: 16px;
+}
+
+#darkbannerwrap {
+  background: url(../assets/images/aiwrap.png);
+  width: 18px;
+  height: 10px;
+  margin: 0 0 20px -43px;
+  position: relative;
 }
 
 .login-form {
