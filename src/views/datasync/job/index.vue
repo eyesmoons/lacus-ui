@@ -39,22 +39,12 @@
             <el-table-column label="输入源" align="left" prop="sourceDatasourceName"/>
             <el-table-column label="输出源" align="left" prop="sinkDatasourceName"/>
             <el-table-column label="同步方式" align="left" prop="syncType"/>
-            <el-table-column label="source状态" align="left" prop="sourceStatus">
+            <el-table-column label="任务状态" align="left" prop="sourceStatus">
                 <template #default="scope">
-                    <el-tooltip content="运行中" placement="top" v-if="scope.row.catalogId === '0' && scope.row.sourceStatus === 'RUNNING'">
+                    <el-tooltip content="运行中" placement="top" v-if="scope.row.catalogId === '0' && scope.row.status === 'RUNNING'">
                         <el-button link type="success" plain icon="video-play">运行中</el-button>
                     </el-tooltip>
-                    <el-tooltip content="已停止" placement="top" v-if="scope.row.catalogId === '0' && scope.row.sourceStatus !== 'RUNNING'">
-                        <el-button link type="danger" plain icon="video-pause">已停止</el-button>
-                    </el-tooltip>
-                </template>
-            </el-table-column>
-            <el-table-column label="sink状态" align="left" prop="sinkStatus">
-                <template #default="scope">
-                    <el-tooltip content="运行中" placement="top" v-if="scope.row.catalogId === '0' && scope.row.sinkStatus === 'RUNNING'">
-                        <el-button link type="success" plain icon="video-play">运行中</el-button>
-                    </el-tooltip>
-                    <el-tooltip content="已停止" placement="top" v-if="scope.row.catalogId === '0' && scope.row.sinkStatus !== 'RUNNING'">
+                    <el-tooltip content="已停止" placement="top" v-if="scope.row.catalogId === '0' && scope.row.status !== 'RUNNING'">
                         <el-button link type="danger" plain icon="video-pause">已停止</el-button>
                     </el-tooltip>
                 </template>
