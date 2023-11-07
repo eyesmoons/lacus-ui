@@ -33,9 +33,11 @@
             <el-table-column label="所属分组" align="left" prop="catalogName"/>
             <el-table-column label="输入源" align="left" prop="sourceDatasourceName"/>
             <el-table-column label="输出源" align="left" prop="sinkDatasourceName"/>
-            <el-table-column label="任务状态" align="left" prop="status">
+            <el-table-column label="任务状态" align="center" prop="status">
                 <template #default="scope">
-                    <span :class="formatStatusColor(scope.row.status)"> {{ formatStatus(scope.row.status) }} <i :class="formatIcon(scope.row.status)" /></span>
+                    <el-tooltip :content="formatStatus(scope.row.status)" placement="top">
+                        <el-button text :type="formatStatusColor(scope.row.status)" :icon="formatIcon(scope.row.status)" circle />
+                    </el-tooltip>
                 </template>
             </el-table-column>
             <el-table-column label="任务描述" align="left" prop="remark" :show-overflow-tooltip="true" width="150"/>
@@ -49,26 +51,26 @@
                     <el-button-group class="ml-4">
                         <el-tooltip content="启动任务" placement="top"
                                     v-if="scope.row.status !== 'RUNNING'">
-                            <el-button link type="primary" icon="switch-button" @click="openStartJobDialog(scope.row)"
+                            <el-button type="primary" :icon="SwitchButton" @click="openStartJobDialog(scope.row)"
                                        v-hasPermission="['datasync:job:edit']"/>
                         </el-tooltip>
                         <el-tooltip content="暂停任务" placement="top"
                                     v-if="scope.row.status === 'RUNNING'">
-                            <el-button link type="danger" icon="video-pause" @click="stopJob(scope.row)"
+                            <el-button type="danger" icon="video-pause" @click="stopJob(scope.row)"
                                        v-hasPermission="['datasync:job:edit']"/>
                         </el-tooltip>
                         <el-tooltip content="任务详情" placement="top" v-if="scope.row.status === 'RUNNING'">
-                            <el-button link type="primary" icon="view" @click="toJobDetail(scope.row)"
+                            <el-button type="primary" icon="view" @click="toJobDetail(scope.row)"
                                        v-hasPermission="['datasync:job:query']"/>
                         </el-tooltip>
                         <el-tooltip content="编辑" placement="top"
                                     v-if="scope.row.status !== 'RUNNING'">
-                            <el-button link type="primary" icon="Edit" @click="toEditJobPage(scope.row)"
+                            <el-button type="warning" icon="edit" @click="toEditJobPage(scope.row)"
                                        v-hasPermission="['datasync:job:edit']"/>
                         </el-tooltip>
                         <el-tooltip content="删除" placement="top"
                                     v-if="scope.row.status !== 'RUNNING'">
-                            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)"
+                            <el-button type="danger" icon="delete" @click="handleDelete(scope.row)"
                                        v-hasPermission="['datasync:job:remove']"/>
                         </el-tooltip>
                     </el-button-group>
@@ -113,6 +115,7 @@ import * as jobApi from "@/api/datasync/jobApi";
 import * as catalogApi from "@/api/datasync/catalogApi";
 import {ref} from "vue";
 import {jobDetail} from "@/api/datasync/jobApi";
+import { Delete, Edit, Search, Share, Upload, Switch, SwitchButton, Clock, RemoveFilled, Remove } from '@element-plus/icons-vue'
 
 const router = useRouter();
 const {proxy} = getCurrentInstance();
@@ -291,18 +294,17 @@ function formatStatus(status) {
 
 function formatStatusColor(status) {
     if (status === null || status !== 'RUNNING') {
-        return 'red'
+        return 'danger'
     } else {
-        return 'blue'
+        return 'primary'
     }
 }
 
 function formatIcon(status) {
-    console.log(status)
     if (status === null || status !== 'RUNNING') {
-        return 'el-icon-remove'
+        return 'Remove'
     } else {
-        return 'el-icon-loading'
+        return 'Clock'
     }
 }
 

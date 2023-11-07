@@ -36,10 +36,10 @@
                 <template #default="scope">
                     <el-button-group class="ml-4">
                         <el-tooltip content="编辑" placement="top">
-                            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermission="['datasync:catalog:edit']"/>
+                            <el-button type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermission="['datasync:catalog:edit']"/>
                         </el-tooltip>
                         <el-tooltip content="删除" placement="top">
-                            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermission="['datasync:catalog:remove']"/>
+                            <el-button type="danger" icon="Delete" @click="handleDelete(scope.row)" v-hasPermission="['datasync:catalog:remove']"/>
                         </el-tooltip>
                     </el-button-group>
                 </template>
