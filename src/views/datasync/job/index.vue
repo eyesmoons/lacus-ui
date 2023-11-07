@@ -27,60 +27,47 @@
             </el-col>
         </el-row>
 
-        <el-table
-                v-if="refreshTable"
-                v-loading="loading"
-                :data="jobList"
-                stripe
-                row-key="jobId"
-                :default-expand-all="isExpandAll"
-                :tree-props="{ children: 'children', hasChildren: 'hasChildren' }">
-            <el-table-column prop="jobName" label="任务 / 分组名称" :show-overflow-tooltip="true" width="160"/>
+        <!-- 任务列表 -->
+        <el-table v-loading="loading" :data="jobList" stripe>
+            <el-table-column label="任务名称" prop="jobName" :show-overflow-tooltip="true" width="160"/>
+            <el-table-column label="所属分组" align="left" prop="catalogName"/>
             <el-table-column label="输入源" align="left" prop="sourceDatasourceName"/>
             <el-table-column label="输出源" align="left" prop="sinkDatasourceName"/>
-            <el-table-column label="同步方式" align="left" prop="syncType"/>
-            <el-table-column label="任务状态" align="left" prop="sourceStatus">
+            <el-table-column label="任务状态" align="left" prop="status">
                 <template #default="scope">
-                    <el-tooltip content="运行中" placement="top" v-if="scope.row.catalogId === '0' && scope.row.status === 'RUNNING'">
-                        <el-button link type="success" plain icon="video-play">运行中</el-button>
-                    </el-tooltip>
-                    <el-tooltip content="已停止" placement="top" v-if="scope.row.catalogId === '0' && scope.row.status !== 'RUNNING'">
-                        <el-button link type="danger" plain icon="video-pause">已停止</el-button>
-                    </el-tooltip>
+                    <span :class="formatStatusColor(scope.row.status)"> {{ formatStatus(scope.row.status) }} <i :class="formatIcon(scope.row.status)" /></span>
                 </template>
             </el-table-column>
-            <el-table-column label="任务 / 分组描述" align="left" prop="remark" :show-overflow-tooltip="true"
-                             width="150"/>
+            <el-table-column label="任务描述" align="left" prop="remark" :show-overflow-tooltip="true" width="150"/>
+            <el-table-column label="创建时间" align="center" prop="createTime" width="160px">
+                <template #default="scope">
+                    <span>{{ parseTime(scope.row.createTime) }}</span>
+                </template>
+            </el-table-column>
             <el-table-column label="操作" align="center" width="200" class-name="small-padding fixed-width">
                 <template #default="scope">
                     <el-button-group class="ml-4">
                         <el-tooltip content="启动任务" placement="top"
-                                    v-if="scope.row.catalogId === '0' && (scope.row.sourceStatus !== 'RUNNING' && scope.row.sinkStatus !== 'RUNNING')">
+                                    v-if="scope.row.status !== 'RUNNING'">
                             <el-button link type="primary" icon="switch-button" @click="openStartJobDialog(scope.row)"
                                        v-hasPermission="['datasync:job:edit']"/>
                         </el-tooltip>
                         <el-tooltip content="暂停任务" placement="top"
-                                    v-if="scope.row.catalogId === '0' && (scope.row.sourceStatus === 'RUNNING' || scope.row.sinkStatus === 'RUNNING')">
+                                    v-if="scope.row.status === 'RUNNING'">
                             <el-button link type="danger" icon="video-pause" @click="stopJob(scope.row)"
                                        v-hasPermission="['datasync:job:edit']"/>
                         </el-tooltip>
-                        <el-tooltip content="source任务详情" placement="top"
-                                    v-if="scope.row.catalogId === '0' && scope.row.sourceStatus === 'RUNNING'">
-                            <el-button link type="primary" icon="view" @click="toSourceJobDetail(scope.row)"
-                                       v-hasPermission="['datasync:job:query']"/>
-                        </el-tooltip>
-                        <el-tooltip content="sink任务详情" placement="top"
-                                    v-if="scope.row.catalogId === '0' && scope.row.sinkStatus === 'RUNNING'">
-                            <el-button link type="primary" icon="view" @click="toSinkJobDetail(scope.row)"
+                        <el-tooltip content="任务详情" placement="top" v-if="scope.row.status === 'RUNNING'">
+                            <el-button link type="primary" icon="view" @click="toJobDetail(scope.row)"
                                        v-hasPermission="['datasync:job:query']"/>
                         </el-tooltip>
                         <el-tooltip content="编辑" placement="top"
-                                    v-if="scope.row.catalogId !== '0' && (scope.row.sourceStatus !== 'RUNNING' || scope.row.sinkStatus !== 'RUNNING')">
+                                    v-if="scope.row.status !== 'RUNNING'">
                             <el-button link type="primary" icon="Edit" @click="toEditJobPage(scope.row)"
                                        v-hasPermission="['datasync:job:edit']"/>
                         </el-tooltip>
                         <el-tooltip content="删除" placement="top"
-                                    v-if="scope.row.catalogId !== '0' && (scope.row.sourceStatus !== 'RUNNING' || scope.row.sinkStatus !== 'RUNNING')">
+                                    v-if="scope.row.status !== 'RUNNING'">
                             <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)"
                                        v-hasPermission="['datasync:job:remove']"/>
                         </el-tooltip>
@@ -88,6 +75,9 @@
                 </template>
             </el-table-column>
         </el-table>
+
+        <!-- 分页 -->
+        <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList"/>
 
         <!-- 启动参数 -->
         <el-dialog title="启动参数设置" v-model="open" append-to-body>
@@ -127,14 +117,12 @@ import {jobDetail} from "@/api/datasync/jobApi";
 const router = useRouter();
 const {proxy} = getCurrentInstance();
 const open = ref(false);
-const currentCatalogId = ref(null)
+const currentJobId = ref(null)
 const dateTimeSelect = ref(null)
 const jobList = ref([]);
 const loading = ref(true);
 const showSearch = ref(true);
 const total = ref(0);
-const isExpandAll = ref(false);
-const refreshTable = ref(true);
 const catalogOption = ref([])
 const syncTypeOptions = [
     {
@@ -191,7 +179,7 @@ function toEditJobPage(row) {
 }
 
 function openStartJobDialog(row) {
-    currentCatalogId.value = row.jobId;
+    currentJobId.value = row.jobId;
     open.value =true;
 }
 
@@ -201,7 +189,7 @@ function syncTypeSelect(data) {
 
 function submitJob() {
     let data = {
-        catalogId: currentCatalogId.value,
+        jobId: currentJobId.value,
         syncType: form.value.syncType,
         specificOffset: form.value.specificOffset
     }
@@ -226,15 +214,8 @@ function stopJob(row) {
         .catch(() => {});
 }
 
-function toSourceJobDetail(row) {
+function toJobDetail(row) {
     jobApi.jobDetail(row.jobId, 1)
-        .then((response) => {
-            window.open(response.trackingUrl, '_blank')
-        })
-}
-
-function toSinkJobDetail(row) {
-    jobApi.jobDetail(row.jobId, 2)
         .then((response) => {
             window.open(response.trackingUrl, '_blank')
         })
@@ -255,13 +236,14 @@ function initCatalogOption() {
 }
 
 /**
- * 树形列表
+ * 任务列表
  */
 function getList() {
     loading.value = true;
-    jobApi.jobListTree(queryParams.value)
+    jobApi.pageList(queryParams.value)
         .then((response) => {
-            jobList.value = proxy.handleTree(response, 'jobId', 'catalogId');
+            jobList.value = response.rows;
+            total.value = response.total;
         })
         .finally(() => {
             loading.value = false;
@@ -299,6 +281,40 @@ function resetQuery() {
     handleQuery();
 }
 
+function formatStatus(status) {
+    if (status === null || status !== 'RUNNING') {
+        return '已停止'
+    }  else {
+        return '运行中'
+    }
+}
+
+function formatStatusColor(status) {
+    if (status === null || status !== 'RUNNING') {
+        return 'red'
+    } else {
+        return 'blue'
+    }
+}
+
+function formatIcon(status) {
+    console.log(status)
+    if (status === null || status !== 'RUNNING') {
+        return 'el-icon-remove'
+    } else {
+        return 'el-icon-loading'
+    }
+}
+
 initCatalogOption();
 getList();
 </script>
+
+<style>
+.red{
+    color: rgb(255, 73, 73);
+}
+.blue{
+    color: #409EFF;
+}
+</style>

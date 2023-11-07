@@ -169,64 +169,66 @@
                         </el-col>
                     </el-row>
                     <el-row :gutter="24">
-                        <el-col :span="8" :push="2">
-                            <el-form-item label="调度容器：" prop="appContainer">
-                                <el-select v-model="form.appContainer" placeholder="请选择" clearable>
-                                    <el-option v-for="item in appContainerOptions"
-                                               :key="item.value"
-                                               :label="item.label"
-                                               :value="item.value"/>
-                                </el-select>
-                            </el-form-item>
-                        </el-col>
-                        <el-col :span="8" :push="6">
+                        <el-col :span="18" :push="2">
                             <el-form-item label="任务描述：" prop="remark">
-                                <el-input v-model="form.remark" placeholder="请输入任务描述"/>
+                                <el-input v-model="form.remark" placeholder="请输入任务描述" type="textarea"/>
                             </el-form-item>
                         </el-col>
                     </el-row>
                 </div>
                 <el-divider direction="vertical"></el-divider>
-                <span class="divider-text">高级配置</span>
+                <span class="divider-text">任务参数</span>
                 <div class="task-params-form">
                     <el-row :gutter="24">
-                        <el-col :span="8" :push="2">
+                        <el-col :span="10" :push="2">
+                            <el-form-item label="master：" prop="jobManager">
+                                <el-select v-model="form.jobManager" placeholder="请选择" clearable>
+                                    <el-option :value="1" label="1GB" :key="1"/>
+                                    <el-option :value="2" label="2GB" :key="2"/>
+                                </el-select>
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="10" :push="2">
+                            <el-form-item label="worker：" prop="taskManager">
+                                <el-select v-model="form.taskManager" placeholder="请选择" clearable>
+                                    <el-option :value="1" label="1GB" :key="1"/>
+                                    <el-option :value="2" label="2GB" :key="2"/>
+                                </el-select>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                </div>
+                <el-divider direction="vertical"></el-divider>
+                <span class="divider-text">限流配置</span>
+                <div class="task-params-form">
+                    <el-row :gutter="24">
+                        <el-col :span="10" :push="2">
                             <el-form-item label="窗口间隔：" prop="windowSize">
                                 <el-select v-model="form.windowSize" placeholder="请选择" clearable>
-                                    <el-option :value="5" :label="5" :key="5"/>
-                                    <el-option :value="10" :label="10" :key="10"/>
-                                    <el-option :value="30" :label="30" :key="30"/>
+                                    <el-option :value="5" label="5秒" :key="5"/>
+                                    <el-option :value="10" label="10秒" :key="10"/>
+                                    <el-option :value="30" label="30秒" :key="30"/>
                                 </el-select>
                             </el-form-item>
                         </el-col>
-                        <el-col :span="2" :pull="1">
-                            <span style="line-height: 30px;">秒</span>
-                        </el-col>
-                        <el-col :span="8" :push="2">
+                        <el-col :span="10" :push="2">
                             <el-form-item label="最大条数：" prop="maxCount">
                                 <el-select v-model="form.maxCount" placeholder="请选择" clearable>
-                                    <el-option :value="1" :label="1" :key="1"/>
-                                    <el-option :value="2" :label="2" :key="2"/>
-                                    <el-option :value="5" :label="5" :key="5"/>
-                                    <el-option :value="10" :label="10" :key="10"/>
+                                    <el-option :value="2" label="2万条" :key="2"/>
+                                    <el-option :value="5" label="5万条" :key="5"/>
+                                    <el-option :value="10" label="10万条" :key="10"/>
                                 </el-select>
                             </el-form-item>
-                        </el-col>
-                        <el-col :span="2" :pull="1">
-                            <span style="line-height: 30px;">万条</span>
                         </el-col>
                     </el-row>
                     <el-row :gutter="24">
-                        <el-col :span="8" :push="2">
+                        <el-col :span="10" :push="2">
                             <el-form-item label="最大数据量：" prop="maxSize">
                                 <el-select v-model="form.maxSize" placeholder="请选择" clearable>
-                                    <el-option :value="10" :label="10" :key="10"/>
-                                    <el-option :value="20" :label="20" :key="20"/>
+                                    <el-option :value="10" label="10MB" :key="10"/>
+                                    <el-option :value="20" label="20MB" :key="20"/>
                                 </el-select>
                             </el-form-item>
-                        </el-col>
-                        <el-col :span="2" :pull="1">
-                            <span style="line-height: 30px;">MB</span>
                         </el-col>
                     </el-row>
                 </div>
@@ -346,7 +348,6 @@ const data = reactive({
     rules: {
         jobName: [{required: true, message: '任务名称不能为空', trigger: 'blur'}],
         catalogName: [{required: true, message: '分组名称不能为空', trigger: 'blur'}],
-        appContainer: [{required: true, message: '调度容器不能为空', trigger: 'blur'}]
     },
 });
 
@@ -651,6 +652,8 @@ listSourceDatasource();
             form.value.catalogId = jobDetail.value.catalogId
             form.value.appContainer = jobDetail.value.appContainer
             form.value.remark = jobDetail.value.remark
+            form.value.jobManager = jobDetail.value.jobManager
+            form.value.taskManager = jobDetail.value.taskManager
             form.value.windowSize = jobDetail.value.windowSize
             form.value.maxCount = jobDetail.value.maxCount
             form.value.maxSize = jobDetail.value.maxSize

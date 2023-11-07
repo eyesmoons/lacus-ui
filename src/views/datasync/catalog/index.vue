@@ -26,16 +26,6 @@
         <el-table v-loading="loading" :data="jobCatalogList" stripe @selection-change="handleSelectionChange">
             <el-table-column type="selection" width="55" align="center" />
             <el-table-column label="分组名称" align="left" prop="catalogName" />
-            <el-table-column label="jobManager内存" align="left" prop="jobManager">
-                <template #default="scope">
-                    <span>{{ scope.row.jobManager }} GB</span>
-                </template>
-            </el-table-column>
-            <el-table-column label="taskManager内存" align="left" prop="taskManager">
-                <template #default="scope">
-                    <span>{{ scope.row.taskManager }} GB</span>
-                </template>
-            </el-table-column>
             <el-table-column label="描述" align="left" prop="remark" show-overflow-tooltip/>
             <el-table-column label="创建时间" align="center" prop="createTime">
                 <template #default="scope">
@@ -67,36 +57,6 @@
                         <el-form-item label="分组名称" prop="catalogName">
                             <el-input v-model="form.catalogName" placeholder="请输入分组名称" clearable/>
                         </el-form-item>
-                    </el-col>
-                </el-row>
-                <el-row :gutter="24">
-                    <el-col :span="13">
-                        <el-form-item label="jobManager" prop="jobManager">
-                            <el-select v-model="form.jobManager" placeholder="请选择" clearable>
-                                <el-option :value="1" :label="1" :key="1"/>
-                                <el-option :value="2" :label="2" :key="2"/>
-                                <el-option :value="3" :label="3" :key="3"/>
-                                <el-option :value="4" :label="4" :key="4"/>
-                            </el-select>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="2">
-                        <span style="line-height: 30px;padding: 0; margin-left: -20px;">GB</span>
-                    </el-col>
-                </el-row>
-                <el-row :gutter="24">
-                    <el-col :span="13">
-                        <el-form-item label="taskManager" prop="taskManager">
-                            <el-select v-model="form.taskManager" placeholder="请选择" clearable>
-                                <el-option :value="1" :label="1" :key="1"/>
-                                <el-option :value="2" :label="2" :key="2"/>
-                                <el-option :value="3" :label="3" :key="3"/>
-                                <el-option :value="4" :label="4" :key="4"/>
-                            </el-select>
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="2">
-                        <span style="line-height: 30px;padding: 0; margin-left: -20px;">GB</span>
                     </el-col>
                 </el-row>
                 <el-row :gutter="24">
