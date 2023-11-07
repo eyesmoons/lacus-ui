@@ -131,16 +131,8 @@ const syncTypeOptions = [
     {
         value: 'initial',
         label: '全量快照'
-    }, {
-        value: 'earliest',
-        label: '最早binLog位点'
-    }, {
-        value: 'latest',
-        label: '最新binLog位点'
-    }, {
-        value: 'specificOffset',
-        label: '指定bigLog位点'
-    }, {
+    },
+    {
         value: 'timestamp',
         label: '指定时间戳'
     }
