@@ -51,30 +51,30 @@
             </el-table-column>
             <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
                 <template #default="scope">
-                    <el-button
-                            link
-                            type="primary"
-                            icon="Edit"
-                            @click="handleUpdate(scope.row)"
-                            v-hasPermission="['system:dept:edit']"
-                    >修改
-                    </el-button
-                    >
-                    <el-button link type="primary" icon="Plus" @click="handleAdd(scope.row)"
-                               v-hasPermission="['system:dept:add']"
-                    >新增
-                    </el-button
-                    >
-                    <el-button
-                            v-if="scope.row.parentId != 0"
-                            link
-                            type="primary"
-                            icon="Delete"
-                            @click="handleDelete(scope.row)"
-                            v-hasPermission="['system:dept:remove']"
-                    >删除
-                    </el-button
-                    >
+                    <el-button-group class="mb5">
+                        <el-tooltip content="编辑" placement="top">
+                            <el-button
+                                    type="warning"
+                                    icon="Edit"
+                                    @click="handleUpdate(scope.row)"
+                                    v-hasPermission="['system:dept:edit']"/>
+                        </el-tooltip>
+                        <el-tooltip content="新增" placement="top">
+                            <el-button
+                                    type="primary"
+                                    icon="CirclePlusFilled"
+                                    @click="handleAdd(scope.row)"
+                                    v-hasPermission="['system:dept:add']"/>
+                        </el-tooltip>
+                        <el-tooltip content="删除" placement="top">
+                            <el-button
+                                    v-if="scope.row.parentId != 0"
+                                    type="danger"
+                                    icon="Delete"
+                                    @click="handleDelete(scope.row)"
+                                    v-hasPermission="['system:dept:remove']"/>
+                        </el-tooltip>
+                    </el-button-group>
                 </template>
             </el-table-column>
         </el-table>

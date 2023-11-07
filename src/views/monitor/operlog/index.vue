@@ -127,14 +127,13 @@
             </el-table-column>
             <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
                 <template #default="scope">
-                    <el-button
-                            link
-                            type="primary"
-                            icon="View"
-                            @click="handleView(scope.row, scope.index)"
-                            v-hasPermission="['system:operlog:query']"
-                    >详细
-                    </el-button>
+                    <el-tooltip content="详情" placement="top">
+                        <el-button
+                                type="primary"
+                                icon="View"
+                                @click="handleView(scope.row, scope.index)"
+                                v-hasPermission="['system:operlog:query']"/>
+                    </el-tooltip>
                 </template>
             </el-table-column>
         </el-table>
