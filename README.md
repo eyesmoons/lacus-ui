@@ -18,6 +18,6 @@ npm install
 npm run dev
 
 # 前端访问地址 http://localhost:8080
-# 构建测试环境 npm build:stage
-# 构建生产环境 npm build:prod
+# 构建测试环境 npm run build:stage
+# 构建生产环境 npm run build:prod
 ```
