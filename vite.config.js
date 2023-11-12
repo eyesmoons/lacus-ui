@@ -32,7 +32,7 @@ export default defineConfig(({mode, command}) => {
                 // https://cn.vitejs.dev/config/#server-proxy
                 '/lacus-api': {
                     // 后端地址
-                    target: 'http://localhost:8090',
+                    target: 'http://127.0.0.1:8090',
                     changeOrigin: true,
                     // 将/lacus-api路径去掉
                     rewrite: (p) => p.replace(/^\/lacus-api/, ''),
