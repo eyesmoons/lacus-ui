@@ -23,7 +23,7 @@
             <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
         </el-row>
 
-        <el-table v-loading="loading" :data="jobCatalogList" stripe @selection-change="handleSelectionChange">
+        <el-table v-loading="loading" :data="jobCatalogList" stripe border @selection-change="handleSelectionChange">
             <el-table-column type="selection" width="55" align="center" />
             <el-table-column label="分组名称" align="left" prop="catalogName" />
             <el-table-column label="描述" align="left" prop="remark" show-overflow-tooltip/>

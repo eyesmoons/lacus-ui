@@ -36,26 +36,26 @@
             <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
         </el-row>
 
-        <el-table v-loading="loading" :data="datasourceList" stripe @selection-change="handleSelectionChange">
+        <el-table v-loading="loading" :data="datasourceList" stripe border @selection-change="handleSelectionChange">
             <el-table-column type="selection" width="55" align="center" />
-            <el-table-column label="数据源名称" align="left" prop="datasourceName" />
-            <el-table-column label="数据源类型" align="left" prop="type" />
-            <el-table-column label="ip/主机名" align="left" prop="ip" />
-            <el-table-column label="端口" align="left" prop="port" />
-            <el-table-column label="数据库名" align="left" prop="defaultDbName" />
-            <el-table-column label="用户名" align="left" prop="username" />
+            <el-table-column label="数据源名称" show-overflow-tooltip align="left" prop="datasourceName" />
+            <el-table-column label="数据源类型" show-overflow-tooltip align="left" prop="type" />
+            <el-table-column label="ip/主机名" show-overflow-tooltip align="left" prop="ip" />
+            <el-table-column label="端口" show-overflow-tooltip align="left" prop="port" />
+            <el-table-column label="数据库名" show-overflow-tooltip align="left" prop="defaultDbName" />
+            <el-table-column label="用户名" show-overflow-tooltip align="left" prop="username" />
             <el-table-column label="描述" align="left" prop="remark" show-overflow-tooltip/>
             <el-table-column label="启用状态" align="center" prop="status">
                 <template #default="scope">
                     <el-switch v-model="scope.row.status" :active-value="1" :inactive-value="0" @change ="handleStatusChange(scope.row)" />
                 </template>
             </el-table-column>
-            <el-table-column label="创建时间" align="center" prop="createTime" :show-overflow-tooltip="true" width="120">
+            <el-table-column label="创建时间" align="center" prop="createTime" :show-overflow-tooltip="true" width="160">
                 <template #default="scope">
                     <span>{{ parseTime(scope.row.createTime) }}</span>
                 </template>
             </el-table-column>
-            <el-table-column label="操作" align="center" width="200px">
+            <el-table-column label="操作" align="center" width="200px" fixed="right">
                 <template #default="scope">
                     <el-button-group class="ml-4">
                         <el-tooltip content="测试数据源" placement="top" v-if="scope.row.status === 1">

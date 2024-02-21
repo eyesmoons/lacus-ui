@@ -39,7 +39,7 @@
                 </el-form>
 
                 <!-- 列表数据 -->
-                <el-table v-loading="loading" :data="tableList">
+                <el-table v-loading="loading" :data="tableList" stripe border>
                     <el-table-column type="selection" width="50" align="center" />
                     <el-table-column
                             label="数据源"

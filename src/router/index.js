@@ -66,22 +66,29 @@ export const constantRoutes = [{
     path: '/metadata/table-manager', component: Layout, hidden: true, children: [{
         path: 'detail/:tableId(\\d+)',
         component: () => import('@/views/metadata/table/detail'),
-        name: 'TableDetail',
+        name: 'tableDetail',
         meta: {title: '表详情', activeMenu: '/metadata/table'},
     },],
 }, {
     path: '/datasync/job-manager', component: Layout, hidden: true, children: [{
         path: 'addJob',
-        component: () => import('@/views/datasync/job/job.vue'),
+        component: () => import('@/views/datasync/job/job'),
         name: 'addJob',
         meta: {title: '新建任务', activeMenu: '/datasync/job'},
     },],
 }, {
     path: '/datasync/job-manager', component: Layout, hidden: true, children: [{
         path: 'editJob/:jobId(.+)',
-        component: () => import('@/views/datasync/job/job.vue'),
+        component: () => import('@/views/datasync/job/job'),
         name: 'editJob',
         meta: {title: '编辑任务', activeMenu: '/datasync/job'},
+    },],
+}, {
+    path: '/datasync/job-manager', component: Layout, hidden: true, children: [{
+        path: 'detail/:jobId(\\d+)',
+        component: () => import('@/views/datasync/job/detail'),
+        name: 'jobDetail',
+        meta: {title: '任务详情', activeMenu: '/datasync/job'},
     },],
 }];
 

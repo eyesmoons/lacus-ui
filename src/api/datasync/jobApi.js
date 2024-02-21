@@ -2,7 +2,7 @@ import request from '@/utils/request';
 
 export function preCheck(data) {
     return request({
-        url: `/datasync/job/manager/preCheck`,
+        url: `/datasync/job/definition/preCheck`,
         method: 'post',
         data
     });
@@ -10,7 +10,7 @@ export function preCheck(data) {
 
 export function listMappedColumn(data) {
     return request({
-        url: `/datasync/job/manager/listMappedColumn`,
+        url: `/datasync/job/definition/listMappedColumn`,
         method: 'post',
         data
     });
@@ -18,7 +18,7 @@ export function listMappedColumn(data) {
 
 export function add(data) {
     return request({
-        url: `/datasync/job/manager/add`,
+        url: `/datasync/job/definition/add`,
         method: 'post',
         data
     });
@@ -26,68 +26,45 @@ export function add(data) {
 
 export function update(data) {
     return request({
-        url: `/datasync/job/manager/modify`,
+        url: `/datasync/job/definition/modify`,
         method: 'post',
         data
     });
 }
 
-export function jobListTree(query) {
-    return request({
-        url: `/datasync/job/manager/jobListTree`,
-        method: 'get',
-        params: query,
-    })
-}
-
 export function pageList(query) {
     return request({
-        url: `/datasync/job/manager/pageList`,
+        url: `/datasync/job/definition/pageList`,
         method: 'get',
         params: query,
-    })
-}
-
-export function listSavedDbTableByDbName(query) {
-    return request({
-        url: `/datasync/job/manager/listSavedDbTableByDbName`,
-        method: 'get',
-        params: query,
-    })
-}
-
-export function listSavedDbTableByJobId(jobId) {
-    return request({
-        url: `/datasync/job/manager/listSavedDbTableByDbName/${jobId}`,
-        method: 'get'
     })
 }
 
 export function detail(jobId) {
     return request({
-        url: `/datasync/job/manager/detail/${jobId}`,
+        url: `/datasync/job/definition/detail/${jobId}`,
         method: 'get'
     })
 }
 
 export function remove(jobId) {
     return request({
-        url: `/datasync/job/manager/remove/${jobId}`,
+        url: `/datasync/job/definition/remove/${jobId}`,
         method: 'get'
     });
 }
 
 export function submitJob(data) {
     return request({
-        url: '/datasync/job/operation/submitJob',
+        url: '/datasync/job/operation/start',
         method: 'post',
         data,
     });
 }
 
-export function stopJob(catalogId) {
+export function stopJob(jobId) {
     return request({
-        url: `/datasync/job/operation/stopJob/${catalogId}`,
+        url: `/datasync/job/operation/stop/${jobId}`,
         method: 'get'
     });
 }
@@ -98,7 +75,7 @@ export function jobDetail(catalogId, type) {
         type: type
     }
     return request({
-        url: `/datasync/job/manager/jobDetail`,
+        url: `/datasync/job/definition/jobDetail`,
         method: 'get',
         params: query
     });

@@ -28,11 +28,13 @@
         </el-row>
 
         <!-- 任务列表 -->
-        <el-table v-loading="loading" :data="jobList" stripe>
-            <el-table-column label="任务名称" prop="jobName" :show-overflow-tooltip="true" width="160"/>
-            <el-table-column label="所属分组" align="left" prop="catalogName"/>
-            <el-table-column label="输入源" align="left" prop="sourceDatasourceName"/>
-            <el-table-column label="输出源" align="left" prop="sinkDatasourceName"/>
+        <el-table v-loading="loading" :data="jobList" stripe border>
+            <el-table-column label="任务名称" show-overflow-tooltip prop="jobName" :show-overflow-tooltip="true"/>
+            <el-table-column label="所属分组" show-overflow-tooltip align="left" prop="catalogName"/>
+            <el-table-column label="输入源" show-overflow-tooltip align="left" prop="sourceDatasourceName"/>
+            <el-table-column label="输出源" show-overflow-tooltip align="left" prop="sinkDatasourceName"/>
+            <el-table-column label="输入库" show-overflow-tooltip align="left" prop="sourceDbName"/>
+            <el-table-column label="输出库" show-overflow-tooltip align="left" prop="sinkDbName"/>
             <el-table-column label="任务状态" align="center" prop="status">
                 <template #default="scope">
                     <el-tooltip :content="formatStatus(scope.row.status)" placement="top">
@@ -40,13 +42,13 @@
                     </el-tooltip>
                 </template>
             </el-table-column>
-            <el-table-column label="任务描述" align="left" prop="remark" :show-overflow-tooltip="true" width="150"/>
-            <el-table-column label="创建时间" align="center" prop="createTime" width="160px">
+            <el-table-column label="任务描述" show-overflow-tooltip align="left" prop="remark" :show-overflow-tooltip="true" width="150"/>
+            <el-table-column label="创建时间" show-overflow-tooltip align="center" prop="createTime" width="160px">
                 <template #default="scope">
                     <span>{{ parseTime(scope.row.createTime) }}</span>
                 </template>
             </el-table-column>
-            <el-table-column label="操作" align="center" width="200" class-name="small-padding fixed-width">
+            <el-table-column fixed="right" label="操作" align="center" width="250" class-name="small-padding fixed-width">
                 <template #default="scope">
                     <el-button-group class="ml-4">
                         <el-tooltip content="启动任务" placement="top"
@@ -59,10 +61,6 @@
                             <el-button type="danger" icon="video-pause" @click="stopJob(scope.row)"
                                        v-hasPermission="['datasync:job:edit']"/>
                         </el-tooltip>
-                        <el-tooltip content="任务详情" placement="top" v-if="scope.row.status === 'RUNNING'">
-                            <el-button type="primary" icon="view" @click="toJobDetail(scope.row)"
-                                       v-hasPermission="['datasync:job:query']"/>
-                        </el-tooltip>
                         <el-tooltip content="编辑" placement="top"
                                     v-if="scope.row.status !== 'RUNNING'">
                             <el-button type="warning" icon="edit" @click="toEditJobPage(scope.row)"
@@ -72,6 +70,10 @@
                                     v-if="scope.row.status !== 'RUNNING'">
                             <el-button type="danger" icon="delete" @click="handleDelete(scope.row)"
                                        v-hasPermission="['datasync:job:remove']"/>
+                        </el-tooltip>
+                        <el-tooltip content="任务详情" placement="top">
+                            <el-button type="primary" icon="view" @click="toJobDetail(scope.row)"
+                                       v-hasPermission="['datasync:job:query']"/>
                         </el-tooltip>
                     </el-button-group>
                 </template>
@@ -210,10 +212,8 @@ function stopJob(row) {
 }
 
 function toJobDetail(row) {
-    jobApi.jobDetail(row.jobId, 1)
-        .then((response) => {
-            window.open(response.trackingUrl, '_blank')
-        })
+    const { jobId } = row;
+    router.push(`/datasync/job-manager/detail/${jobId}`);
 }
 
 function closeDialog() {

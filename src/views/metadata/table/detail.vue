@@ -33,7 +33,7 @@
                 </el-form>
             </el-tab-pane>
             <el-tab-pane label="字段信息" name="columnInfo">
-                <el-table :data="columnList" stripe>
+                <el-table :data="columnList" stripe border>
                     <el-table-column label="字段名" align="left" prop="columnName" />
                     <el-table-column label="备注" align="left" prop="comment" show-overflow-tooltip/>
                     <el-table-column label="数据类型" align="left" prop="dataType" />
