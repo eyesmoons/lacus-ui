@@ -35,7 +35,7 @@ export default defineConfig(({mode, command}) => {
                     target: 'http://127.0.0.1:8090',
                     changeOrigin: true,
                     // 将/lacus-api路径去掉
-                    rewrite: (p) => p.replace(/^\/lacus-api/, ''),
+                    rewrite: (p) => p.replace(/^\/lacus-api/, '')
                 }
             },
         },

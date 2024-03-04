@@ -48,12 +48,12 @@
                 <el-form :model="dataSync.jobInfo" :inline="true" label-position="right">
                     <el-row :gutter="24">
                         <el-col :span="12">
-                            <el-form-item label="job manager：">
+                            <el-form-item label="job manager（GB）：">
                                 <el-input v-model="dataSync.jobInfo.jobManager" disabled />
                             </el-form-item>
                         </el-col>
                         <el-col :span="12">
-                            <el-form-item label="task manager：">
+                            <el-form-item label="task manager（GB）：">
                                 <el-input v-model="dataSync.jobInfo.taskManager" disabled />
                             </el-form-item>
                         </el-col>
@@ -64,19 +64,19 @@
                 <el-form :model="dataSync.jobInfo" :inline="true" label-position="right">
                     <el-row :gutter="24">
                         <el-col :span="12">
-                            <el-form-item label="窗口间隔：">
+                            <el-form-item label="窗口间隔（秒）：">
                                 <el-input v-model="dataSync.jobInfo.windowSize" disabled />
                             </el-form-item>
                         </el-col>
                         <el-col :span="12">
-                            <el-form-item label="最大条数：">
+                            <el-form-item label="最大条数（万条）：">
                                 <el-input v-model="dataSync.jobInfo.maxCount" disabled />
                             </el-form-item>
                         </el-col>
                     </el-row>
                     <el-row :gutter="24">
                         <el-col :span="24">
-                            <el-form-item label="最大数据量：">
+                            <el-form-item label="最大数据量（MB）：">
                                 <el-input v-model="dataSync.jobInfo.maxSize" disabled />
                             </el-form-item>
                         </el-col>
