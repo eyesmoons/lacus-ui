@@ -2,7 +2,8 @@
     <div class="app-container">
         <el-tabs v-model="activeTab">
             <el-tab-pane label="基本信息" name="jobInfo">
-                <div class="tip custom-block">任务信息</div>
+                <el-divider direction="vertical"></el-divider>
+                <span class="divider-text">任务信息</span>
                 <el-form :model="form" label-width="100px">
                     <el-row :gutter="24">
                         <el-col :span="12">
@@ -14,7 +15,8 @@
                     </el-row>
                 </el-form>
 
-                <div class="tip custom-block">输入源</div>
+                <el-divider direction="vertical"></el-divider>
+                <span class="divider-text">输入源</span>
                 <el-form :model="form" label-width="100px">
                     <el-row :gutter="24">
                         <el-col :span="12">
@@ -26,7 +28,8 @@
                     </el-row>
                 </el-form>
 
-                <div class="tip custom-block">输出源</div>
+                <el-divider direction="vertical"></el-divider>
+                <span class="divider-text">输出源</span>
                 <el-form :model="form" label-width="100px">
                     <el-row :gutter="24">
                         <el-col :span="12">
@@ -38,13 +41,15 @@
                     </el-row>
                 </el-form>
 
-                <div class="tip custom-block">映射关系</div>
+                <el-divider direction="vertical"></el-divider>
+                <span class="divider-text">映射关系</span>
                 <el-table>
 
                 </el-table>
             </el-tab-pane>
             <el-tab-pane label="高级配置" name="columnInfo">
-                <div class="tip custom-block">任务参数</div>
+                <el-divider direction="vertical"></el-divider>
+                <span class="divider-text">任务参数</span>
                 <el-form :model="dataSync.jobInfo" :inline="true" label-position="right">
                     <el-row :gutter="24">
                         <el-col :span="12">
@@ -60,7 +65,8 @@
                     </el-row>
                 </el-form>
 
-                <div class="tip custom-block">限流配置</div>
+                <el-divider direction="vertical"></el-divider>
+                <span class="divider-text">限流配置</span>
                 <el-form :model="dataSync.jobInfo" :inline="true" label-position="right">
                     <el-row :gutter="24">
                         <el-col :span="12">
@@ -110,13 +116,13 @@ const dataSync = reactive({
 </script>
 
 <style>
-
-.custom-block.tip {
-    padding: 1px 10px;
-    background-color: #ffffff;
-    border-radius: 1px;
-    border-left: 3px solid var(--el-color-primary);
-    margin: 5px 0;
+.el-divider--vertical {
+    border-left: 2px #1c84c6 solid;
+    margin: 0 5px;
 }
 
+.divider-text {
+    display: inline-block;
+    margin-top: 10px;
+}
 </style>
