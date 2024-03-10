@@ -6,7 +6,7 @@
             </el-form-item>
             <el-form-item label="数据源类型" prop="type">
                 <el-select v-model="queryParams.type" placeholder="请输入数据源类型" clearable filterable>
-                    <el-option v-for="dict in datasource_type" :key="dict.value" :label="dict.label" :value="dict.label"/>
+                    <el-option v-for="dict in datasourceTypeOption" :key="dict.typeName" :label="dict.typeCode" :value="dict.typeName"/>
                 </el-select>
             </el-form-item>
             <el-form-item label="ip" prop="ip">
@@ -93,7 +93,7 @@
                             <el-col :span="8" :push="2">
                                 <el-form-item label="数据源类型" prop="type" :span="8">
                                     <el-select v-model="form.type" placeholder="请选择数据源类型">
-                                        <el-option v-for="dict in datasource_type" :key="dict.value" :label="dict.label" :value="dict.label" />
+                                        <el-option v-for="dict in datasourceTypeOption" :key="dict.typeCode" :label="dict.typeName" :value="dict.typeName" />
                                     </el-select>
                                 </el-form-item>
                             </el-col>
@@ -203,9 +203,11 @@
 <script setup name="datasource">
 import * as datasourceApi from '@/api/metadata/datasourceApi';
 import * as schemaApi from "@/api/metadata/schemaApi";
+import * as datasourceTypeApi from '@/api/metadata/datasourceTypeApi'
+import {ref} from "vue";
 
 const { proxy } = getCurrentInstance();
-const { datasource_status, datasource_type} = proxy.useDict('datasource_status', 'datasource_type');
+const { datasource_status} = proxy.useDict('datasource_status');
 const datasourceList = ref([]);
 const open = ref(false);
 const syncMetaDialog = ref(false);
@@ -230,6 +232,7 @@ const sourceTypeOptions = [
         label: '输出源'
     }
 ];
+const datasourceTypeOption = ref([]);
 
 const data = reactive({
     form: {},
@@ -314,8 +317,15 @@ function handleSelectionChange(selection) {
 /** 新增按钮操作 */
 function handleAdd() {
     reset();
+    initDatasourceTypeOption();
     open.value = true;
     title.value = '新增数据源';
+}
+
+function initDatasourceTypeOption() {
+    datasourceTypeApi.list(null).then((response) => {
+        datasourceTypeOption.value = response;
+    })
 }
 
 function handleTest(row) {
@@ -333,6 +343,7 @@ function handleTest(row) {
 /** 修改按钮操作 */
 function handleUpdate(row) {
     reset();
+    initDatasourceTypeOption();
     const datasourceId = row.datasourceId || ids.value;
     datasourceApi.getDatasource(datasourceId).then((response) => {
         form.value = response;

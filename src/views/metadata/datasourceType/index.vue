@@ -57,42 +57,42 @@
                             <el-row :gutter="24">
                                 <el-col :span="22">
                                     <el-form-item label="名称" prop="typeName">
-                                        <el-input v-model="form.typeName" placeholder="请输入数据源类型名称"/>
+                                        <el-input v-model="form.typeName" placeholder="请输入数据源类型名称" clearable/>
                                     </el-form-item>
                                 </el-col>
                             </el-row>
                             <el-row :gutter="24">
                                 <el-col :span="22">
                                     <el-form-item label="编码" prop="typeCode">
-                                        <el-input v-model="form.typeCode" placeholder="请输入数据源类型编码"/>
+                                        <el-input v-model="form.typeCode" placeholder="请输入数据源类型编码" clearable/>
                                     </el-form-item>
                                 </el-col>
                             </el-row>
                             <el-row :gutter="24">
                                 <el-col :span="22">
                                     <el-form-item label="驱动名称" prop="driverName">
-                                        <el-input v-model="form.driverName" placeholder="请输入驱动名称"/>
+                                        <el-input v-model="form.driverName" placeholder="请输入驱动名称" clearable/>
                                     </el-form-item>
                                 </el-col>
                             </el-row>
                             <el-row :gutter="24">
                                 <el-col :span="22">
                                     <el-form-item label="图标" prop="icon">
-                                        <el-input v-model="form.icon" placeholder="请输入图标名称，请提前上传到/assets/images目录"/>
+                                        <el-input v-model="form.icon" placeholder="请输入图标名称，请提前上传到/assets/images目录" clearable/>
                                     </el-form-item>
                                 </el-col>
                             </el-row>
                             <el-row :gutter="24">
                                 <el-col :span="22">
                                     <el-form-item label="jdbcUrl" prop="jdbcUrl">
-                                        <el-input v-model="form.jdbcUrl" placeholder="请输入jdbc url"/>
+                                        <el-input v-model="form.jdbcUrl" placeholder="请输入jdbc url" clearable/>
                                     </el-form-item>
                                 </el-col>
                             </el-row>
                             <el-row :gutter="24">
                                 <el-col :span="22">
                                     <el-form-item label="说明" prop="remark">
-                                        <el-input v-model="form.remark" placeholder="请输入备注信息"/>
+                                        <el-input v-model="form.remark" placeholder="请输入备注信息" clearable/>
                                     </el-form-item>
                                 </el-col>
                             </el-row>
@@ -206,6 +206,7 @@ function initCatalogOption() {
 /** 修改按钮操作 */
 function handleUpdate(row) {
     reset();
+    initCatalogOption();
     const typeId = row.typeId;
     datasourceTypeApi.detail(typeId).then((response) => {
         form.value = response;
