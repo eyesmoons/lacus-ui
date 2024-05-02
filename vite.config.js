@@ -26,13 +26,13 @@ export default defineConfig(({mode, command}) => {
         // vite 相关配置
         server: {
             port: 8080,
-            host: '127.0.0.1',
+            host: '192.168.0.106',
             open: true, // 在服务器启动时自动在浏览器中打开应用程序
             proxy: {
                 // https://cn.vitejs.dev/config/#server-proxy
                 '/lacus-api': {
                     // 后端地址
-                    target: 'http://127.0.0.1:8090',
+                    target: 'http://192.168.0.106:8090',
                     changeOrigin: true,
                     // 将/lacus-api路径去掉
                     rewrite: (p) => p.replace(/^\/lacus-api/, '')
