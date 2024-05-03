@@ -238,8 +238,6 @@
             <el-button v-if="active === 1" style="margin-top: 15px" @click="cancel()">取消</el-button>
             <el-button v-if="active !== 1" style="margin-top: 15px" @click="back()">上一步</el-button>
             <el-button v-if="active !== 3" type="primary" style="margin-top: 15px" @click="next()">下一步</el-button>
-<!--            <el-button v-if="active !== 3 && tableChecked !== 0" type="primary" style="margin-top: 15px" @click="next()">下一步</el-button>-->
-<!--            <el-button v-if="active !== 3 && tableChecked === 0" type="primary" style="margin-top: 15px" @click="preCheck()">预检查</el-button>-->
             <el-button v-if="active === 3" type="primary" style="margin-top: 15px" @click="saveJob()">提交
             </el-button>
         </div>
@@ -313,7 +311,6 @@ const router = useRouter();
 const {proxy} = getCurrentInstance();
 const route = useRoute();
 const active = ref(1);
-const tableChecked = ref(null);
 const checkedTableMappings = ref([]);
 const columnMappingDialog = ref(false);
 const sourceDatasourceOption = ref([])
@@ -336,12 +333,6 @@ const taskFormRef = ref(null)
 const catalogOption = ref([])
 const mappedColumn = ref({})
 const sinkColumns = ref([])
-const appContainerOptions = [
-    {
-        value: 'yarn',
-        label: 'yarn'
-    }
-];
 const jobId = ref(null)
 const jobDetail = ref({})
 const data = reactive({
@@ -369,7 +360,6 @@ function next() {
     // 第二步初始化输出源
     if (active.value === 2) {
         if (sourceTableRight.value.length > 0) {
-            tableChecked.value = 0;
             listSinkDatasource();
         } else {
             // 没有选择表，则停留在第一步
@@ -377,8 +367,7 @@ function next() {
             proxy.$message({message: '请选择需要接入的表', type: 'error'})
         }
     } else if (active.value === 3) {
-        // 初始化分组下拉框
-        initCatalogOption();
+        preCheck();
     }
 }
 
@@ -396,8 +385,9 @@ function preCheck() {
         form.value.jobId = jobId.value
     }
     jobApi.preCheck(form.value).then((response) => {
-        tableChecked.value = 1;
         checkedTableMappings.value = response;
+        // 初始化分组下拉框
+        initCatalogOption();
     })
 }
 
@@ -405,7 +395,6 @@ function preCheck() {
  * 保存任务信息
  */
 function saveJob() {
-    // form.value.tableMappings = sinkTableRef.value.data
     form.value.tableMappings = checkedTableMappings.value;
     if (jobId.value) {
         form.value.jobId = jobId.value
@@ -414,6 +403,7 @@ function saveJob() {
         })
     } else {
         jobApi.add(form.value).then((response) => {
+            console.log(response.data)
             proxy.$message({message: '任务保存成功', type: 'success'})
         })
     }
@@ -633,7 +623,6 @@ function doCheckColumnMapping() {
             }
         })
         columnMappingDialog.value = false;
-        tableChecked.value = 0;
     }
 }
 
@@ -651,7 +640,6 @@ listSourceDatasource();
             form.value.sinkDbName = jobDetail.value.sinkDbName
             form.value.jobName = jobDetail.value.jobName
             form.value.catalogId = jobDetail.value.catalogId
-            form.value.appContainer = jobDetail.value.appContainer
             form.value.remark = jobDetail.value.remark
             form.value.jobManager = jobDetail.value.jobManager
             form.value.taskManager = jobDetail.value.taskManager
@@ -659,8 +647,6 @@ listSourceDatasource();
             form.value.maxCount = jobDetail.value.maxCount
             form.value.maxSize = jobDetail.value.maxSize
 
-            selectSourceDatasource(jobDetail.value.sourceDatasourceId)
-            selectSourceDb(jobDetail.value.sourceDbName)
             let mappedTable = jobDetail.value.mappedTable
 
             let mappedSourceDbTables = mappedTable.mappedSourceTables
@@ -669,8 +655,12 @@ listSourceDatasource();
                 sourceTableRight.value.push({
                     sourceTableName: mappedSourceDbTables[i].tableName
                 })
-                rightTable.value.push(mappedSourceDbTables[i].tableName)
+                rightTable.value.push(mappedSourceDbTables[i].dbName + "." + mappedSourceDbTables[i].tableName)
             }
+
+            selectSourceDatasource(jobDetail.value.sourceDatasourceId)
+            selectSourceDb(jobDetail.value.sourceDbName)
+
             for (let i in mappedSinkDbTables) {
                 mappedSinkTable.value.push({
                     tableId: mappedSinkDbTables[i].metaTableId,
