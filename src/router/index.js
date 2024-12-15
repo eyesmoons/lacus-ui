@@ -13,87 +13,200 @@ import Layout from '@/layout';
  * name:'router-name'               // 设定路由的名字，一定要填写不然使用<keep-alive>时会出现各种问题
  * query: '{"id": 1, "name": "ry"}' // 访问路由的默认传递参数
  * meta : {
-    noCache: true                   // 如果设置为true，则不会被 <keep-alive> 缓存(默认 false)
-    title: 'title'                  // 设置该路由在侧边栏和面包屑中展示的名字
-    icon: 'svg-name'                // 设置该路由的图标，对应路径src/assets/icons/svg
-    breadcrumb: false               // 如果设置为false，则不会在breadcrumb面包屑中显示
-    activeMenu: '/system/user'      // 当路由设置了该属性，则会高亮相对应的侧边栏。
-  }
+ noCache: true                   // 如果设置为true，则不会被 <keep-alive> 缓存(默认 false)
+ title: 'title'                  // 设置该路由在侧边栏和面包屑中展示的名字
+ icon: 'svg-name'                // 设置该路由的图标，对应路径src/assets/icons/svg
+ breadcrumb: false               // 如果设置为false，则不会在breadcrumb面包屑中显示
+ activeMenu: '/system/user'      // 当路由设置了该属性，则会高亮相对应的侧边栏。
+ }
  */
 
 // 公共路由
-export const constantRoutes = [{
-    path: '/redirect', component: Layout, hidden: true, children: [{
-        path: '/redirect/:path(.*)', component: () => import('@/views/redirect/index.vue'),
-    },],
-}, {
-    path: '/login', component: () => import('@/views/login'), hidden: true,
-}, {
-    path: '/register', component: () => import('@/views/register'), hidden: true,
-}, {
-    path: '/:pathMatch(.*)*', component: () => import('@/views/error/404'), hidden: true,
-}, {
-    path: '/401', component: () => import('@/views/error/401'), hidden: true,
-}, {
-    path: '', component: Layout, redirect: '/index', children: [{
-        path: '/index',
-        component: () => import('@/views/index'),
-        name: 'Index',
-        meta: {title: '首页', icon: 'dashboard', affix: true},
-    },],
-}, {
-    path: '/user', component: Layout, hidden: true, redirect: 'noredirect', children: [{
-        path: 'profile',
-        component: () => import('@/views/system/user/profile/index'),
-        name: 'Profile',
-        meta: {title: '个人中心', icon: 'user'},
-    },],
-}, {
-    path: '/system/user-auth', component: Layout, hidden: true, children: [{
-        path: 'role/:userId(\\d+)',
-        component: () => import('@/views/system/user/authRole'),
-        name: 'AuthRole',
-        meta: {title: '分配角色', activeMenu: '/system/user'},
-    },],
-}, {
-    path: '/system/role-auth', component: Layout, hidden: true, children: [{
-        path: 'user/:roleId(\\d+)',
-        component: () => import('@/views/system/role/authUser'),
-        name: 'AuthUser',
-        meta: {title: '分配用户', activeMenu: '/system/role'},
-    },],
-}, {
-    path: '/metadata/table-manager', component: Layout, hidden: true, children: [{
-        path: 'detail/:tableId(\\d+)',
-        component: () => import('@/views/metadata/table/detail'),
-        name: 'tableDetail',
-        meta: {title: '表详情', activeMenu: '/metadata/table'},
-    },],
-}, {
-    path: '/datasync/job-manager', component: Layout, hidden: true, children: [{
-        path: 'addJob',
-        component: () => import('@/views/datasync/job/job'),
-        name: 'addJob',
-        meta: {title: '新建任务', activeMenu: '/datasync/job'},
-    },],
-}, {
-    path: '/datasync/job-manager', component: Layout, hidden: true, children: [{
-        path: 'editJob/:jobId(.+)',
-        component: () => import('@/views/datasync/job/job'),
-        name: 'editJob',
-        meta: {title: '编辑任务', activeMenu: '/datasync/job'},
-    },],
-}, {
-    path: '/datasync/job-manager', component: Layout, hidden: true, children: [{
-        path: 'detail/:jobId(\\d+)',
-        component: () => import('@/views/datasync/job/detail'),
-        name: 'jobDetail',
-        meta: {title: '任务详情', activeMenu: '/datasync/job'},
-    },],
-}];
+export const constantRoutes = [
+    {
+        path: '/redirect',
+        component: Layout,
+        hidden: true,
+        children: [
+            {
+                path: '/redirect/:path(.*)',
+                component: () => import('@/views/redirect/index.vue'),
+            },
+        ],
+    },
+    {
+        path: '/login',
+        component: () => import('@/views/login'),
+        hidden: true,
+    },
+    {
+        path: '/register',
+        component: () => import('@/views/register'),
+        hidden: true,
+    },
+    {
+        path: '/:pathMatch(.*)*',
+        component: () => import('@/views/error/404'),
+        hidden: true,
+    },
+    {
+        path: '/401',
+        component: () => import('@/views/error/401'),
+        hidden: true,
+    },
+    {
+        path: '',
+        component: Layout,
+        redirect: '/index',
+        children: [
+            {
+                path: '/index',
+                component: () => import('@/views/index'),
+                name: 'Index',
+                meta: {title: '首页', icon: 'dashboard', affix: true},
+            },
+        ],
+    },
+    {
+        path: '/user',
+        component: Layout,
+        hidden: true,
+        redirect: 'noredirect',
+        children: [
+            {
+                path: 'profile',
+                component: () => import('@/views/system/user/profile/index'),
+                name: 'Profile',
+                meta: {title: '个人中心', icon: 'user'},
+            },
+        ],
+    },
+    {
+        path: '/system/user-auth',
+        component: Layout,
+        hidden: true,
+        children: [
+            {
+                path: 'role/:userId(\\d+)',
+                component: () => import('@/views/system/user/authRole'),
+                name: 'AuthRole',
+                meta: {title: '分配角色', activeMenu: '/system/user'},
+            },
+        ],
+    },
+    {
+        path: '/system/role-auth',
+        component: Layout,
+        hidden: true,
+        children: [
+            {
+                path: 'user/:roleId(\\d+)',
+                component: () => import('@/views/system/role/authUser'),
+                name: 'AuthUser',
+                meta: {title: '分配用户', activeMenu: '/system/role'},
+            },
+        ],
+    },
+    {
+        path: '/metadata/table-manager',
+        component: Layout,
+        hidden: true,
+        children: [
+            {
+                path: 'detail/:tableId(\\d+)',
+                component: () => import('@/views/metadata/table/detail'),
+                name: 'tableDetail',
+                meta: {title: '表详情', activeMenu: '/metadata/table'},
+            },
+        ],
+    },
+    {
+        path: '/datasync/job-manager',
+        component: Layout,
+        hidden: true,
+        children: [
+            {
+                path: 'addJob',
+                component: () => import('@/views/datasync/job/job'),
+                name: 'addJob',
+                meta: {title: '新建任务', activeMenu: '/datasync/job'},
+            },
+        ],
+    },
+    {
+        path: '/datasync/job-manager',
+        component: Layout,
+        hidden: true,
+        children: [
+            {
+                path: 'editJob/:jobId(.+)',
+                component: () => import('@/views/datasync/job/job'),
+                name: 'editJob',
+                meta: {title: '编辑任务', activeMenu: '/datasync/job'},
+            },
+        ],
+    },
+    {
+        path: '/datasync/job-manager',
+        component: Layout,
+        hidden: true,
+        children: [
+            {
+                path: 'detail/:jobId(\\d+)',
+                component: () => import('@/views/datasync/job/detail'),
+                name: 'jobDetail',
+                meta: {title: '任务详情', activeMenu: '/datasync/job'},
+            },
+        ],
+    },
+    {
+        path: '/flink',
+        component: Layout,
+        hidden: true,
+        meta: {title: 'Flink开发', icon: 'monitor'},
+        children: [
+            {
+                path: 'job',
+                component: () => import('@/views/flink/job/index'),
+                name: 'FlinkJob',
+                meta: {title: 'Flink任务管理'}
+            },
+            {
+                path: 'job/add/:type',
+                component: () => import('@/views/flink/job/sql'),
+                name: 'AddFlinkJob',
+                meta: {title: '新增Flink任务', activeMenu: '/flink/job'},
+                hidden: true
+            },
+            {
+                path: 'job/add/jar',  // 单独配置jar路由
+                component: () => import('@/views/flink/job/jar'),
+                name: 'AddFlinkJarJob',
+                meta: {title: '新增Jar任务', activeMenu: '/flink/job'},
+                hidden: true
+            },
+            {
+                path: 'job/edit/:jobId',
+                component: () => import('@/views/flink/job/edit'),
+                name: 'EditFlinkJob',
+                meta: {title: '编辑Flink任务', activeMenu: '/flink/job'},
+                hidden: true
+            },
+            {
+                path: 'job/detail/:jobId',
+                component: () => import('@/views/flink/job/detail'),
+                name: 'FlinkJobDetail',
+                meta: {title: 'Flink任务详情', activeMenu: '/flink/job'},
+                hidden: true
+            }
+        ]
+    }
+];
 
 const router = createRouter({
-    history: createWebHistory(), routes: constantRoutes, scrollBehavior(to, from, savedPosition) {
+    history: createWebHistory(),
+    routes: constantRoutes,
+    scrollBehavior(to, from, savedPosition) {
         if (savedPosition) {
             return savedPosition;
         }

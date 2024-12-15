@@ -15,7 +15,7 @@ export function getEnv(envId) {
     });
 }
 
-export function addENv(data) {
+export function addEnv(data) {
     return request({
         url: '/system/env',
         method: 'post',
