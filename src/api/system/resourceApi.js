@@ -90,6 +90,18 @@ export function deleteResource(id) {
   });
 }
 
+// 获取文件列表(不分页)
+export function queryResourceList(params) {
+  return request({
+    url: '/system/resource/file/list',
+    method: 'get',
+    params: {
+      pid: params.pid,
+      fileName: params.fileName,
+    },
+  });
+}
+
 export const resourceApi = {
   getDirectoryList,
   createDirectory,
@@ -98,4 +110,5 @@ export const resourceApi = {
   previewFile,
   downloadFile,
   deleteResource,
+  queryResourceList,
 };
