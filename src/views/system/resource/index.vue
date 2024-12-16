@@ -202,22 +202,31 @@
     </el-dialog>
 
     <!-- 文件预览弹窗 -->
-    <el-dialog v-model="previewDialog.visible" :title="previewDialog.title" width="800px" append-to-body>
-      <div v-loading="previewDialog.loading" class="preview-content">
-        <component :is="previewDialog.component" v-if="previewDialog.component" :file-data="previewDialog.fileData" />
-        <div v-else class="no-preview">该文件类型暂不支持预览</div>
+    <el-dialog
+      v-model="previewDialog.visible"
+      :title="previewDialog.title"
+      width="800px"
+      append-to-body
+      class="preview-dialog"
+      :close-on-click-modal="false"
+      destroy-on-close
+    >
+      <div class="preview-wrapper">
+        <div v-loading="previewDialog.loading" class="preview-content">
+          <pre v-if="previewDialog.fileData" class="preview-text">{{ previewDialog.fileData }}</pre>
+          <div v-else class="no-preview">{{ previewDialog.loading ? '加载中...' : '暂无预览内容' }}</div>
+        </div>
       </div>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Plus, Search, Document, Folder, Upload, UploadFilled, Delete } from '@element-plus/icons-vue';
+import { Delete, Document, Folder, Plus, Search, Upload, UploadFilled } from '@element-plus/icons-vue';
 import { resourceApi } from '@/api/system/resourceApi';
 import { getToken } from '@/utils/token';
-import request from '@/utils/request';
 
 // 状态定义
 const loading = ref(false);
@@ -489,7 +498,7 @@ const handleAddDirectory = () => {
     remark: '',
   };
   directoryDialog.visible = true;
-  // 等待 DOM 更新后聚���输入框
+  // 等待 DOM 更新后聚输入框
   nextTick(() => {
     directoryFormRef.value?.clearValidate();
   });
@@ -534,37 +543,61 @@ const uploadUrl = computed(() => {
   return `${baseUrl}/system/resource/upload/${pid}`;
 });
 
-// 文件预览
+// 修改预览处理函数
 const handlePreview = async (file) => {
+  // 定义支持预览的文件类型
+  const supportedExtensions = [
+    'txt',
+    'log',
+    'sh',
+    'bat',
+    'conf',
+    'cfg',
+    'py',
+    'java',
+    'sql',
+    'xml',
+    'hql',
+    'properties',
+    'json',
+    'yml',
+    'yaml',
+    'ini',
+    'js',
+    'csv',
+    'md',
+  ];
+
+  // 获取文件扩展名
+  const ext = file.fileName.split('.').pop()?.toLowerCase();
+
+  // 检查文件类型是否支持预览
+  if (!ext || !supportedExtensions.includes(ext)) {
+    ElMessage.warning('该文件类型暂不支持预览');
+    return;
+  }
+
   previewDialog.title = file.fileName;
   previewDialog.loading = true;
   previewDialog.visible = true;
+  previewDialog.fileData = null; // 重置文件数据
 
   try {
     const res = await resourceApi.previewFile(file.id);
-    const ext = file.fileName.split('.').pop().toLowerCase();
 
-    // 根据件类型设置预览组件
-    switch (ext) {
-      case 'pdf':
-        previewDialog.component = 'pdf-preview';
-        break;
-      case 'txt':
-      case 'csv':
-        previewDialog.component = 'text-preview';
-        break;
-      case 'jpg':
-      case 'jpeg':
-      case 'png':
-      case 'gif':
-        previewDialog.component = 'image-preview';
-        break;
-      default:
-        previewDialog.component = null;
+    // 如果后端返回的是对象，则取其中的内容字段
+    if (res && typeof res === 'object') {
+      previewDialog.fileData = res.data || res.content || res;
+    } else {
+      // 如果直接返回文本内容
+      previewDialog.fileData = res;
     }
 
-    previewDialog.fileData = res.data;
+    if (!previewDialog.fileData) {
+      ElMessage.warning('文件内容为空');
+    }
   } catch (error) {
+    console.error('预览失败:', error);
     ElMessage.error('预览失败');
   } finally {
     previewDialog.loading = false;
@@ -691,7 +724,7 @@ const handleUploadCancel = async () => {
     remark: '',
   };
 
-  // 清空上传组件的���件
+  // 清空上传组件的文件
   if (uploadRef.value) {
     uploadRef.value.clearFiles();
   }
@@ -842,7 +875,46 @@ const customUpload = async (options) => {
       margin-bottom: 12px;
     }
 
+    :deep(.el-card__body) {
+      // 添���横向滚动支持
+      overflow-x: auto;
+
+      // 美化横向滚动条
+      &::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: #c0c4cc;
+        border-radius: 3px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: #f5f7fa;
+      }
+    }
+
     :deep(.custom-tree) {
+      // 保持原有的纵向滚动
+      height: calc(100vh - 300px);
+      overflow-y: auto;
+      min-width: 300px; // 设置最小宽度，保内容不会过度压缩
+
+      // 美化纵向滚动条
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: #c0c4cc;
+        border-radius: 3px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: #f5f7fa;
+      }
+
       // 基础节点样式
       .el-tree-node {
         padding: 2px 0;
@@ -856,10 +928,44 @@ const customUpload = async (options) => {
         transition: all 0.3s;
         position: relative;
 
+        // 删除之前的hover效果
         &:hover {
+          background-color: #f0f2f5;
           .operation-buttons {
             display: inline-flex;
-            z-index: 1;
+          }
+        }
+      }
+
+      // 自定义节点样式
+      .custom-tree-node {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        position: relative;
+
+        .node-label {
+          flex: 1;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          padding-right: 32px; // 为删除按钮预留空间
+        }
+
+        .operation-buttons {
+          display: none;
+          position: absolute;
+          right: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          background-color: inherit;
+          z-index: 2;
+          padding-right: 8px; // 右侧边距
+
+          .el-button {
+            padding: 2px 4px;
+            margin: 0;
           }
         }
       }
@@ -937,47 +1043,6 @@ const customUpload = async (options) => {
           color: #409eff;
         }
       }
-
-      // 添加自定义节点样式
-      .custom-tree-node {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        width: 100%;
-        min-width: 0;
-
-        .node-label {
-          flex: 1;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          margin-right: 24px;
-        }
-
-        .operation-buttons {
-          display: none;
-          position: absolute;
-          right: 8px;
-          top: 50%;
-          transform: translateY(-50%);
-          background-color: inherit;
-
-          .el-button {
-            padding: 2px 4px;
-
-            .el-icon {
-              font-size: 14px;
-            }
-          }
-        }
-      }
-
-      // 删除之前的hover式
-      .custom-tree-node:hover {
-        .operation-buttons {
-          display: none; // 防止重复触发
-        }
-      }
     }
   }
 
@@ -1019,20 +1084,116 @@ const customUpload = async (options) => {
     justify-content: flex-end;
   }
 
-  .preview-content {
-    min-height: 400px;
+  :deep(.preview-dialog) {
+    .el-dialog__body {
+      padding: 0;
+      height: 60vh;
+      overflow: hidden;
+    }
 
-    .no-preview {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 400px;
-      color: #909399;
+    .preview-content {
+      height: 100%;
+      padding: 20px;
+      overflow: auto;
+
+      // 美化滚动条
+      &::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: #c0c4cc;
+        border-radius: 3px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: #f5f7fa;
+      }
+
+      .preview-text {
+        margin: 0;
+        padding: 16px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        font-family: monospace;
+        font-size: 14px;
+        line-height: 1.5;
+        background-color: #f5f7fa;
+        border-radius: 4px;
+      }
+
+      .no-preview {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        color: #909399;
+      }
     }
   }
 
   :deep(.el-upload-dragger) {
     width: 100%;
+  }
+}
+
+// 预览弹窗样式
+.preview-dialog {
+  :deep(.el-dialog__body) {
+    padding: 0;
+  }
+
+  .preview-wrapper {
+    position: relative;
+    height: 60vh;
+    overflow: hidden;
+
+    .preview-content {
+      height: 100%;
+      overflow-y: auto;
+      padding: 20px;
+
+      &::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background-color: #909399;
+        border-radius: 4px;
+
+        &:hover {
+          background-color: #606266;
+        }
+      }
+
+      &::-webkit-scrollbar-track {
+        background-color: #f4f4f5;
+        border-radius: 4px;
+      }
+
+      .preview-text {
+        margin: 0;
+        padding: 16px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        font-family: Consolas, Monaco, 'Courier New', monospace;
+        font-size: 14px;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        word-break: break-all;
+        color: #2c3e50;
+      }
+
+      .no-preview {
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #909399;
+        font-size: 14px;
+      }
+    }
   }
 }
 </style>

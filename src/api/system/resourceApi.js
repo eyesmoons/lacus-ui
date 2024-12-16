@@ -68,7 +68,7 @@ export function uploadFile(data, onProgress) {
 // 预览文件
 export function previewFile(id) {
   return request({
-    url: `/system/resource/file/preview/${id}`,
+    url: `/system/resource/view/${id}`,
     method: 'get',
   });
 }
