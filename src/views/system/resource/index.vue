@@ -318,31 +318,52 @@ const submitUpload = async () => {
       throw new Error('文件对象无效');
     }
 
-    // 构建上传数据
-    const formData = new FormData();
-    formData.append('file', file.raw);
-    formData.append('aliasName', uploadDialog.form.aliasName || '');
-    formData.append('remark', uploadDialog.form.remark || '');
-    formData.append('pid', currentDir.value?.id || 0);
-
-    console.log('准备上传文件:', file.name);
-    await uploadRef.value.submit();
+    // 直接调用 customUpload
+    await customUpload({
+      file: file.raw,
+      onProgress: (event) => {
+        if (event && event.percent) {
+          file.percentage = event.percent;
+        }
+      },
+      onSuccess: (response) => {
+        onUploadSuccess(response, file);
+      },
+      onError: (error) => {
+        onUploadError(error, file);
+      },
+    });
   } catch (error) {
     console.error('上传失败:', error);
     ElMessage.error('文件上传失败: ' + (error.message || '未知错误'));
-    uploadDialog.loading = false; // 失败时关闭加载状态
+    uploadDialog.loading = false;
   }
-  // 注意：不在这里关闭 loading，而是在上传成功或失败的回调中关闭
 };
 
 // 修改上传成功回调
 const onUploadSuccess = (response, file) => {
-  console.log('上传成功:', response, file);
-  ElMessage.success('文件上传成功');
-  uploadDialog.loading = false; // 成功后关闭加载状态
-  uploadDialog.visible = false; // 关闭对话框
-  // 重新加载文件列表
-  loadFileList();
+  console.log('上传成功回调:', response, file);
+  try {
+    // 重置状态
+    uploadDialog.loading = false;
+    uploadDialog.visible = false;
+    uploadDialog.fileList = [];
+    uploadDialog.form = {
+      aliasName: '',
+      remark: '',
+    };
+
+    // 清空上传组件的文件
+    if (uploadRef.value) {
+      uploadRef.value.clearFiles();
+    }
+
+    // 重新加载文件列表
+    loadFileList();
+  } catch (error) {
+    console.error('处理上传成功回调时发生错误:', error);
+    ElMessage.error('处理上传结果失败');
+  }
 };
 
 // 修改上传失败的回调
@@ -448,7 +469,7 @@ const loadFileList = async () => {
   }
 };
 
-// 目录树节点点击
+// 目录节点点击
 const handleNodeClick = (data) => {
   currentDir.value = data;
   loadFileList();
@@ -468,7 +489,7 @@ const handleAddDirectory = () => {
     remark: '',
   };
   directoryDialog.visible = true;
-  // 等待 DOM 更新后聚焦输入框
+  // 等待 DOM 更新后聚���输入框
   nextTick(() => {
     directoryFormRef.value?.clearValidate();
   });
@@ -633,7 +654,7 @@ const handleDeleteDirectory = async (data) => {
     // 重新加载目录树
     await loadDirectoryTree();
 
-    // 如果删���的是当前选中的目录，则重置当前目录
+    // 如果删除的是当前选中的目录，则重置当前目录
     if (currentDir.value?.id === data.id) {
       currentDir.value = null;
       // 重新加载文件列表
@@ -670,7 +691,7 @@ const handleUploadCancel = async () => {
     remark: '',
   };
 
-  // 清空上传组件的文件
+  // 清空上传组件的���件
   if (uploadRef.value) {
     uploadRef.value.clearFiles();
   }
@@ -737,17 +758,46 @@ const customUpload = async (options) => {
     formData.append('remark', uploadDialog.form.remark || '');
     formData.append('pid', currentDir.value?.id || 0);
 
-    // 使用 resourceApi.uploadFile 上传
-    const response = await resourceApi.uploadFile(formData);
+    console.log('开始上传文件:', {
+      fileName: file.name,
+      fileSize: file.size,
+      formData: {
+        aliasName: uploadDialog.form.aliasName,
+        remark: uploadDialog.form.remark,
+        pid: currentDir.value?.id,
+      },
+    });
 
-    if (response.code === 200) {
+    // 使用 resourceApi.uploadFile 上传
+    const response = await resourceApi.uploadFile(formData, (event) => {
+      console.log('上传进度:', event);
+      onProgress(event);
+    });
+
+    console.log('上传响应:', response);
+
+    // 检查响应是否有效
+    if (!response) {
+      throw new Error('服务器无响应');
+    }
+
+    // 根据后端返回的 code 判断是否成功
+    if (response.code === 0) {
+      console.log('上传成功，处理响应:', response);
       onSuccess(response);
+      ElMessage.success('上传成功');
+      uploadDialog.visible = false;
+      uploadDialog.loading = false;
+      await loadFileList();
     } else {
-      onError(new Error(response.msg || '上传失败'));
+      throw new Error(response.msg || '上传失败');
     }
   } catch (error) {
     console.error('上传失败:', error);
     onError(error);
+    ElMessage.error(error.message || '上传失败');
+  } finally {
+    uploadDialog.loading = false;
   }
 };
 </script>

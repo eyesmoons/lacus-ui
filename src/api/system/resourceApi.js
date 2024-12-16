@@ -1,4 +1,6 @@
 import request from '@/utils/request';
+import axios from 'axios';
+import { getToken } from '@/utils/token';
 
 // 获取目录列表
 export function getDirectoryList() {
@@ -31,15 +33,36 @@ export function getFileList(params) {
 }
 
 // 上传文件
-export function uploadFile(data) {
-  return request({
-    url: '/system/resource/file/upload',
+export function uploadFile(data, onProgress) {
+  return axios({
+    url: import.meta.env.VITE_APP_BASE_API + '/system/resource/file/upload',
     method: 'post',
     headers: {
       'Content-Type': 'multipart/form-data',
+      Authorization: 'Bearer ' + getToken(),
     },
     data,
-  });
+    timeout: 5 * 60 * 1000, // 5分钟超时
+    onUploadProgress: onProgress
+      ? (progressEvent) => {
+          if (progressEvent.total > 0) {
+            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            onProgress({ percent });
+          }
+        }
+      : undefined,
+  })
+    .then((response) => {
+      console.log('Upload API response:', response);
+      return response.data;
+    })
+    .catch((error) => {
+      console.error('Upload API error:', error);
+      if (error.response && error.response.data) {
+        throw new Error(error.response.data.msg || '上传失败');
+      }
+      throw error;
+    });
 }
 
 // 预览文件
