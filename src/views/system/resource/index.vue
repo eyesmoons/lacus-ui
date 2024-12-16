@@ -344,7 +344,7 @@ const submitUpload = async () => {
     });
   } catch (error) {
     console.error('上传失败:', error);
-    ElMessage.error('文件上传失败: ' + (error.message || '未知错误'));
+    ElMessage.error('文件上传���败: ' + (error.message || '未知错误'));
     uploadDialog.loading = false;
   }
 };
@@ -876,7 +876,7 @@ const customUpload = async (options) => {
     }
 
     :deep(.el-card__body) {
-      // 添���横向滚动支持
+      // 添加横向滚动支持
       overflow-x: auto;
 
       // 美化横向滚动条
@@ -950,22 +950,33 @@ const customUpload = async (options) => {
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
-          padding-right: 32px; // 为删除按钮预留空间
+          padding-right: 28px; // 为删除按钮预留空间
         }
 
         .operation-buttons {
-          display: none;
           position: absolute;
-          right: 0;
+          right: -10px; // 使按钮位置更靠右，超出节点区域
           top: 50%;
           transform: translateY(-50%);
-          background-color: inherit;
+          display: none;
           z-index: 2;
-          padding-right: 8px; // 右侧边距
+          background-color: #f0f2f5; // 添加背景色，遮挡文字
+          padding: 0 4px;
 
           .el-button {
-            padding: 2px 4px;
-            margin: 0;
+            padding: 4px;
+            color: var(--el-color-danger);
+            transition: all 0.3s;
+
+            &:hover {
+              color: var(--el-color-danger-dark-2);
+              transform: scale(1.1);
+            }
+
+            .el-icon {
+              font-size: 16px;
+              vertical-align: middle;
+            }
           }
         }
       }
@@ -1022,7 +1033,7 @@ const customUpload = async (options) => {
         color: #606266;
       }
 
-      // 展开/折叠图标
+      // 展开/��叠图标
       .el-tree-node__expand-icon {
         padding: 4px;
 
@@ -1041,6 +1052,18 @@ const customUpload = async (options) => {
         background-color: #f0f2f5;
         .el-tree-node__label {
           color: #409eff;
+        }
+      }
+
+      // 修改hover效果
+      .el-tree-node__content {
+        position: relative; // 确保相对定位
+        overflow: visible !important; // 允许内容溢出
+
+        &:hover {
+          .operation-buttons {
+            display: inline-flex;
+          }
         }
       }
     }
