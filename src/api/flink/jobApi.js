@@ -102,13 +102,6 @@ export function pauseJob(jobId) {
   });
 }
 
-export function listJars() {
-  return request({
-    url: '/flink/jar',
-    method: 'get',
-  });
-}
-
 // 获取作业详情
 export function getJob(id) {
   return request({

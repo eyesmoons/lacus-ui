@@ -198,6 +198,12 @@ export const constantRoutes = [
                 name: 'FlinkJobDetail',
                 meta: {title: 'Flink任务详情', activeMenu: '/flink/job'},
                 hidden: true
+            },
+            {
+                path: 'instance',
+                component: () => import('@/views/flink/instance/index'),
+                name: 'FlinkJobInstance',
+                meta: {title: '任务实例'}
             }
         ]
     }

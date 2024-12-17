@@ -44,11 +44,13 @@
     "eslint-plugin-n": "^15.2.4",
     "eslint-plugin-promise": "^6.0.0",
     "eslint-plugin-vue": "^9.7.0",
+    "monaco-editor": "^0.34.0",
     "prettier": "2.7.1",
     "sass": "1.50.0",
     "unplugin-auto-import": "^0.16.7",
     "vite": "^2.9.16",
     "vite-plugin-compression": "0.5.1",
+    "vite-plugin-monaco-editor": "^1.1.0",
     "vite-plugin-svg-icons": "^0.7.0",
     "vite-plugin-vue-setup-extend": "0.4.0"
   }
