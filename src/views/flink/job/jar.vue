@@ -185,7 +185,7 @@ const getJarTreeData = async () => {
 
       const result = [];
 
-      // 如果是根节点，找出所有顶级目录
+      // 如果是根节点，找出所��顶级目录
       if (parentId === '0') {
         // 获取所有唯一的父目录路径
         const uniquePaths = new Set();
@@ -199,8 +199,10 @@ const getJarTreeData = async () => {
         // 为每个顶级目录创建一个节点
         uniquePaths.forEach((path) => {
           const dirName = path.split('/').pop();
+          // 查找对应的目录项
+          const dirItem = items.find((item) => item.filePath === path);
           const node = {
-            value: path,
+            value: dirItem?.id || path, // 优先使用目录的ID
             label: dirName,
             children: buildTree(jarFiles, path),
           };
@@ -216,7 +218,7 @@ const getJarTreeData = async () => {
             // 如果是jar文件
             if (item.isDirectory === 0 && item.fileName.endsWith('.jar')) {
               currentLevelItems.set(item.filePath, {
-                value: item.filePath,
+                value: item.id, // 使用资源ID
                 label: item.fileName,
               });
             } else if (item.isDirectory === 1) {
@@ -226,7 +228,7 @@ const getJarTreeData = async () => {
               );
               if (hasJarFiles) {
                 currentLevelItems.set(item.filePath, {
-                  value: item.filePath,
+                  value: item.id, // 使用目录的ID
                   label: item.fileName,
                   children: buildTree(jarFiles, item.filePath),
                 });
@@ -279,13 +281,20 @@ const rules = {
 function submitForm() {
   proxy.$refs.formRef.validate((valid) => {
     if (valid) {
+      // 处理表单数据
+      const submitData = {
+        ...form.value,
+        // 将扩展JAR包ID数组转换为逗号分隔的字符串
+        extJarPath: Array.isArray(form.value.extJarPath) ? form.value.extJarPath.join(',') : form.value.extJarPath,
+      };
+
       if (jobId.value) {
-        jobApi.editJarJob(form.value).then(() => {
+        jobApi.editJarJob(submitData).then(() => {
           proxy.$modal.msgSuccess('修改成功');
           router.push('/flink/job');
         });
       } else {
-        jobApi.addJarJob(form.value).then(() => {
+        jobApi.addJarJob(submitData).then(() => {
           proxy.$modal.msgSuccess('新增成功');
           router.push('/flink/job');
         });
@@ -302,7 +311,12 @@ function cancel() {
 // 获取详情
 if (jobId.value) {
   jobApi.getJobDetail(jobId.value).then((response) => {
-    form.value = response.data;
+    const data = response.data;
+    // 如果扩展JAR包是字符串，转换为数组
+    if (typeof data.extJarPath === 'string' && data.extJarPath) {
+      data.extJarPath = data.extJarPath.split(',');
+    }
+    form.value = data;
   });
 }
 
