@@ -77,7 +77,6 @@
 import * as instanceApi from '@/api/flink/instanceApi';
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { parseTime } from '@/utils/common';
 
 const route = useRoute();
 const router = useRouter();
