@@ -1,152 +1,222 @@
 <template>
-    <div class="app-container home">
-        <el-row :gutter="20">
-            <el-col :sm="24" :lg="24"></el-col>
-        </el-row>
-        <el-row :gutter="20">
-            <el-col :sm="24" :lg="12" style="padding-left: 20px">
-                <h2>lacus</h2>
-                <p>
-                    lacus数据中台。<b>当前版本:</b> <span>v{{ version }}</span>
-                </p>
-                <p>
-                    <el-tag type="danger">&yen;免费开源</el-tag>
-                </p>
-                <p>
-                    <el-button type="primary" icon="Cloudy" plain
-                               @click="goTarget('https://github.com/eyesmoons/lacus')">
-                        后端 Github 地址
-                    </el-button>
-                    <el-button type="primary" icon="Cloudy" plain
-                               @click="goTarget('https://github.com/eyesmoons/lacus-ui')">
-                        前端 Github 地址
-                    </el-button>
-                </p>
-            </el-col>
-
-            <el-col :sm="24" :lg="12" style="padding-left: 50px">
-                <el-row>
-                    <el-col :span="12">
-                        <h2>技术选型</h2>
-                    </el-col>
-                </el-row>
-                <el-row>
-                    <el-col :span="10">
-                        <h4>后端技术</h4>
-                        <ul>
-                            <li>SpringBoot</li>
-                            <li>Spring Security</li>
-                            <li>JWT</li>
-                            <li>MyBatis Plus 无xml文件 JPA实现</li>
-                            <li>Druid</li>
-                            <li>jackson</li>
-                        </ul>
-                    </el-col>
-                    <el-col :span="10">
-                        <h4>前端技术</h4>
-                        <ul>
-                            <li>Vue</li>
-                            <li>Vuex</li>
-                            <li>Element-Plus</li>
-                            <li>Axios</li>
-                            <li>Sass</li>
-                            <li>Quill</li>
-                        </ul>
-                    </el-col>
-                </el-row>
-            </el-col>
-        </el-row>
-        <el-divider/>
-        <el-row :gutter="20">
-            <el-col :xs="24" :sm="24" :md="12" :lg="8">
-                <el-card class="update-log">
-                    <template v-slot:header>
-                        <div class="clearfix">
-                            <span>更新日志</span>
-                        </div>
-                    </template>
-                    <el-collapse accordion>
-                        <el-collapse-item title="v1.6.0 - 2022-11-30">
-                            <ol>
-                                <li>初步完成前后端的重构工作，将会在2.0版本后陆续添加新功能</li>
-                            </ol>
-                        </el-collapse-item>
-                    </el-collapse>
-                </el-card>
-            </el-col>
-        </el-row>
+  <div class="modern-home">
+    <!-- Hero Section with Three.js Background -->
+    <div class="hero-section" ref="threeContainer">
+      <div class="hero-content" data-aos="fade-up">
+        <h1 class="gradient-text">Lacus开源大数据平台</h1>
+        <p class="subtitle" data-aos="fade-up" data-aos-delay="200">简单好用的大数据平台</p>
+        <div class="hero-buttons" data-aos="fade-up" data-aos-delay="400">
+          <el-button type="primary" size="large" @click="goTarget('https://github.com/eyesmoons/lacus')">
+            <el-icon><Platform /></el-icon>开始使用
+          </el-button>
+          <el-button type="info" size="large" @click="goTarget('https://github.com/eyesmoons/lacus-ui')">
+            <el-icon><Document /></el-icon>查看文档
+          </el-button>
+        </div>
+      </div>
     </div>
+
+    <!-- Features Section -->
+    <div class="features-section">
+      <h2 class="section-title" data-aos="fade-up">核心特性</h2>
+      <el-row :gutter="20">
+        <el-col :span="8" v-for="(feature, index) in features" :key="index">
+          <div class="feature-card" data-aos="zoom-in" :data-aos-delay="index * 100">
+            <el-card :body-style="{ padding: '20px' }">
+              <el-icon :size="40" class="feature-icon">
+                <component :is="feature.icon" />
+              </el-icon>
+              <h3>{{ feature.title }}</h3>
+              <p>{{ feature.description }}</p>
+            </el-card>
+          </div>
+        </el-col>
+      </el-row>
+    </div>
+  </div>
 </template>
 
 <script setup name="Index">
-const version = ref('1.0.0');
+import { ref, onMounted, onUnmounted } from 'vue';
+import * as THREE from 'three';
+import AOS from 'aos';
+import 'aos/dist/aos.css';
 
-function goTarget(url) {
-    window.open(url, '__blank');
-}
+const version = ref('1.0.0');
+const threeContainer = ref(null);
+let scene, camera, renderer, particles;
+
+// 三维背景动画
+const initThree = () => {
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  renderer = new THREE.WebGLRenderer({ alpha: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  threeContainer.value.appendChild(renderer.domElement);
+
+  // 创建粒子系统
+  const geometry = new THREE.BufferGeometry();
+  const vertices = [];
+  for (let i = 0; i < 5000; i++) {
+    vertices.push(
+      THREE.MathUtils.randFloatSpread(2000),
+      THREE.MathUtils.randFloatSpread(2000),
+      THREE.MathUtils.randFloatSpread(2000),
+    );
+  }
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  const material = new THREE.PointsMaterial({ color: 0x888888, size: 2 });
+  particles = new THREE.Points(geometry, material);
+  scene.add(particles);
+  camera.position.z = 1000;
+
+  const animate = () => {
+    requestAnimationFrame(animate);
+    particles.rotation.x += 0.0001;
+    particles.rotation.y += 0.0001;
+    renderer.render(scene, camera);
+  };
+  animate();
+};
+
+// 页面数据
+const features = ref([
+  {
+    icon: 'DataLine',
+    title: '元数据管理',
+    description: '高效的元数据管理，支持多种数据源',
+  },
+  {
+    icon: 'Connection',
+    title: '数据采集',
+    description: '灵活的数据采集能力，支持实时和批量数据处理',
+  },
+  {
+    icon: 'Monitor',
+    title: '数据开发',
+    description: '支持Flink和Spark开发，提供丰富的开发工具',
+  },
+  {
+    icon: 'Resource',
+    title: '资源管理',
+    description: '全面的资源管理功能，优化资源配置',
+  },
+]);
+
+const backendTech = ref(['SpringBoot', 'Spring Security', 'JWT', 'MyBatis Plus', 'Druid', 'Jackson']);
+
+const frontendTech = ref(['Vue 3', 'Element Plus', 'Three.js', 'Axios', 'Sass', 'AOS']);
+
+const activities = ref([
+  {
+    timestamp: '2023-12-01',
+    content: '发布2.0版本，全新UI界面重构',
+    type: 'success',
+  },
+  {
+    timestamp: '2022-11-30',
+    content: '发布1.6.0版本，完成前后端重构',
+    type: 'info',
+  },
+]);
+
+const goTarget = (url) => {
+  window.open(url, '__blank');
+};
+
+onMounted(() => {
+  AOS.init({
+    duration: 1000,
+    easing: 'ease-in-out',
+    once: true,
+  });
+  initThree();
+});
+
+onUnmounted(() => {
+  if (renderer) {
+    renderer.dispose();
+  }
+});
 </script>
 
 <style scoped lang="scss">
-.home {
-  blockquote {
-    padding: 10px 20px;
-    margin: 0 0 20px;
-    font-size: 17.5px;
-    border-left: 5px solid #eee;
-  }
+.modern-home {
+  .hero-section {
+    height: 100vh;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
 
-  hr {
-    margin-top: 20px;
-    margin-bottom: 20px;
-    border: 0;
-    border-top: 1px solid #eee;
-  }
-
-  .col-item {
-    margin-bottom: 20px;
-  }
-
-  ul {
-    padding: 0;
-    margin: 0;
-  }
-
-  font-family: 'open sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  font-size: 13px;
-  color: #676a6c;
-  overflow-x: hidden;
-
-  ul {
-    list-style-type: none;
-  }
-
-  h4 {
-    margin-top: 0px;
-  }
-
-  h2 {
-    margin-top: 10px;
-    font-size: 26px;
-    font-weight: 100;
-  }
-
-  p {
-    margin-top: 10px;
-
-    b {
-      font-weight: 700;
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
     }
   }
 
-  .update-log {
-    ol {
-      display: block;
-      list-style-type: decimal;
-      margin-block-start: 1em;
-      margin-block-end: 1em;
-      margin-inline-start: 0;
-      margin-inline-end: 0;
-      padding-inline-start: 40px;
+  .hero-content {
+    text-align: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -60%);
+    z-index: 2;
+    padding: 2rem;
+
+    .gradient-text {
+      font-size: 3rem;
+      font-weight: bold;
+      background: linear-gradient(45deg, var(--el-color-primary), var(--el-color-success));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 1rem;
+    }
+
+    .subtitle {
+      font-size: 1.5rem;
+      color: var(--el-text-color-primary);
+      margin-bottom: 2rem;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+    }
+  }
+
+  .section-title {
+    text-align: center;
+    font-size: 2.5rem;
+    margin-bottom: 3rem;
+    color: var(--el-text-color-primary);
+  }
+
+  .features-section {
+    padding: 4rem 2rem;
+    background: var(--el-bg-color);
+  }
+
+  .feature-card {
+    height: 100%;
+    text-align: center;
+
+    .feature-icon {
+      color: var(--el-color-primary);
+      margin-bottom: 1rem;
+    }
+
+    h3 {
+      margin: 1rem 0;
+      color: var(--el-text-color-primary);
+    }
+
+    p {
+      color: var(--el-text-color-secondary);
     }
   }
 }

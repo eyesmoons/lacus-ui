@@ -18,6 +18,7 @@
   "dependencies": {
     "@element-plus/icons-vue": "1.1.4",
     "@vueuse/core": "^9.3.0",
+    "aos": "^2.3.4",
     "axios": "^1.6.1",
     "echarts": "5.3.2",
     "element-plus": "2.2.20",
@@ -27,6 +28,7 @@
     "jsencrypt": "3.2.1",
     "nprogress": "0.2.0",
     "qiankun": "^2.10.15",
+    "three": "^0.171.0",
     "vue": "3.2.31",
     "vue-cropper": "1.0.3",
     "vue-router": "4.0.14",
