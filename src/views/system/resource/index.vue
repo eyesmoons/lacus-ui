@@ -1200,7 +1200,7 @@ const customUpload = async (options) => {
         padding: 16px;
         background-color: #f8f9fa;
         border-radius: 4px;
-        font-family: Consolas, Monaco, 'Courier New', monospace;
+        font-family: Monaco, Menlo, Consolas, "Courier New", monospace;
         font-size: 14px;
         line-height: 1.6;
         white-space: pre-wrap;
