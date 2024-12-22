@@ -169,7 +169,7 @@ export const constantRoutes = [
                 path: 'job',
                 component: () => import('@/views/flink/job/index'),
                 name: 'FlinkJob',
-                meta: {title: 'Flink任务管理'}
+                meta: {title: '任务定义'}
             },
             {
                 path: 'job/add/:type',
