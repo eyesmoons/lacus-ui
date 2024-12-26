@@ -135,7 +135,7 @@
       </el-card>
 
       <div class="bottom-actions">
-        <el-button type="primary" @click="handleBack">返回列表</el-button>
+        <el-button @click="handleBack">返回</el-button>
       </div>
     </el-form>
   </div>

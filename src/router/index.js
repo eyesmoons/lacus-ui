@@ -203,7 +203,14 @@ export const constantRoutes = [
                 path: 'instance',
                 component: () => import('@/views/flink/instance/index'),
                 name: 'FlinkJobInstance',
-                meta: {title: '任务实例'}
+                meta: {title: '任务实例', activeMenu: '/flink/instance'}
+            },
+            {
+                path: 'instance/detail/:instanceId',
+                component: () => import('@/views/flink/instance/detail'),
+                name: 'FlinkJobInstanceDetail',
+                meta: {title: '实例详情', activeMenu: '/flink/instance'},
+                hidden: true
             }
         ]
     }

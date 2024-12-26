@@ -46,13 +46,13 @@
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="开始时间">
-              <span>{{ parseTime(form.startTime) }}</span>
+            <el-form-item label="提交时间">
+              <span>{{ parseTime(form.submitTime) }}</span>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="结束时间">
-              <span>{{ parseTime(form.endTime) }}</span>
+              <span>{{ parseTime(form.finishTime) }}</span>
             </el-form-item>
           </el-col>
         </el-row>
@@ -123,15 +123,22 @@ function formatStatusType(status) {
 
 /** 返回按钮操作 */
 function goBack() {
-  router.push('/flink/instance');
+  router.push({
+    path: '/flink/instance',
+    query: {
+      refresh: new Date().getTime(),
+    },
+  });
 }
 
 // 获取详情
-if (instanceId.value) {
+function getDetail() {
   instanceApi.getInstanceDetail(instanceId.value).then((response) => {
-    form.value = response.data;
+    form.value = response;
   });
 }
+
+getDetail();
 </script>
 
 <style scoped>
@@ -144,8 +151,19 @@ if (instanceId.value) {
 }
 
 .bottom-button {
-  margin-top: 20px;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px;
+  background-color: #fff;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 100;
   text-align: center;
+}
+
+.app-container {
+  padding-bottom: 80px;
 }
 
 .error-message {
