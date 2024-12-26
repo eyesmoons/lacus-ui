@@ -37,7 +37,7 @@
                 </template>
             </el-table-column>
             <el-table-column label="部署模式" align="center" prop="deployMode"/>
-            <el-table-column label="应用ID" align="center" prop="applicationId"/>
+            <el-table-column label="应用ID" align="center" prop="applicationId" :show-overflow-tooltip="true"/>
             <el-table-column label="实例状态" align="center" prop="status">
                 <template #default="scope">
                     <el-tag :type="formatStatusType(scope.row.status)">
@@ -45,12 +45,12 @@
                     </el-tag>
                 </template>
             </el-table-column>
-            <el-table-column label="开始时间" align="center" prop="submitTime" width="180">
+            <el-table-column label="开始时间" align="center" prop="submitTime" width="190">
                 <template #default="scope">
                     <span>{{ parseTime(scope.row.submitTime) }}</span>
                 </template>
             </el-table-column>
-            <el-table-column label="结束时间" align="center" prop="finishedTime" width="180">
+            <el-table-column label="结束时间" align="center" prop="finishedTime" width="190">
                 <template #default="scope">
                     <span>{{ parseTime(scope.row.finishedTime) }}</span>
                 </template>

@@ -63,6 +63,11 @@
             </el-table-column>
             <el-table-column label="任务说明" align="left" prop="remark" :show-overflow-tooltip="true"/>
             <el-table-column label="应用ID" align="left" prop="appId" :show-overflow-tooltip="true"/>
+            <el-table-column label="创建时间" align="center" prop="createTime" width="190">
+                <template #default="scope">
+                    <span>{{ parseTime(scope.row.createTime) }}</span>
+                </template>
+            </el-table-column>
             <el-table-column label="操作" align="center" width="380">
                 <template #default="scope">
                     <el-button-group>
@@ -172,6 +177,7 @@ const queryParams = ref({
     jobName: undefined,
     jobType: undefined,
     jobStatus: undefined,
+    createTime: undefined
 });
 
 /** 查询任务列表 */

@@ -133,6 +133,10 @@
           </el-row>
         </template>
       </el-card>
+
+      <div class="bottom-actions">
+        <el-button type="primary" @click="handleBack">返回列表</el-button>
+      </div>
     </el-form>
   </div>
 </template>
@@ -140,10 +144,11 @@
 <script setup name="FlinkJobDetail">
 import * as jobApi from '@/api/flink/jobApi';
 import { ref, onMounted, onBeforeUnmount } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import * as monaco from 'monaco-editor';
 
 const route = useRoute();
+const router = useRouter();
 const jobId = route.params.jobId;
 
 const form = ref({});
@@ -186,6 +191,16 @@ onBeforeUnmount(() => {
     editor.dispose();
   }
 });
+
+/** 返回列表页 */
+function handleBack() {
+  router.push({
+    path: '/flink/job',
+    query: {
+      refresh: new Date().getTime(),
+    },
+  });
+}
 </script>
 
 <style scoped>
@@ -203,5 +218,21 @@ onBeforeUnmount(() => {
   border-radius: 4px;
   font-family: monospace;
   white-space: pre-wrap;
+}
+
+.bottom-actions {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px;
+  background-color: #fff;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  text-align: center;
+}
+
+.app-container {
+  padding-bottom: 80px;
 }
 </style>

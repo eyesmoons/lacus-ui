@@ -185,7 +185,7 @@ const getJarTreeData = async () => {
 
       const result = [];
 
-      // 如果是根节点，找出所��顶级目录
+      // 如果是根节点，找出所有顶级目录
       if (parentId === '0') {
         // 获取所有唯一的父目录路径
         const uniquePaths = new Set();
@@ -336,7 +336,18 @@ onMounted(() => {
 }
 
 .bottom-button {
-  margin-top: 20px;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px;
+  background-color: #fff;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 100;
   text-align: center;
+}
+
+.app-container {
+  padding-bottom: 80px;
 }
 </style>
