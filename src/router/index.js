@@ -1,4 +1,4 @@
-import {createWebHistory, createRouter} from 'vue-router';
+import { createWebHistory, createRouter } from 'vue-router';
 import Layout from '@/layout';
 
 /**
@@ -23,208 +23,256 @@ import Layout from '@/layout';
 
 // 公共路由
 export const constantRoutes = [
-    {
-        path: '/redirect',
-        component: Layout,
+  {
+    path: '/redirect',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: '/redirect/:path(.*)',
+        component: () => import('@/views/redirect/index.vue'),
+      },
+    ],
+  },
+  {
+    path: '/login',
+    component: () => import('@/views/login'),
+    hidden: true,
+  },
+  {
+    path: '/register',
+    component: () => import('@/views/register'),
+    hidden: true,
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    component: () => import('@/views/error/404'),
+    hidden: true,
+  },
+  {
+    path: '/401',
+    component: () => import('@/views/error/401'),
+    hidden: true,
+  },
+  {
+    path: '',
+    component: Layout,
+    redirect: '/index',
+    children: [
+      {
+        path: '/index',
+        component: () => import('@/views/index'),
+        name: 'Index',
+        meta: { title: '首页', icon: 'dashboard', affix: true },
+      },
+    ],
+  },
+  {
+    path: '/user',
+    component: Layout,
+    hidden: true,
+    redirect: 'noredirect',
+    children: [
+      {
+        path: 'profile',
+        component: () => import('@/views/system/user/profile/index'),
+        name: 'Profile',
+        meta: { title: '个人中心', icon: 'user' },
+      },
+    ],
+  },
+  {
+    path: '/system/user-auth',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: 'role/:userId(\\d+)',
+        component: () => import('@/views/system/user/authRole'),
+        name: 'AuthRole',
+        meta: { title: '分配角色', activeMenu: '/system/user' },
+      },
+    ],
+  },
+  {
+    path: '/system/role-auth',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: 'user/:roleId(\\d+)',
+        component: () => import('@/views/system/role/authUser'),
+        name: 'AuthUser',
+        meta: { title: '分配用户', activeMenu: '/system/role' },
+      },
+    ],
+  },
+  {
+    path: '/metadata/table-manager',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: 'detail/:tableId(\\d+)',
+        component: () => import('@/views/metadata/table/detail'),
+        name: 'tableDetail',
+        meta: { title: '表详情', activeMenu: '/metadata/table' },
+      },
+    ],
+  },
+  {
+    path: '/datasync/job-manager',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: 'addJob',
+        component: () => import('@/views/datasync/job/job'),
+        name: 'addJob',
+        meta: { title: '新建任务', activeMenu: '/datasync/job' },
+      },
+    ],
+  },
+  {
+    path: '/datasync/job-manager',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: 'editJob/:jobId(.+)',
+        component: () => import('@/views/datasync/job/job'),
+        name: 'editJob',
+        meta: { title: '编辑任务', activeMenu: '/datasync/job' },
+      },
+    ],
+  },
+  {
+    path: '/datasync/job-manager',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: 'detail/:jobId(\\d+)',
+        component: () => import('@/views/datasync/job/detail'),
+        name: 'jobDetail',
+        meta: { title: '任务详情', activeMenu: '/datasync/job' },
+      },
+    ],
+  },
+  {
+    path: '/flink',
+    component: Layout,
+    hidden: true,
+    meta: { title: 'Flink开发', icon: 'monitor' },
+    children: [
+      {
+        path: 'job',
+        component: () => import('@/views/flink/job/index'),
+        name: 'FlinkJob',
+        meta: { title: '任务定义' },
+      },
+      {
+        path: 'job/add/:type',
+        component: () => import('@/views/flink/job/sql'),
+        name: 'AddFlinkJob',
+        meta: { title: '新增Flink任务', activeMenu: '/flink/job' },
         hidden: true,
-        children: [
-            {
-                path: '/redirect/:path(.*)',
-                component: () => import('@/views/redirect/index.vue'),
-            },
-        ],
-    },
-    {
-        path: '/login',
-        component: () => import('@/views/login'),
+      },
+      {
+        path: 'job/add/jar', // 单独配置jar路由
+        component: () => import('@/views/flink/job/jar'),
+        name: 'AddFlinkJarJob',
+        meta: { title: '新增Jar任务', activeMenu: '/flink/job' },
         hidden: true,
-    },
-    {
-        path: '/register',
-        component: () => import('@/views/register'),
+      },
+      {
+        path: 'job/edit/:jobId',
+        component: () => import('@/views/flink/job/edit'),
+        name: 'EditFlinkJob',
+        meta: { title: '编辑Flink任务', activeMenu: '/flink/job' },
         hidden: true,
-    },
-    {
-        path: '/:pathMatch(.*)*',
-        component: () => import('@/views/error/404'),
+      },
+      {
+        path: 'job/detail/:jobId',
+        component: () => import('@/views/flink/job/detail'),
+        name: 'FlinkJobDetail',
+        meta: { title: 'Flink任务详情', activeMenu: '/flink/job' },
         hidden: true,
-    },
-    {
-        path: '/401',
-        component: () => import('@/views/error/401'),
+      },
+      {
+        path: 'instance',
+        component: () => import('@/views/flink/instance/index'),
+        name: 'FlinkJobInstance',
+        meta: { title: '任务实例', activeMenu: '/flink/instance' },
+      },
+      {
+        path: 'instance/detail/:instanceId',
+        component: () => import('@/views/flink/instance/detail'),
+        name: 'FlinkJobInstanceDetail',
+        meta: { title: '实例详情', activeMenu: '/flink/instance' },
         hidden: true,
-    },
-    {
-        path: '',
-        component: Layout,
-        redirect: '/index',
-        children: [
-            {
-                path: '/index',
-                component: () => import('@/views/index'),
-                name: 'Index',
-                meta: {title: '首页', icon: 'dashboard', affix: true},
-            },
-        ],
-    },
-    {
-        path: '/user',
-        component: Layout,
+      },
+    ],
+  },
+  {
+    path: '/spark',
+    component: Layout,
+    hidden: true,
+    meta: { title: 'Spark开发', icon: 'monitor' },
+    children: [
+      {
+        path: 'job',
+        component: () => import('@/views/spark/job/index'),
+        name: 'SparkJob',
+        meta: { title: '任务定义' },
+      },
+      {
+        path: 'job/add/sql',
+        component: () => import('@/views/spark/job/sql'),
+        name: 'AddSparkSqlJob',
+        meta: { title: '新增SQL任务', activeMenu: '/spark/job' },
         hidden: true,
-        redirect: 'noredirect',
-        children: [
-            {
-                path: 'profile',
-                component: () => import('@/views/system/user/profile/index'),
-                name: 'Profile',
-                meta: {title: '个人中心', icon: 'user'},
-            },
-        ],
-    },
-    {
-        path: '/system/user-auth',
-        component: Layout,
+      },
+      {
+        path: 'job/add/jar',
+        component: () => import('@/views/spark/job/jar'),
+        name: 'AddSparkJarJob',
+        meta: { title: '新增Jar任务', activeMenu: '/spark/job' },
         hidden: true,
-        children: [
-            {
-                path: 'role/:userId(\\d+)',
-                component: () => import('@/views/system/user/authRole'),
-                name: 'AuthRole',
-                meta: {title: '分配角色', activeMenu: '/system/user'},
-            },
-        ],
-    },
-    {
-        path: '/system/role-auth',
-        component: Layout,
+      },
+      {
+        path: 'job/detail/:jobId',
+        component: () => import('@/views/spark/job/detail'),
+        name: 'SparkJobDetail',
+        meta: { title: 'Spark任务详情', activeMenu: '/spark/job' },
         hidden: true,
-        children: [
-            {
-                path: 'user/:roleId(\\d+)',
-                component: () => import('@/views/system/role/authUser'),
-                name: 'AuthUser',
-                meta: {title: '分配用户', activeMenu: '/system/role'},
-            },
-        ],
-    },
-    {
-        path: '/metadata/table-manager',
-        component: Layout,
+      },
+      {
+        path: 'instance',
+        component: () => import('@/views/spark/instance/index'),
+        name: 'SparkJobInstance',
+        meta: { title: '任务实例' },
+      },
+      {
+        path: 'instance/detail/:instanceId',
+        component: () => import('@/views/spark/instance/detail'),
+        name: 'SparkJobInstanceDetail',
+        meta: { title: '实例详情', activeMenu: '/spark/instance' },
         hidden: true,
-        children: [
-            {
-                path: 'detail/:tableId(\\d+)',
-                component: () => import('@/views/metadata/table/detail'),
-                name: 'tableDetail',
-                meta: {title: '表详情', activeMenu: '/metadata/table'},
-            },
-        ],
-    },
-    {
-        path: '/datasync/job-manager',
-        component: Layout,
-        hidden: true,
-        children: [
-            {
-                path: 'addJob',
-                component: () => import('@/views/datasync/job/job'),
-                name: 'addJob',
-                meta: {title: '新建任务', activeMenu: '/datasync/job'},
-            },
-        ],
-    },
-    {
-        path: '/datasync/job-manager',
-        component: Layout,
-        hidden: true,
-        children: [
-            {
-                path: 'editJob/:jobId(.+)',
-                component: () => import('@/views/datasync/job/job'),
-                name: 'editJob',
-                meta: {title: '编辑任务', activeMenu: '/datasync/job'},
-            },
-        ],
-    },
-    {
-        path: '/datasync/job-manager',
-        component: Layout,
-        hidden: true,
-        children: [
-            {
-                path: 'detail/:jobId(\\d+)',
-                component: () => import('@/views/datasync/job/detail'),
-                name: 'jobDetail',
-                meta: {title: '任务详情', activeMenu: '/datasync/job'},
-            },
-        ],
-    },
-    {
-        path: '/flink',
-        component: Layout,
-        hidden: true,
-        meta: {title: 'Flink开发', icon: 'monitor'},
-        children: [
-            {
-                path: 'job',
-                component: () => import('@/views/flink/job/index'),
-                name: 'FlinkJob',
-                meta: {title: '任务定义'}
-            },
-            {
-                path: 'job/add/:type',
-                component: () => import('@/views/flink/job/sql'),
-                name: 'AddFlinkJob',
-                meta: {title: '新增Flink任务', activeMenu: '/flink/job'},
-                hidden: true
-            },
-            {
-                path: 'job/add/jar',  // 单独配置jar路由
-                component: () => import('@/views/flink/job/jar'),
-                name: 'AddFlinkJarJob',
-                meta: {title: '新增Jar任务', activeMenu: '/flink/job'},
-                hidden: true
-            },
-            {
-                path: 'job/edit/:jobId',
-                component: () => import('@/views/flink/job/edit'),
-                name: 'EditFlinkJob',
-                meta: {title: '编辑Flink任务', activeMenu: '/flink/job'},
-                hidden: true
-            },
-            {
-                path: 'job/detail/:jobId',
-                component: () => import('@/views/flink/job/detail'),
-                name: 'FlinkJobDetail',
-                meta: {title: 'Flink任务详情', activeMenu: '/flink/job'},
-                hidden: true
-            },
-            {
-                path: 'instance',
-                component: () => import('@/views/flink/instance/index'),
-                name: 'FlinkJobInstance',
-                meta: {title: '任务实例', activeMenu: '/flink/instance'}
-            },
-            {
-                path: 'instance/detail/:instanceId',
-                component: () => import('@/views/flink/instance/detail'),
-                name: 'FlinkJobInstanceDetail',
-                meta: {title: '实例详情', activeMenu: '/flink/instance'},
-                hidden: true
-            }
-        ]
-    }
+      },
+    ],
+  },
 ];
 
 const router = createRouter({
-    history: createWebHistory(),
-    routes: constantRoutes,
-    scrollBehavior(to, from, savedPosition) {
-        if (savedPosition) {
-            return savedPosition;
-        }
-        return {top: 0};
-    },
+  history: createWebHistory(),
+  routes: constantRoutes,
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition;
+    }
+    return { top: 0 };
+  },
 });
 
 export default router;
