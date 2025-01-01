@@ -120,6 +120,7 @@
 <script setup name="Env">
 import * as envApi from '@/api/system/envApi';
 import {parseTime} from "../../../utils/dateUtil";
+import {listEnv} from "@/api/system/envApi";
 
 const {proxy} = getCurrentInstance();
 

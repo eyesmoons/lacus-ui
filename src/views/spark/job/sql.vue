@@ -1,17 +1,12 @@
 <template>
   <div class="app-container">
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <span>{{ title }}</span>
-        </div>
-      </template>
-      <sql-form ref="formRef" v-model:form="form" />
-      <div class="bottom-buttons">
-        <el-button type="primary" @click="submitForm">提交</el-button>
-        <el-button @click="cancel">取消</el-button>
-      </div>
-    </el-card>
+    <sql-form ref="formRef" v-model:form="form" />
+
+    <!-- 底部固定按钮 -->
+    <div class="fixed-bottom">
+      <el-button type="primary" @click="submitForm">提交</el-button>
+      <el-button @click="cancel">取消</el-button>
+    </div>
   </div>
 </template>
 
@@ -32,21 +27,18 @@ const form = ref({
   jobType: 'BATCH_SQL',
   deployMode: '',
   driverCores: 1,
-  driverMemory: '1g',
+  driverMemory: '1',
   numExecutors: 2,
   executorCores: 1,
-  executorMemory: '2g',
+  executorMemory: '2',
   otherSparkConf: '',
   sqlContent: '',
-  queue: '',
+  queue: 'default',
   namespace: '',
   envId: undefined,
   remark: '',
   cronExpression: '',
 });
-
-// 标题
-const title = ref('新增SQL任务');
 
 // 获取任务详情
 const getDetail = async (jobId) => {
@@ -54,24 +46,36 @@ const getDetail = async (jobId) => {
     const res = await getJobDetail(jobId);
     if (res.code === 200) {
       form.value = res.data;
-      title.value = '编辑SQL任务';
     }
   } catch (error) {
     console.error('获取任务详情失败:', error);
+    ElMessage.error('获取任务详情失败');
   }
 };
 
 // 提交表单
 const submitForm = () => {
-  formRef.value.validate().then(() => {
-    const submitFn = form.value.jobId ? editBatchSqlJob : addBatchSqlJob;
-    submitFn(form.value).then((res) => {
-      if (res.code === 200) {
-        ElMessage.success('保存成功');
-        router.push('/spark/job');
-      }
+  formRef.value
+    ?.validate()
+    .then(() => {
+      const submitFn = form.value.jobId ? editBatchSqlJob : addBatchSqlJob;
+      submitFn(form.value)
+        .then((res) => {
+          if (res.code === 200) {
+            ElMessage.success('保存成功');
+            router.push('/spark/job');
+          } else {
+            ElMessage.error(res.msg || '保存失败');
+          }
+        })
+        .catch((error) => {
+          console.error('保存失败:', error);
+          ElMessage.error('保存失败');
+        });
+    })
+    .catch(() => {
+      ElMessage.warning('请检查表单填写是否正确');
     });
-  });
 };
 
 // 取消
@@ -88,8 +92,22 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.bottom-buttons {
-  margin-top: 20px;
+.fixed-bottom {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background-color: #fff;
+  padding: 10px 20px;
   text-align: center;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.12);
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.app-container {
+  padding-bottom: 60px;
 }
 </style>

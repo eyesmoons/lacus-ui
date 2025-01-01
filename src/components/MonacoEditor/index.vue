@@ -34,7 +34,8 @@ onMounted(() => {
   editor = monaco.editor.create(container.value, {
     value: props.modelValue,
     language: props.language,
-    theme: 'vs',
+    theme: 'vs-dark',
+    fontSize: 16,
     automaticLayout: true,
     scrollBeyondLastLine: false,
     minimap: {

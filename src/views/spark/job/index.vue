@@ -33,8 +33,8 @@
           </el-button>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="BATCH_SQL">批处理SQL任务</el-dropdown-item>
-              <el-dropdown-item command="JAR">JAR任务</el-dropdown-item>
+              <el-dropdown-item command="BATCH_SQL">BATCH_SQL</el-dropdown-item>
+              <el-dropdown-item command="JAR">JAR</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
