@@ -61,7 +61,7 @@ const submitForm = () => {
       const submitFn = form.value.jobId ? editBatchSqlJob : addBatchSqlJob;
       submitFn(form.value)
         .then((res) => {
-          if (res.code === 200) {
+          if (res.jobId) {
             ElMessage.success('保存成功');
             router.push('/spark/job');
           } else {

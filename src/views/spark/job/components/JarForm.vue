@@ -155,7 +155,7 @@
         </div>
       </template>
 
-      <el-form-item prop="cronExpression">
+      <el-form-item prop="cronExpression" class="cron-editor">
         <cron-tab v-model="form.cronExpression" />
       </el-form-item>
     </el-card>
@@ -166,6 +166,7 @@
 import { ref, defineProps, defineEmits, onMounted } from 'vue';
 import CronTab from '@/components/CronTab';
 import { listEnv } from '@/api/system/envApi';
+import { queryResourceList } from '@/api/system/resourceApi';
 import { ElMessage } from 'element-plus';
 
 const props = defineProps({
@@ -190,8 +191,24 @@ const deployModeOptions = [
   { label: 'K8S_CLUSTER', value: 'K8S_CLUSTER' },
 ];
 
-// JAR包选项（需要从后端获取）
-const jarOptions = [{ label: 'example.jar', value: '/path/to/example.jar' }];
+// JAR包选项
+const jarOptions = ref([]);
+
+// 获取JAR包列表
+const getJarOptions = async () => {
+  try {
+    const res = await queryResourceList({pid: null});
+    if (res.code === 200) {
+      jarOptions.value = res.rows.map((item) => ({
+        label: item.fileName,
+        value: item.filePath,
+      }));
+    }
+  } catch (error) {
+    console.error('获取JAR包列表失败:', error);
+    ElMessage.error('获取JAR包列表失败');
+  }
+};
 
 // 环境选项
 const envOptions = ref([]);
@@ -200,10 +217,10 @@ const envOptions = ref([]);
 const getEnvOptions = async () => {
   try {
     const res = await listEnv();
-      envOptions.value = res.rows.map((item) => ({
-        label: item.name,
-        value: item.envId,
-      }));
+    envOptions.value = res.rows.map((item) => ({
+      label: item.name,
+      value: item.envId,
+    }));
   } catch (error) {
     console.error('获取环境列表失败:', error);
     ElMessage.error('获取环境列表失败');
@@ -212,6 +229,7 @@ const getEnvOptions = async () => {
 
 onMounted(() => {
   getEnvOptions();
+  getJarOptions();
 });
 
 // 表单校验规则
@@ -253,5 +271,13 @@ defineExpose({
 
 :deep(.el-input-number .el-input__wrapper) {
   width: 100%;
+}
+
+.cron-editor {
+  margin-bottom: 0;
+}
+
+.cron-editor :deep(.el-form-item__content) {
+  margin-left: 0 !important;
 }
 </style>

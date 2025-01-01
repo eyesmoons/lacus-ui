@@ -123,7 +123,7 @@
         </div>
       </template>
 
-      <el-form-item prop="sqlContent">
+      <el-form-item prop="sqlContent" class="sql-editor">
         <monaco-editor v-model="form.sqlContent" language="sql" height="300px" />
       </el-form-item>
     </el-card>
@@ -136,7 +136,7 @@
         </div>
       </template>
 
-      <el-form-item prop="cronExpression">
+      <el-form-item prop="cronExpression" class="cron-editor">
         <cron-tab v-model="form.cronExpression" />
       </el-form-item>
     </el-card>
@@ -179,10 +179,10 @@ const envOptions = ref([]);
 const getEnvOptions = async () => {
   try {
     const res = await listEnv();
-      envOptions.value = res.rows.map((item) => ({
-        label: item.name,
-        value: item.envId,
-      }));
+    envOptions.value = res.rows.map((item) => ({
+      label: item.name,
+      value: item.envId,
+    }));
   } catch (error) {
     console.error('获取环境列表失败:', error);
     ElMessage.error('获取环境列表失败');
@@ -231,5 +231,19 @@ defineExpose({
 
 :deep(.el-input-number .el-input__wrapper) {
   width: 100%;
+}
+
+.sql-editor,
+.cron-editor {
+  margin-bottom: 0;
+}
+
+.sql-editor :deep(.el-form-item__content),
+.cron-editor :deep(.el-form-item__content) {
+  margin-left: 0 !important;
+}
+
+.sql-editor :deep(.monaco-editor-container) {
+  border: 1px solid var(--el-border-color);
 }
 </style>

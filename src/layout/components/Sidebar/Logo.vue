@@ -29,7 +29,7 @@ defineProps({
     },
 });
 
-const title = ref('lacus');
+const title = ref('Lacus大数据平台');
 const store = useStore();
 const sideTheme = computed(() => store.state.settings.sideTheme);
 </script>
@@ -70,7 +70,7 @@ const sideTheme = computed(() => store.state.settings.sideTheme);
       color: #fff;
       font-weight: 600;
       line-height: 50px;
-      font-size: 14px;
+      font-size: 16px;
       font-family: Monaco, Menlo, Consolas, "Courier New", monospace;
       vertical-align: middle;
     }

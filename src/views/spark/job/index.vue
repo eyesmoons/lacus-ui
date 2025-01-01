@@ -50,7 +50,7 @@
           <dict-tag :options="jobTypeOptions" :value="scope.row.jobType" />
         </template>
       </el-table-column>
-      <el-table-column label="部署模式" align="center" prop="deployMode" />
+      <el-table-column label="部署模式" align="center" prop="deployMode" width="170"/>
       <el-table-column label="任务状态" align="center" prop="jobStatus">
         <template #default="scope">
           <dict-tag :options="statusOptions" :value="scope.row.jobStatus" />
@@ -58,13 +58,17 @@
       </el-table-column>
       <el-table-column label="任务说明" align="center" prop="remark" :show-overflow-tooltip="true" />
       <el-table-column label="应用ID" align="center" prop="appId" :show-overflow-tooltip="true" />
-      <el-table-column label="创建时间" align="center" prop="createTime" width="180" />
+        <el-table-column label="创建时间" align="center" prop="createTime" width="195">
+            <template #default="scope">
+                <span>{{ parseTime(scope.row.createTime) }}</span>
+            </template>
+        </el-table-column>
       <el-table-column label="操作" align="center" width="280" class-name="small-padding fixed-width">
         <template #default="scope">
-          <el-button type="text" icon="Edit" @click="handleEdit(scope.row)" v-if="scope.row.jobStatus === 'CREATED'"
+          <el-button type="text" icon="Edit" @click="handleEdit(scope.row)" v-if="scope.row.jobStatus !== 'RUNNING'"
             >编辑</el-button
           >
-          <el-button type="text" icon="Delete" @click="handleDelete(scope.row)" v-if="scope.row.jobStatus === 'CREATED'"
+          <el-button type="text" icon="Delete" @click="handleDelete(scope.row)" v-if="scope.row.jobStatus !== 'RUNNING'"
             >删除</el-button
           >
           <el-button type="text" icon="View" @click="handleDetail(scope.row)">详情</el-button>
@@ -111,8 +115,8 @@ const jobList = ref([]);
 
 // 任务类型选项
 const jobTypeOptions = [
-  { label: '批处理SQL任务', value: 'BATCH_SQL' },
-  { label: 'JAR任务', value: 'JAR' },
+  { label: 'BATCH_SQL', value: 'BATCH_SQL' },
+  { label: 'JAR', value: 'JAR' },
 ];
 
 // 任务状态选项
