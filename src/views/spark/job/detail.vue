@@ -4,7 +4,6 @@
       <template #header>
         <div class="card-header">
           <span>任务详情</span>
-          <el-button link @click="goBack">返回</el-button>
         </div>
       </template>
       <el-descriptions :column="2" border>
@@ -24,8 +23,8 @@
         <el-descriptions-item label="Yarn队列">{{ jobDetail.queue }}</el-descriptions-item>
         <el-descriptions-item label="命名空间">{{ jobDetail.namespace }}</el-descriptions-item>
         <el-descriptions-item label="应用ID">{{ jobDetail.appId }}</el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ jobDetail.createTime }}</el-descriptions-item>
-        <el-descriptions-item label="更新时间">{{ jobDetail.updateTime }}</el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ parseTime(jobDetail.createTime) }}</el-descriptions-item>
+        <el-descriptions-item label="更新时间">{{ parseTime(jobDetail.updateTime) }}</el-descriptions-item>
         <el-descriptions-item label="任务说明">{{ jobDetail.remark }}</el-descriptions-item>
         <el-descriptions-item label="定时配置">{{ jobDetail.cronExpression }}</el-descriptions-item>
       </el-descriptions>
@@ -49,6 +48,11 @@
       <el-divider content-position="left">其他Spark配置</el-divider>
       <pre>{{ jobDetail.otherSparkConf }}</pre>
     </el-card>
+
+    <!-- 底部固定按钮 -->
+    <div class="fixed-bottom">
+      <el-button type="primary" @click="goBack">返回</el-button>
+    </div>
   </div>
 </template>
 
@@ -83,8 +87,8 @@ const statusOptions = [
 const getDetail = async (jobId) => {
   try {
     const res = await getJobDetail(jobId);
-    if (res.code === 200) {
-      jobDetail.value = res.data;
+    if (res.jobId) {
+      jobDetail.value = res;
     }
   } catch (error) {
     console.error('获取任务详情失败:', error);
@@ -106,9 +110,7 @@ onMounted(() => {
 
 <style scoped>
 .card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  font-weight: bold;
 }
 
 pre {
@@ -118,5 +120,24 @@ pre {
   margin: 0;
   white-space: pre-wrap;
   word-wrap: break-word;
+}
+
+.fixed-bottom {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background-color: #fff;
+  padding: 10px 20px;
+  text-align: center;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.12);
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.app-container {
+  padding-bottom: 60px;
 }
 </style>

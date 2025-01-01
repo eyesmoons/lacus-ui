@@ -50,7 +50,7 @@
           <dict-tag :options="jobTypeOptions" :value="scope.row.jobType" />
         </template>
       </el-table-column>
-      <el-table-column label="部署模式" align="center" prop="deployMode" width="170"/>
+      <el-table-column label="部署模式" align="center" prop="deployMode" width="170" />
       <el-table-column label="任务状态" align="center" prop="jobStatus">
         <template #default="scope">
           <dict-tag :options="statusOptions" :value="scope.row.jobStatus" />
@@ -58,34 +58,50 @@
       </el-table-column>
       <el-table-column label="任务说明" align="center" prop="remark" :show-overflow-tooltip="true" />
       <el-table-column label="应用ID" align="center" prop="appId" :show-overflow-tooltip="true" />
-        <el-table-column label="创建时间" align="center" prop="createTime" width="195">
-            <template #default="scope">
-                <span>{{ parseTime(scope.row.createTime) }}</span>
-            </template>
-        </el-table-column>
-      <el-table-column label="操作" align="center" width="280" class-name="small-padding fixed-width">
+      <el-table-column label="创建时间" align="center" prop="createTime" width="195">
         <template #default="scope">
-          <el-button type="text" icon="Edit" @click="handleEdit(scope.row)" v-if="scope.row.jobStatus !== 'RUNNING'"
-            >编辑</el-button
-          >
-          <el-button type="text" icon="Delete" @click="handleDelete(scope.row)" v-if="scope.row.jobStatus !== 'RUNNING'"
-            >删除</el-button
-          >
-          <el-button type="text" icon="View" @click="handleDetail(scope.row)">详情</el-button>
-          <el-button
-            type="text"
-            icon="VideoPlay"
-            @click="handleStart(scope.row)"
-            v-if="scope.row.jobStatus === 'CREATED'"
-            >启动</el-button
-          >
-          <el-button
-            type="text"
-            icon="VideoPause"
-            @click="handleStop(scope.row)"
-            v-if="scope.row.jobStatus === 'RUNNING'"
-            >停止</el-button
-          >
+          <span>{{ parseTime(scope.row.createTime) }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" align="center" width="380">
+        <template #default="scope">
+          <el-button-group>
+            <el-tooltip content="编辑" placement="top">
+              <el-button
+                type="primary"
+                icon="Edit"
+                @click="handleEdit(scope.row)"
+                v-if="scope.row.jobStatus !== 'RUNNING'"
+              />
+            </el-tooltip>
+            <el-tooltip content="删除" placement="top">
+              <el-button
+                type="danger"
+                icon="Delete"
+                @click="handleDelete(scope.row)"
+                v-if="scope.row.jobStatus !== 'RUNNING'"
+              />
+            </el-tooltip>
+            <el-tooltip content="详情" placement="top">
+              <el-button type="info" icon="View" @click="handleDetail(scope.row)" />
+            </el-tooltip>
+            <el-tooltip content="启动" placement="top">
+              <el-button
+                type="success"
+                icon="VideoPlay"
+                @click="handleStart(scope.row)"
+                v-if="scope.row.jobStatus === 'CREATED'"
+              />
+            </el-tooltip>
+            <el-tooltip content="停止" placement="top">
+              <el-button
+                type="danger"
+                icon="VideoPause"
+                @click="handleStop(scope.row)"
+                v-if="scope.row.jobStatus === 'RUNNING'"
+              />
+            </el-tooltip>
+          </el-button-group>
         </template>
       </el-table-column>
     </el-table>

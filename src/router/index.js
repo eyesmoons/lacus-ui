@@ -260,6 +260,33 @@ export const constantRoutes = [
         meta: { title: '实例详情', activeMenu: '/spark/instance' },
         hidden: true,
       },
+      {
+        path: 'job',
+        name: 'SparkJob',
+        component: () => import('@/views/spark/job/index'),
+        meta: { title: 'Spark任务管理' },
+      },
+      {
+        path: 'job/sql',
+        name: 'SparkSqlJob',
+        component: () => import('@/views/spark/job/sql'),
+        meta: { title: '新建SQL任务', activeMenu: '/spark/job' },
+        hidden: true,
+      },
+      {
+        path: 'job/jar',
+        name: 'SparkJarJob',
+        component: () => import('@/views/spark/job/jar'),
+        meta: { title: '新建JAR任务', activeMenu: '/spark/job' },
+        hidden: true,
+      },
+      {
+        path: 'job/edit/:jobId',
+        name: 'SparkJobEdit',
+        component: () => import('@/views/spark/job/edit'),
+        meta: { title: '编辑任务', activeMenu: '/spark/job' },
+        hidden: true,
+      },
     ],
   },
 ];
