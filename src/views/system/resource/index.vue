@@ -28,7 +28,7 @@
             :filter-node-method="filterNode"
             node-key="id"
             highlight-current
-            default-expand-all
+            :default-expand-all="false"
             @node-click="handleNodeClick"
             :expand-on-click-node="false"
             class="custom-tree"
@@ -66,6 +66,11 @@
                 <el-button type="primary" @click="handleUpload">
                   <el-icon><Upload /></el-icon>上传文件
                 </el-button>
+                <el-tooltip content="同步资源将会同步HDFS上的所有资源" placement="top">
+                  <el-button type="primary" @click="handleSyncResources">
+                    <el-icon><Refresh /></el-icon>同步资源
+                  </el-button>
+                </el-tooltip>
               </div>
             </div>
           </template>
@@ -224,7 +229,7 @@
 <script setup>
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Delete, Document, Folder, Plus, Search, Upload, UploadFilled } from '@element-plus/icons-vue';
+import { Delete, Document, Folder, Plus, Search, Upload, UploadFilled, Refresh } from '@element-plus/icons-vue';
 import { resourceApi } from '@/api/system/resourceApi';
 import { getToken } from '@/utils/token';
 
@@ -344,7 +349,7 @@ const submitUpload = async () => {
     });
   } catch (error) {
     console.error('上传失败:', error);
-    ElMessage.error('文件上传���败: ' + (error.message || '未知错误'));
+    ElMessage.error('文件上传失败: ' + (error.message || '未知错误'));
     uploadDialog.loading = false;
   }
 };
@@ -467,6 +472,7 @@ const loadFileList = async () => {
     };
     console.log('加载文件列表，参数:', params);
     const res = await resourceApi.getFileList(params);
+    console.log('API响应:', res);
     fileList.value = res.rows;
     pagination.total = res.total;
     console.log('文件列表加载完成');
@@ -701,8 +707,9 @@ const handleDeleteDirectory = async (data) => {
   }
 };
 
-// 初始化
+// 确保根目录下的文件也能展示出来
 onMounted(() => {
+  currentDir.value = { id: 0, filePath: '/' };
   loadDirectoryTree();
   loadFileList();
 });
@@ -831,6 +838,20 @@ const customUpload = async (options) => {
     ElMessage.error(error.message || '上传失败');
   } finally {
     uploadDialog.loading = false;
+  }
+};
+
+const handleSyncResources = async () => {
+  try {
+    loading.value = true;
+    await resourceApi.syncResources();
+    ElMessage.success('资源同步成功');
+    await loadFileList();
+  } catch (error) {
+    console.error('资源同步失败:', error);
+    ElMessage.error('资源同步失败');
+  } finally {
+    loading.value = false;
   }
 };
 </script>
@@ -1033,7 +1054,7 @@ const customUpload = async (options) => {
         color: #606266;
       }
 
-      // 展开/��叠图标
+      // 展开/折叠图标
       .el-tree-node__expand-icon {
         padding: 4px;
 
@@ -1200,7 +1221,7 @@ const customUpload = async (options) => {
         padding: 16px;
         background-color: #f8f9fa;
         border-radius: 4px;
-        font-family: Monaco, Menlo, Consolas, "Courier New", monospace;
+        font-family: Monaco, Menlo, Consolas, 'Courier New', monospace;
         font-size: 14px;
         line-height: 1.6;
         white-space: pre-wrap;

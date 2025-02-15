@@ -102,6 +102,13 @@ export function queryResourceList(params) {
   });
 }
 
+export function syncResources() {
+  return request({
+    url: '/system/resource/sync',
+    method: 'get',
+  });
+}
+
 export const resourceApi = {
   getDirectoryList,
   createDirectory,
@@ -111,4 +118,5 @@ export const resourceApi = {
   downloadFile,
   deleteResource,
   queryResourceList,
+  syncResources,
 };
