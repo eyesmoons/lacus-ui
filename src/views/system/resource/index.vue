@@ -86,7 +86,7 @@
             <el-table-column label="父路径" prop="pfilePath" width="180" />
             <el-table-column label="大小" prop="fileSize" width="120">
               <template #default="{ row }">
-                {{ formatFileSize(row.fileSize) }}
+                {{ formatFileSize(row.size) }}
               </template>
             </el-table-column>
             <el-table-column label="上传时间" prop="createTime" width="180">
