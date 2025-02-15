@@ -70,3 +70,10 @@ export function deleteDatasource(datasourceIds) {
         method: 'delete'
     });
 }
+
+export function listDatasourceTypes() {
+    return request({
+        url: `/metadata/datasource/types`,
+        method: 'get'
+    });
+}
