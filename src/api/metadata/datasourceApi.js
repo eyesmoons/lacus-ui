@@ -23,7 +23,6 @@ export function changeStatus(datasourceId, status) {
     });
 }
 
-
 export function testDatasource(datasourceId) {
     return request({
         url: `/metadata/datasource/test/${datasourceId}`,
@@ -68,12 +67,5 @@ export function deleteDatasource(datasourceIds) {
     return request({
         url: `/metadata/datasource/${datasourceIds}`,
         method: 'delete'
-    });
-}
-
-export function listDatasourceTypes() {
-    return request({
-        url: `/metadata/datasource/types`,
-        method: 'get'
     });
 }

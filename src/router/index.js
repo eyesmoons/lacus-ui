@@ -289,6 +289,41 @@ export const constantRoutes = [
       },
     ],
   },
+  {
+    path: '/oneapi',
+    component: Layout,
+    hidden: true,
+    meta: { title: '统一API', icon: 'monitor' },
+    children: [
+      {
+        path: 'oneapi',
+        component: () => import('@/views/oneapi/index'),
+        name: 'oneApi',
+        meta: { title: '统一API' },
+      },
+      {
+        path: 'add/',
+        component: () => import('@/views/oneapi/create'),
+        name: 'AddApi',
+        meta: { title: '新增Api', activeMenu: '/oneapi' },
+        hidden: true,
+      },
+      {
+        path: 'edit/:apiId',
+        component: () => import('@/views/oneapi/create'),
+        name: 'EditApi',
+        meta: { title: '编辑Api', activeMenu: '/oneapi' },
+        hidden: true,
+      },
+      {
+        path: 'detail/:apiId',
+        component: () => import('@/views/oneapi/detail'),
+        name: 'ApiDetail',
+        meta: { title: 'Api详情', activeMenu: '/oneapi' },
+        hidden: true,
+      }
+    ],
+  },
 ];
 
 const router = createRouter({
