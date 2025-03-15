@@ -352,9 +352,9 @@ function handleNext() {
           datasourceId: form.datasourceId,
           sqlScript: form.sqlScript
         }).then(response => {
-          const requestParams= response.requestParams;
-          const returnParams= response.returnParams;
-          requestParams.value = requestParams.map(item => ({
+          const reqParams = response.requestParams;
+          const returnParams = response.returnParams;
+          requestParams.value = reqParams.map(item => ({
             columnName: item.columnName,
             columnType: item.columnType || 'STRING',
             isMust: 0,
@@ -394,8 +394,8 @@ function handleParseSql() {
     datasourceId: form.datasourceId,
     sqlScript: form.sqlScript
   }).then(response => {
-    const data = response.data || [];
-    requestParams.value = data.map(item => ({
+    const reqParams = response.requestParams || [];
+    requestParams.value = reqParams.map(item => ({
       columnName: item.columnName,
       columnType: item.columnType || 'STRING',
       isMust: 0,
