@@ -91,16 +91,7 @@
         <!-- 步骤3：请求参数配置 -->
         <div v-if="activeStep === 3" class="params-container">
           <div class="params-section">
-              <div class="response-header">
-                  <h4>请求参数</h4>
-                  <el-switch
-                      v-model="form.isPaging"
-                      active-text="是否分页"
-                      :active-value="1"
-                      :inactive-value="0"
-                      @change="handlePagingChange"
-                  />
-              </div>
+            <h4>请求参数</h4>
             <el-table :data="requestParams" border style="width: 100%">
               <el-table-column label="参数名称" prop="columnName" width="180">
                 <template #default="scope">
@@ -141,7 +132,16 @@
           </div>
 
           <div class="params-section">
-              <h4>返回参数</h4>
+              <div class="response-header">
+                  <h4>返回参数</h4>
+                  <el-switch
+                      v-model="form.isPaging"
+                      active-text="结果集是否分页"
+                      :active-value="1"
+                      :inactive-value="0"
+                      @change="handlePagingChange"
+                  />
+              </div>
             <el-table :data="responseParams" border style="width: 100%">
               <el-table-column label="参数名称" prop="columnName" width="180">
                 <template #default="scope">
@@ -469,6 +469,33 @@ function handleSubmit() {
   });
 }
 
+function handlePagingChange(value) {
+    if (value === 1) {
+        // 添加分页参数
+        requestParams.value.push(
+            {
+                columnName: 'pageNum',
+                columnType: 'INT',
+                isMust: 1,
+                columnDemo: '1',
+                columnDesc: '当前页码'
+            },
+            {
+                columnName: 'pageSize',
+                columnType: 'INT',
+                isMust: 1,
+                columnDemo: '10',
+                columnDesc: '每页显示条数'
+            }
+        );
+    } else {
+        // 移除分页参数
+        requestParams.value = requestParams.value.filter(
+            item => item.columnName !== 'pageNum' && item.columnName !== 'pageSize'
+        );
+    }
+}
+
 // 获取数据源列表
 function loadDatasourceOptions() {
   getDatasourceList('', null).then(response => {
@@ -547,30 +574,3 @@ onMounted(() => {
 }
 </style>
 
-// 分页开关变化处理
-function handlePagingChange(value) {
-  if (value === 1) {
-    // 添加分页参数
-    requestParams.value.push(
-      {
-        columnName: 'pageNum',
-        columnType: 'Integer',
-        isMust: 1,
-        columnDemo: '1',
-        columnDesc: '当前页码'
-      },
-      {
-        columnName: 'pageSize',
-        columnType: 'Integer',
-        isMust: 1,
-        columnDemo: '10',
-        columnDesc: '每页显示条数'
-      }
-    );
-  } else {
-    // 移除分页参数
-    requestParams.value = requestParams.value.filter(
-      item => item.columnName !== 'pageNum' && item.columnName !== 'pageSize'
-    );
-  }
-}
