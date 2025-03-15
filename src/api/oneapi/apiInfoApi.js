@@ -5,7 +5,7 @@ export function listApiInfo(query) {
   return request({
     url: '/one/api/list/paging',
     method: 'get',
-    params: query
+    params: query,
   });
 }
 
@@ -13,7 +13,7 @@ export function listApiInfo(query) {
 export function getApiInfo(apiId) {
   return request({
     url: `/one/api/${apiId}`,
-    method: 'get'
+    method: 'get',
   });
 }
 
@@ -22,7 +22,7 @@ export function addApiInfo(data) {
   return request({
     url: '/one/api',
     method: 'post',
-    data: data
+    data: data,
   });
 }
 
@@ -31,7 +31,7 @@ export function updateApiInfo(data) {
   return request({
     url: '/one/api',
     method: 'put',
-    data: data
+    data: data,
   });
 }
 
@@ -39,7 +39,7 @@ export function updateApiInfo(data) {
 export function deleteApiInfo(apiIds) {
   return request({
     url: `/one/api/${apiIds}`,
-    method: 'delete'
+    method: 'delete',
   });
 }
 
@@ -48,7 +48,7 @@ export function parseSql(data) {
   return request({
     url: '/one/api/parse',
     method: 'post',
-    data: data
+    data: data,
   });
 }
 
@@ -56,7 +56,7 @@ export function parseSql(data) {
 export function getColTypeList() {
   return request({
     url: '/one/api/colTypeList',
-    method: 'get'
+    method: 'get',
   });
 }
 
@@ -65,7 +65,7 @@ export function testApiInfo(data) {
   return request({
     url: '/one/api/test',
     method: 'post',
-    data: data
+    data: data,
   });
 }
 
@@ -74,7 +74,7 @@ export function testApiInfoOnline(data) {
   return request({
     url: '/one/api/test/online',
     method: 'post',
-    data: data
+    data: data,
   });
 }
 
@@ -85,7 +85,7 @@ export function updateApiStatus(id, status) {
     method: 'get',
     params: {
       id,
-      status
-    }
+      status,
+    },
   });
 }

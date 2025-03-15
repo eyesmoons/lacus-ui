@@ -89,9 +89,18 @@
         </div>
 
         <!-- 步骤3：请求参数配置 -->
-        <div v-if="activeStep === 3">
-          <div class="mb-4">
-            <h4>请求参数REQ</h4>
+        <div v-if="activeStep === 3" class="params-container">
+          <div class="params-section">
+              <div class="response-header">
+                  <h4>请求参数</h4>
+                  <el-switch
+                      v-model="form.isPaging"
+                      active-text="是否分页"
+                      :active-value="1"
+                      :inactive-value="0"
+                      @change="handlePagingChange"
+                  />
+              </div>
             <el-table :data="requestParams" border style="width: 100%">
               <el-table-column label="参数名称" prop="columnName" width="180">
                 <template #default="scope">
@@ -131,17 +140,8 @@
             </el-table>
           </div>
 
-          <div class="mb-4">
-            <div class="response-header">
-              <h4>返回参数RES</h4>
-              <el-switch
-                v-model="form.isPaging"
-                active-text="返回结果集分页"
-                :active-value="1"
-                :inactive-value="0"
-                @change="handlePagingChange"
-              />
-            </div>
+          <div class="params-section">
+              <h4>返回参数</h4>
             <el-table :data="responseParams" border style="width: 100%">
               <el-table-column label="参数名称" prop="columnName" width="180">
                 <template #default="scope">
@@ -218,7 +218,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage } from 'element-plus';
 import { getApiInfo, addApiInfo, updateApiInfo, parseSql, getColTypeList, testApiInfo } from '@/api/oneapi/apiInfoApi';
 import { getDatasourceList } from '@/api/metadata/datasourceApi';
 
@@ -325,10 +325,9 @@ function getDetail(apiId) {
 // 获取字段类型列表
 function getColumnTypes() {
   getColTypeList().then(response => {
-    const data = response.data;
-    columnTypeOptions.value = Object.entries(data).map(([key, value]) => ({
-      label: key,
-      value: key
+    columnTypeOptions.value = response.map(item => ({
+      label: item.desc,
+      value: item.name
     }));
   });
 }
@@ -353,10 +352,11 @@ function handleNext() {
           datasourceId: form.datasourceId,
           sqlScript: form.sqlScript
         }).then(response => {
-          const { requestParams = [], returnParams = [] } = response || {};
+          const requestParams= response.requestParams;
+          const returnParams= response.returnParams;
           requestParams.value = requestParams.map(item => ({
             columnName: item.columnName,
-            columnType: item.columnType || 'String',
+            columnType: item.columnType || 'STRING',
             isMust: 0,
             columnDemo: '',
             columnDesc: ''
@@ -364,7 +364,7 @@ function handleNext() {
 
           responseParams.value = returnParams.map(item => ({
             columnName: item.columnName,
-            columnType: item.columnType || 'String',
+            columnType: item.columnType || 'STRING',
             columnDesc: ''
           }));
 
@@ -397,7 +397,7 @@ function handleParseSql() {
     const data = response.data || [];
     requestParams.value = data.map(item => ({
       columnName: item.columnName,
-      columnType: item.columnType || 'String',
+      columnType: item.columnType || 'STRING',
       isMust: 0,
       columnDemo: '',
       columnDesc: ''
@@ -500,45 +500,14 @@ onMounted(() => {
   min-height: calc(100vh - 84px);
 }
 
-.card-header {
+.params-container {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  gap: 20px;
 }
 
-.step-content {
-  margin: 20px 0;
-  min-height: 300px;
-}
-
-.step-action {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: #fff;
-  padding: 15px 0;
-  text-align: center;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-}
-
-.test-result-info {
-  margin-bottom: 10px;
-}
-
-.test-result-data {
-  background-color: #f5f7fa;
-  padding: 10px;
-  border-radius: 4px;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.divider-text {
-  font-size: 16px;
-  font-weight: bold;
-  color: #409eff;
+.params-section {
+  flex: 1;
+  min-width: 0;
 }
 
 .response-header {
@@ -548,7 +517,60 @@ onMounted(() => {
   margin-bottom: 10px;
 }
 
-.response-header h4 {
+.step-action {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.test-result {
+  margin-top: 20px;
+  padding: 20px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+}
+
+.test-result-info {
+  margin-bottom: 10px;
+}
+
+.test-result-data {
+  background-color: #fff;
+  padding: 10px;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.test-result-data pre {
   margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 </style>
+
+// 分页开关变化处理
+function handlePagingChange(value) {
+  if (value === 1) {
+    // 添加分页参数
+    requestParams.value.push(
+      {
+        columnName: 'pageNum',
+        columnType: 'Integer',
+        isMust: 1,
+        columnDemo: '1',
+        columnDesc: '当前页码'
+      },
+      {
+        columnName: 'pageSize',
+        columnType: 'Integer',
+        isMust: 1,
+        columnDemo: '10',
+        columnDesc: '每页显示条数'
+      }
+    );
+  } else {
+    // 移除分页参数
+    requestParams.value = requestParams.value.filter(
+      item => item.columnName !== 'pageNum' && item.columnName !== 'pageSize'
+    );
+  }
+}
