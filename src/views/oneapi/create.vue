@@ -475,7 +475,7 @@ function handleTestAndSave() {
         columnType: param.columnType,
         isMust: param.isMust,
         columnDesc: param.columnDesc,
-        columnDemo: param.columnDemo,
+        columnDemo: testForm[param.columnName] || param.columnDemo,
       })),
     },
     preSQL: [],
@@ -547,6 +547,29 @@ onMounted(() => {
     getDetail(route.params.id);
   }
 });
+
+// 获取默认的示例值
+function getDefaultDemo(columnType) {
+  switch (columnType.toUpperCase()) {
+    case 'INT':
+    case 'INTEGER':
+      return '1';
+    case 'LONG':
+      return '1000';
+    case 'FLOAT':
+    case 'DOUBLE':
+      return '1.0';
+    case 'BOOLEAN':
+      return 'true';
+    case 'DATE':
+      return '2024-01-01';
+    case 'DATETIME':
+      return '2024-01-01 00:00:00';
+    case 'STRING':
+    default:
+      return 'test';
+  }
+}
 </script>
 
 <style scoped>
