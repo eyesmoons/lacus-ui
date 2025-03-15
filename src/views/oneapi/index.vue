@@ -27,12 +27,6 @@
           />
         </el-select>
       </el-form-item>
-      <el-form-item label="所属分组" prop="groupId">
-        <el-select v-model="queryParams.groupId" placeholder="请选择所属分组" clearable>
-          <el-option label="分组1" value="1" />
-          <el-option label="分组2" value="2" />
-        </el-select>
-      </el-form-item>
       <el-form-item label="接口状态" prop="status">
         <el-select v-model="queryParams.status" placeholder="请选择接口状态" clearable>
           <el-option label="上线" :value="1" />
@@ -59,8 +53,7 @@
           <el-link type="primary" :underline="false" @click="handleDetail(scope.row)">{{ scope.row.apiName }}</el-link>
         </template>
       </el-table-column>
-      <el-table-column label="所属分组" align="center" prop="groupId" />
-      <el-table-column label="数据源" align="center" prop="datasourceName" />
+      <el-table-column label="数据源" align="left" prop="datasourceId" />
       <el-table-column label="接口地址" align="left" prop="apiUrl" show-overflow-tooltip />
       <el-table-column label="接口状态" align="center" prop="status">
         <template #default="scope">
@@ -68,7 +61,7 @@
           <el-tag type="info" v-else>下线</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" align="center" width="200" fixed="right">
+      <el-table-column label="操作" align="center" fixed="right">
         <template #default="scope">
           <el-button-group class="ml-4">
             <el-tooltip content="测试" placement="top">
@@ -170,7 +163,6 @@ const queryParams = reactive({
   apiName: undefined,
   apiUrl: undefined,
   datasourceId: undefined,
-  groupId: undefined,
   status: undefined
 });
 
@@ -204,7 +196,6 @@ function resetQuery() {
   queryParams.apiName = undefined;
   queryParams.apiUrl = undefined;
   queryParams.datasourceId = undefined;
-  queryParams.groupId = undefined;
   queryParams.status = undefined;
   handleQuery();
 }

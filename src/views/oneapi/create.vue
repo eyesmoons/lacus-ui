@@ -195,6 +195,10 @@
                 <span class="label">请求信息：</span>
                 <span class="value">{{ form.reqMethod }} {{ form.apiUrl }}</span>
               </div>
+                <div class="info-item">
+                    <span class="label">日志：</span>
+                    <span class="value">{{ testResult.debugInfo }}</span>
+                </div>
               <div class="info-item">
                 <span class="label">响应时间：</span>
                 <span class="value">{{ testResult.costTime }} ms</span>
@@ -443,39 +447,36 @@ function handleSave() {
         columnDemo: param.columnDemo,
       })),
     },
+    apiReturn: form.apiResponse,
     preSQL: [],
   };
-
   form.apiConfig = JSON.stringify(apiConfig);
-
-  const savePromise = isEdit.value ? updateApiInfo(form) : addApiInfo(form);
-
-  savePromise
-    .then(() => {
-      ElMessage.success('保存成功');
-      router.push('/oneapi');
-    })
-    .catch(() => {
-      ElMessage.error('保存失败');
-    });
+  isEdit.value ? updateApiInfo(form) : addApiInfo(form);
+  ElMessage.success('保存成功');
+  router.push('/oneapi');
 }
 
 // 测试并保存API
 function handleTestAndSave() {
   // 构建API配置
   const apiConfig = {
-    apiName: form.apiName,
+    apiName: form.apiName?.replace(/[\n\t]/g, ''),
     queryTimeout: form.queryTimeout,
     limitCount: form.limitCount,
     pageFlag: form.isPaging,
-    sql: form.sqlScript,
+    sql: form.sqlScript?.replace(/[\n\t]/g, ''),
     apiParams: {
       requestParams: requestParams.value.map((param) => ({
         columnName: param.columnName,
         columnType: param.columnType,
         isMust: param.isMust,
-        columnDesc: param.columnDesc,
-        columnDemo: testForm[param.columnName] || param.columnDemo,
+        columnDesc: param.columnDesc?.replace(/[\n\t]/g, ''),
+        columnDemo: (testForm[param.columnName] || param.columnDemo)?.replace(/[\n\t]/g, ''),
+      })),
+      returnParams: responseParams.value.map((param) => ({
+        columnName: param.columnName,
+        columnType: param.columnType,
+        columnDesc: param.columnDesc?.replace(/[\n\t]/g, ''),
       })),
     },
     preSQL: [],
@@ -485,8 +486,14 @@ function handleTestAndSave() {
 
   testApiInfo(form)
     .then((res) => {
-      testResult.value = res.data;
-      if (res.data.code === 0) {
+      testResult.value = res;
+      if (res.code === 0) {
+        try {
+          form.apiResponse = res.data;
+        } catch (error) {
+          ElMessage.error('API响应数据格式错误，请检查返回数据');
+          return;
+        }
         handleSave();
       } else {
         ElMessage.warning('测试未通过，请检查API配置');
