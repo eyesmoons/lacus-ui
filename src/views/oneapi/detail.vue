@@ -167,14 +167,22 @@ function goBack() {
 function submitTest() {
   // 构建测试参数
   const testData = {
-    ...apiInfo.value,
-    params: {}
+    apiName: apiInfo.value.apiName,
+    queryTimeout: apiInfo.value.queryTimeout,
+    limitCount: apiInfo.value.limitCount,
+    pageFlag: apiInfo.value.pageFlag,
+    sql: apiInfo.value.sql,
+    preSQL: apiInfo.value.preSQL || [],
+    apiParams: {
+      requestParams: apiConfig.value.requestParams.map(param => ({
+        columnName: param.columnName,
+        value: param.value,
+        columnType: param.columnType,
+        required: param.required
+      })),
+      returnParams: apiConfig.value.returnParams || []
+    }
   };
-  
-  // 将测试参数添加到请求中
-  apiConfig.value.requestParams.forEach(param => {
-    testData.params[param.columnName] = param.value;
-  });
   
   // 调用测试API
   testApiInfoOnline(testData).then(response => {

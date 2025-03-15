@@ -299,7 +299,7 @@ export const constantRoutes = [
         path: 'oneapi',
         component: () => import('@/views/oneapi/index'),
         name: 'oneApi',
-        meta: { title: '统一API' },
+        meta: { title: 'API定义' },
       },
       {
         path: 'add/',

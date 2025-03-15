@@ -9,9 +9,9 @@
 
       <!-- 步骤条 -->
       <el-steps :active="activeStep" finish-status="success" simple style="margin-bottom: 20px">
-        <el-step title="接口信息配置" />
-        <el-step title="SQL脚本配置" />
-        <el-step title="请求参数配置" />
+        <el-step title="基本信息" />
+        <el-step title="SQL配置" />
+        <el-step title="请求参数" />
         <el-step title="API测试" />
       </el-steps>
 
@@ -28,17 +28,21 @@
               </el-col>
               <el-col :span="12">
                 <el-form-item label="请求方式" prop="reqMethod">
-                    <el-select v-model="form.reqMethod" placeholder="请选择请求方式" style="width: 100%">
-                        <el-option label="GET" value="GET" />
-                        <el-option label="POST" value="POST" />
-                    </el-select>
+                  <el-select v-model="form.reqMethod" placeholder="请选择请求方式" style="width: 100%">
+                    <el-option label="GET" value="GET" />
+                    <el-option label="POST" value="POST" />
+                  </el-select>
                 </el-form-item>
               </el-col>
             </el-row>
             <el-row :gutter="24">
               <el-col :span="24">
                 <el-form-item label="接口地址" prop="apiUrl">
-                  <el-input v-model="form.apiUrl" placeholder="请输入接口地址" />
+                  <el-input v-model="form.apiUrl" placeholder="请输入接口地址">
+                    <template #prepend>
+                      <div style="width: 55px; text-align: center">/data/</div>
+                    </template>
+                  </el-input>
                 </el-form-item>
               </el-col>
             </el-row>
@@ -132,16 +136,16 @@
           </div>
 
           <div class="params-section">
-              <div class="response-header">
-                  <h4>返回参数</h4>
-                  <el-switch
-                      v-model="form.isPaging"
-                      active-text="结果集是否分页"
-                      :active-value="1"
-                      :inactive-value="0"
-                      @change="handlePagingChange"
-                  />
-              </div>
+            <div class="response-header">
+              <h4>返回参数</h4>
+              <el-switch
+                v-model="form.isPaging"
+                active-text="结果集是否分页"
+                :active-value="1"
+                :inactive-value="0"
+                @change="handlePagingChange"
+              />
+            </div>
             <el-table :data="responseParams" border style="width: 100%">
               <el-table-column label="参数名称" prop="columnName" width="180">
                 <template #default="scope">
@@ -171,17 +175,37 @@
 
         <!-- 步骤4：API测试 -->
         <div v-if="activeStep === 4">
-          <el-form :model="testForm" label-width="120px">
-            <el-form-item v-for="param in requestParams" :key="param.columnName" :label="param.columnName" :prop="param.columnName">
-              <el-input v-model="testForm[param.columnName]" :placeholder="param.columnDesc" />
-            </el-form-item>
-          </el-form>
-          <div v-if="testResult" class="test-result mt-4">
+          <div class="test-params">
+            <h4>请求参数配置</h4>
+            <el-form :model="testForm" label-width="120px">
+              <el-form-item
+                v-for="param in requestParams"
+                :key="param.columnName"
+                :label="param.columnName"
+                :prop="param.columnName"
+              >
+                <el-input v-model="testForm[param.columnName]" :placeholder="param.columnDesc" />
+              </el-form-item>
+            </el-form>
+          </div>
+          <div class="test-result-container" v-if="testResult">
+            <h4>返回内容</h4>
             <div class="test-result-info">
-              <p>耗时：{{ testResult.costTime }} ms</p>
-              <p>状态：{{ testResult.code === 0 ? '成功' : '失败' }}</p>
+              <div class="info-item">
+                <span class="label">请求信息：</span>
+                <span class="value">{{ form.reqMethod }} {{ form.apiUrl }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">响应时间：</span>
+                <span class="value">{{ testResult.costTime }} ms</span>
+              </div>
+              <div class="info-item">
+                <span class="label">状态：</span>
+                <span class="value" :class="testResult.code === 0 ? 'success' : 'error'">{{
+                  testResult.code === 0 ? '成功' : '失败'
+                }}</span>
+              </div>
             </div>
-            <el-divider />
             <div class="test-result-data">
               <pre>{{ JSON.stringify(testResult.data, null, 2) }}</pre>
             </div>
@@ -193,8 +217,7 @@
       <div class="step-action">
         <el-button @click="handlePrev" v-if="activeStep > 1">上一步</el-button>
         <el-button type="primary" @click="handleNext" v-if="activeStep < 4">下一步</el-button>
-        <el-button type="primary" @click="handleTest" v-if="activeStep === 4">测试</el-button>
-        <el-button type="success" @click="handleSubmit" v-if="activeStep === 4">保存</el-button>
+        <el-button type="success" @click="handleTestAndSave" v-if="activeStep === 4">测试并保存</el-button>
         <el-button @click="handleCancel">取消</el-button>
       </div>
     </el-card>
@@ -219,7 +242,15 @@
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { getApiInfo, addApiInfo, updateApiInfo, parseSql, getColTypeList, testApiInfo } from '@/api/oneapi/apiInfoApi';
+import {
+  getApiInfo,
+  addApiInfo,
+  updateApiInfo,
+  parseSql,
+  getColTypeList,
+  testApiInfo,
+  testApiInfoOnline,
+} from '@/api/oneapi/apiInfoApi';
 import { getDatasourceList } from '@/api/metadata/datasourceApi';
 
 const route = useRoute();
@@ -250,34 +281,21 @@ const form = reactive({
   datasourceId: undefined,
   sqlScript: '',
   isPaging: 0,
-  apiConfig: ''
+  apiConfig: '',
 });
 
 // 表单验证规则
 const rules = {
   apiName: [
     { required: true, message: '请输入接口名称', trigger: 'blur' },
-    { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' }
+    { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' },
   ],
-  reqMethod: [
-    { required: true, message: '请选择请求方式', trigger: 'change' }
-  ],
-  apiUrl: [
-    { required: true, message: '请输入接口地址', trigger: 'blur' },
-    { pattern: /^\/[\w\-\/]+$/, message: '接口地址必须以/开头，只能包含字母、数字、下划线、中划线', trigger: 'blur' }
-  ],
-  queryTimeout: [
-    { required: true, message: '请输入超时时间', trigger: 'blur' }
-  ],
-  limitCount: [
-    { required: true, message: '请输入限制条数', trigger: 'blur' }
-  ],
-  datasourceId: [
-    { required: true, message: '请选择数据源', trigger: 'change' }
-  ],
-  sqlScript: [
-    { required: true, message: '请输入SQL脚本', trigger: 'blur' }
-  ]
+  reqMethod: [{ required: true, message: '请选择请求方式', trigger: 'change' }],
+  apiUrl: [{ required: true, message: '请输入接口地址', trigger: 'blur' }],
+  queryTimeout: [{ required: true, message: '请输入超时时间', trigger: 'blur' }],
+  limitCount: [{ required: true, message: '请输入限制条数', trigger: 'blur' }],
+  datasourceId: [{ required: true, message: '请选择数据源', trigger: 'change' }],
+  sqlScript: [{ required: true, message: '请输入SQL脚本', trigger: 'blur' }],
 };
 
 // 数据源选项
@@ -300,34 +318,36 @@ const testForm = reactive({});
 
 // 获取API详情
 function getDetail(apiId) {
-  getApiInfo(apiId).then(response => {
-    const apiData = response.data;
-    // 填充表单数据
-    Object.assign(form, apiData);
+  getApiInfo(apiId)
+    .then((response) => {
+      const apiData = response.data;
+      // 填充表单数据
+      Object.assign(form, apiData);
 
-    // 解析API配置
-    if (apiData.apiConfig) {
-      try {
-        const config = JSON.parse(apiData.apiConfig);
-        form.sqlScript = config.sqlScript;
-        form.isPaging = config.isPaging;
-        requestParams.value = config.requestParams || [];
-      } catch (error) {
-        console.error('解析API配置失败', error);
+      // 解析API配置
+      if (apiData.apiConfig) {
+        try {
+          const config = JSON.parse(apiData.apiConfig);
+          form.sqlScript = config.sqlScript;
+          form.isPaging = config.isPaging;
+          requestParams.value = config.requestParams || [];
+        } catch (error) {
+          console.error('解析API配置失败', error);
+        }
       }
-    }
-  }).catch(() => {
-    ElMessage.error('获取API详情失败');
-    router.push('/oneapi');
-  });
+    })
+    .catch(() => {
+      ElMessage.error('获取API详情失败');
+      router.push('/oneapi');
+    });
 }
 
 // 获取字段类型列表
 function getColumnTypes() {
-  getColTypeList().then(response => {
-    columnTypeOptions.value = response.map(item => ({
+  getColTypeList().then((response) => {
+    columnTypeOptions.value = response.map((item) => ({
       label: item.desc,
-      value: item.name
+      value: item.name,
     }));
   });
 }
@@ -335,13 +355,13 @@ function getColumnTypes() {
 // 下一步操作
 function handleNext() {
   if (activeStep.value === 1) {
-    apiInfoFormRef.value.validate(valid => {
+    apiInfoFormRef.value.validate((valid) => {
       if (valid) {
         activeStep.value++;
       }
     });
   } else if (activeStep.value === 2) {
-    sqlFormRef.value.validate(valid => {
+    sqlFormRef.value.validate((valid) => {
       if (valid) {
         if (!form.sqlScript || !form.datasourceId) {
           ElMessage.warning('请先选择数据源并输入SQL脚本');
@@ -350,29 +370,31 @@ function handleNext() {
 
         parseSql({
           datasourceId: form.datasourceId,
-          sqlScript: form.sqlScript
-        }).then(response => {
-          const reqParams = response.requestParams;
-          const returnParams = response.returnParams;
-          requestParams.value = reqParams.map(item => ({
-            columnName: item.columnName,
-            columnType: item.columnType || 'STRING',
-            isMust: 0,
-            columnDemo: '',
-            columnDesc: ''
-          }));
+          sqlScript: form.sqlScript,
+        })
+          .then((response) => {
+            const reqParams = response.requestParams;
+            const returnParams = response.returnParams;
+            requestParams.value = reqParams.map((item) => ({
+              columnName: item.columnName,
+              columnType: item.columnType || 'STRING',
+              isMust: 0,
+              columnDemo: '',
+              columnDesc: '',
+            }));
 
-          responseParams.value = returnParams.map(item => ({
-            columnName: item.columnName,
-            columnType: item.columnType || 'STRING',
-            columnDesc: ''
-          }));
+            responseParams.value = returnParams.map((item) => ({
+              columnName: item.columnName,
+              columnType: item.columnType || 'STRING',
+              columnDesc: '',
+            }));
 
-          ElMessage.success('SQL解析成功');
-          activeStep.value = 3;
-        }).catch(() => {
-          ElMessage.error('SQL解析失败');
-        });
+            ElMessage.success('SQL解析成功');
+            activeStep.value = 3;
+          })
+          .catch(() => {
+            ElMessage.error('SQL解析失败');
+          });
       }
     });
   } else if (activeStep.value === 3) {
@@ -382,7 +404,7 @@ function handleNext() {
       return;
     }
     // 验证所有必填参数是否已填写
-    const hasEmptyRequired = requestParams.value.some(param => {
+    const hasEmptyRequired = requestParams.value.some((param) => {
       return param.isMust === 1 && (!param.columnName || !param.columnType);
     });
     if (hasEmptyRequired) {
@@ -398,126 +420,119 @@ function handlePrev() {
   activeStep.value--;
 }
 
-// 解析SQL
-function handleParseSql() {
-  if (!form.sqlScript || !form.datasourceId) {
-    ElMessage.warning('请先选择数据源并输入SQL脚本');
-    return;
-  }
-
-  parseSql({
-    datasourceId: form.datasourceId,
-    sqlScript: form.sqlScript
-  }).then(response => {
-    const reqParams = response.requestParams || [];
-    requestParams.value = reqParams.map(item => ({
-      columnName: item.columnName,
-      columnType: item.columnType || 'STRING',
-      isMust: 0,
-      columnDemo: '',
-      columnDesc: ''
-    }));
-
-    // 如果选择了分页，添加分页参数
-    if (form.isPaging === 1) {
-      requestParams.value.push(
-        {
-          columnName: 'pageNum',
-          columnType: 'Integer',
-          isMust: 1,
-          columnDemo: '1',
-          columnDesc: '当前页码'
-        },
-        {
-          columnName: 'pageSize',
-          columnType: 'Integer',
-          isMust: 1,
-          columnDemo: '10',
-          columnDesc: '每页显示条数'
-        }
-      );
-    }
-
-    ElMessage.success('SQL解析成功');
-    activeStep.value++;
-  }).catch(() => {
-    ElMessage.error('SQL解析失败');
-  });
-}
-
 // 取消操作
 function handleCancel() {
   router.push('/oneapi');
 }
 
-// 测试API
-function handleTest() {
-  testApiInfo({
-    ...form,
-    testParams: testForm
-  }).then(res => {
-    testResult.value = res.data;
-  }).catch(() => {
-    ElMessage.error('测试失败');
-  });
-}
-
-// 提交表单
-function handleSubmit() {
+// 保存API
+function handleSave() {
   // 构建API配置
   const apiConfig = {
-    sqlScript: form.sqlScript,
-    isPaging: form.isPaging,
-    requestParams: requestParams.value
+    apiName: form.apiName,
+    queryTimeout: form.queryTimeout,
+    limitCount: form.limitCount,
+    pageFlag: form.isPaging,
+    sql: form.sqlScript,
+    apiParams: {
+      requestParams: requestParams.value.map((param) => ({
+        columnName: param.columnName,
+        columnType: param.columnType,
+        isMust: param.isMust,
+        columnDesc: param.columnDesc,
+        columnDemo: param.columnDemo,
+      })),
+    },
+    preSQL: [],
   };
 
-  // 设置API配置
   form.apiConfig = JSON.stringify(apiConfig);
 
-  // 提交表单
-  const submitFunc = isEdit.value ? updateApiInfo : addApiInfo;
-  submitFunc(form).then(response => {
-    ElMessage.success(isEdit.value ? '修改成功' : '新增成功');
-    router.push('/oneapi');
-  }).catch(() => {
-    ElMessage.error(isEdit.value ? '修改失败' : '新增失败');
-  });
+  const savePromise = isEdit.value ? updateApiInfo(form) : addApiInfo(form);
+
+  savePromise
+    .then(() => {
+      ElMessage.success('保存成功');
+      router.push('/oneapi');
+    })
+    .catch(() => {
+      ElMessage.error('保存失败');
+    });
+}
+
+// 测试并保存API
+function handleTestAndSave() {
+  // 构建API配置
+  const apiConfig = {
+    apiName: form.apiName,
+    queryTimeout: form.queryTimeout,
+    limitCount: form.limitCount,
+    pageFlag: form.isPaging,
+    sql: form.sqlScript,
+    apiParams: {
+      requestParams: requestParams.value.map((param) => ({
+        columnName: param.columnName,
+        columnType: param.columnType,
+        isMust: param.isMust,
+        columnDesc: param.columnDesc,
+        columnDemo: param.columnDemo,
+      })),
+    },
+    preSQL: [],
+  };
+
+  form.apiConfig = JSON.stringify(apiConfig);
+
+  testApiInfo(form)
+    .then((res) => {
+      testResult.value = res.data;
+      if (res.data.code === 0) {
+        handleSave();
+      } else {
+        ElMessage.warning('测试未通过，请检查API配置');
+      }
+    })
+    .catch(() => {
+      ElMessage.error('测试失败');
+    });
 }
 
 function handlePagingChange(value) {
-    if (value === 1) {
-        // 添加分页参数
-        requestParams.value.push(
-            {
-                columnName: 'pageNum',
-                columnType: 'INT',
-                isMust: 1,
-                columnDemo: '1',
-                columnDesc: '当前页码'
-            },
-            {
-                columnName: 'pageSize',
-                columnType: 'INT',
-                isMust: 1,
-                columnDemo: '10',
-                columnDesc: '每页显示条数'
-            }
-        );
-    } else {
-        // 移除分页参数
-        requestParams.value = requestParams.value.filter(
-            item => item.columnName !== 'pageNum' && item.columnName !== 'pageSize'
-        );
-    }
+  if (value === 1) {
+    // 添加分页参数
+    requestParams.value.push(
+      {
+        columnName: 'pageNum',
+        columnType: 'INT',
+        isMust: 1,
+        columnDemo: '1',
+        columnDesc: '当前页码',
+      },
+      {
+        columnName: 'pageSize',
+        columnType: 'INT',
+        isMust: 1,
+        columnDemo: '10',
+        columnDesc: '每页显示条数',
+      },
+    );
+  } else {
+    // 移除分页参数
+    requestParams.value = requestParams.value.filter(
+      (item) => item.columnName !== 'pageNum' && item.columnName !== 'pageSize',
+    );
+  }
 }
 
 // 获取数据源列表
 function loadDatasourceOptions() {
-  getDatasourceList('', null).then(response => {
-    datasourceOptions.value = response || [];
-  }).catch(() => {
-    ElMessage.error('获取数据源列表失败');
-  });
+  getDatasourceList('', null)
+    .then((response) => {
+      datasourceOptions.value = response || [];
+    })
+    .catch(() => {
+      ElMessage.error('获取数据源列表失败');
+    });
 }
 
 onMounted(() => {
@@ -587,5 +602,44 @@ onMounted(() => {
   white-space: pre-wrap;
   word-wrap: break-word;
 }
+.test-params {
+  margin-bottom: 20px;
+}
+.test-result-container {
+  margin-top: 20px;
+}
+.test-result-info {
+  background-color: #f5f7fa;
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+}
+.info-item {
+  margin-bottom: 8px;
+}
+.info-item:last-child {
+  margin-bottom: 0;
+}
+.label {
+  color: #606266;
+  margin-right: 10px;
+}
+.success {
+  color: #67c23a;
+}
+.error {
+  color: #f56c6c;
+}
+.test-result-data {
+  background-color: #1e1e1e;
+  color: #fff;
+  padding: 15px;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+.test-result-data pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
 </style>
-
