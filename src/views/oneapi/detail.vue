@@ -9,13 +9,12 @@
           </div>
         </div>
       </template>
-      
+
       <el-tabs v-model="activeTab">
         <!-- 接口信息 -->
         <el-tab-pane label="接口信息" name="info">
           <el-descriptions :column="2" border>
             <el-descriptions-item label="接口名称">{{ apiInfo.apiName }}</el-descriptions-item>
-            <el-descriptions-item label="所属分组">{{ apiInfo.groupId }}</el-descriptions-item>
             <el-descriptions-item label="请求方式">{{ apiInfo.reqMethod }}</el-descriptions-item>
             <el-descriptions-item label="接口地址">{{ apiInfo.apiUrl }}</el-descriptions-item>
             <el-descriptions-item label="超时时间">{{ apiInfo.queryTimeout }}秒</el-descriptions-item>
@@ -28,7 +27,7 @@
             <el-descriptions-item label="接口描述" :span="2">{{ apiInfo.apiDesc }}</el-descriptions-item>
           </el-descriptions>
         </el-tab-pane>
-        
+
         <!-- SQL脚本 -->
         <el-tab-pane label="SQL脚本" name="sql">
           <el-descriptions :column="1" border>
@@ -39,12 +38,12 @@
             </el-descriptions-item>
             <el-descriptions-item label="SQL脚本">
               <div class="code-block">
-                <pre>{{ apiConfig.sqlScript }}</pre>
+                <pre>{{ apiConfig.sql }}</pre>
               </div>
             </el-descriptions-item>
           </el-descriptions>
         </el-tab-pane>
-        
+
         <!-- 请求参数 -->
         <el-tab-pane label="请求参数" name="params">
           <el-table :data="apiConfig.requestParams" border style="width: 100%">
@@ -60,45 +59,6 @@
             <el-table-column label="描述" prop="columnDesc" />
           </el-table>
         </el-tab-pane>
-        
-        <!-- 在线测试 -->
-        <el-tab-pane label="在线测试" name="test">
-          <div class="test-container">
-            <el-row :gutter="20">
-              <el-col :span="10">
-                <div class="test-params">
-                  <h3>请求参数</h3>
-                  <el-form label-width="100px">
-                    <el-form-item v-for="(param, index) in apiConfig.requestParams" :key="index" :label="param.columnName">
-                      <el-input v-model="param.value" :placeholder="`请输入${param.columnName}`" />
-                    </el-form-item>
-                    <el-form-item>
-                      <el-button type="primary" @click="submitTest">执行测试</el-button>
-                    </el-form-item>
-                  </el-form>
-                </div>
-              </el-col>
-              <el-col :span="14">
-                <div class="test-result">
-                  <h3>测试结果</h3>
-                  <div v-if="testResult">
-                    <div class="result-info">
-                      <p>耗时：{{ testResult.costTime }} ms</p>
-                      <p>状态：{{ testResult.code === 0 ? '成功' : '失败' }}</p>
-                    </div>
-                    <el-divider />
-                    <div class="result-data">
-                      <pre>{{ JSON.stringify(testResult.data, null, 2) }}</pre>
-                    </div>
-                  </div>
-                  <div v-else class="no-result">
-                    <el-empty description="暂无测试结果" />
-                  </div>
-                </div>
-              </el-col>
-            </el-row>
-          </div>
-        </el-tab-pane>
       </el-tabs>
     </el-card>
   </div>
@@ -109,11 +69,10 @@ import { ref, reactive, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { getApiInfo, testApiInfoOnline } from '@/api/oneapi/apiInfoApi';
-import { parseTime } from '@/utils/common';
 
 const route = useRoute();
 const router = useRouter();
-const apiId = route.params.id;
+const apiId = route.params.apiId;
 
 // 当前激活的标签页
 const activeTab = ref('info');
@@ -134,14 +93,14 @@ const testResult = ref(null);
 // 获取API详情
 function getDetail() {
   getApiInfo(apiId).then(response => {
-    apiInfo.value = response.data;
-    
+    apiInfo.value = response;
+
     // 解析API配置
     if (apiInfo.value.apiConfig) {
       try {
         const config = JSON.parse(apiInfo.value.apiConfig);
         apiConfig.value = config;
-        
+        apiConfig.value.requestParams=config.apiParams.requestParams;
         // 为请求参数添加value字段，用于测试
         if (apiConfig.value.requestParams) {
           apiConfig.value.requestParams.forEach(param => {
@@ -183,7 +142,7 @@ function submitTest() {
       returnParams: apiConfig.value.returnParams || []
     }
   };
-  
+
   // 调用测试API
   testApiInfoOnline(testData).then(response => {
     testResult.value = response.data;

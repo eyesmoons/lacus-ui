@@ -53,15 +53,17 @@
           <el-link type="primary" :underline="false" @click="handleDetail(scope.row)">{{ scope.row.apiName }}</el-link>
         </template>
       </el-table-column>
-      <el-table-column label="数据源" align="left" prop="datasourceId" />
+      <el-table-column label="数据源" align="left" prop="datasourceName" />
       <el-table-column label="接口地址" align="left" prop="apiUrl" show-overflow-tooltip />
+      <el-table-column label="请求方式" align="left" prop="reqMethod" />
+      <el-table-column label="接口描述" align="left" prop="apiDesc" show-overflow-tooltip />
       <el-table-column label="接口状态" align="center" prop="status">
         <template #default="scope">
           <el-tag type="success" v-if="scope.row.status === 1">上线</el-tag>
           <el-tag type="info" v-else>下线</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" align="center" fixed="right">
+      <el-table-column label="操作" align="center" fixed="right" width="220">
         <template #default="scope">
           <el-button-group class="ml-4">
             <el-tooltip content="测试" placement="top">

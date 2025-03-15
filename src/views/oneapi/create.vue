@@ -437,6 +437,7 @@ function handleSave() {
     queryTimeout: form.queryTimeout,
     limitCount: form.limitCount,
     pageFlag: form.isPaging,
+    apiUrl: "/data/" + form.apiUrl,
     sql: form.sqlScript,
     apiParams: {
       requestParams: requestParams.value.map((param) => ({
