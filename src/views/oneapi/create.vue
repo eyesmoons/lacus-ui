@@ -233,7 +233,7 @@
                     </div>
                     <div class="result-data">
                       <span class="label">响应结果：</span>
-                      <monaco-editor v-model="testResult.data" language="sql" height="300px" />
+                      <monaco-editor v-model="testResult.data" language="sql" height="300px" readonly="readonly"/>
                     </div>
                   </div>
                   <div v-else class="no-result">暂无测试结果</div>
@@ -541,7 +541,6 @@ function handleTest() {
           form.apiResponse = res.data;
         } catch (error) {
           ElMessage.error('API响应数据格式错误，请检查返回数据');
-          return;
         }
       } else {
         ElMessage.warning('测试未通过，请检查API配置');

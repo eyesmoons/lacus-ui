@@ -37,9 +37,7 @@
               <el-tag type="info" v-else>否</el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="SQL脚本">
-              <div class="code-block">
-                <pre>{{ apiConfig.sql }}</pre>
-              </div>
+                <monaco-editor v-model="apiConfig.sql" language="sql" height="300px" readonly="readonly"/>
             </el-descriptions-item>
           </el-descriptions>
         </el-tab-pane>
@@ -69,6 +67,7 @@ import { ref, reactive, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { getApiInfo, testApiInfoOnline } from '@/api/oneapi/apiInfoApi';
+import MonacoEditor from "@/components/MonacoEditor/index.vue";
 
 const route = useRoute();
 const router = useRouter();
