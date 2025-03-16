@@ -17,7 +17,7 @@
     </el-card>
 
     <!-- 步骤内容区域 -->
-    <el-card style="margin-top: 20px; min-height: calc(100vh - 400px)">
+    <el-card style="margin-top: 20px; width: 100%; min-height: calc(100vh - 400px); margin-bottom: 60px">
       <div class="step-content">
         <!-- 步骤1：接口信息配置 -->
         <div v-if="activeStep === 1">
@@ -209,8 +209,8 @@
                   <div v-if="testResult" class="test-result-content">
                     <div class="result-info">
                       <div class="info-item">
-                        <span class="label">请求信息：</span>
-                        <span class="value">{{ form.reqMethod }} {{ form.apiUrl }}</span>
+                        <span class="label">地址：</span>
+                        <span class="value">{{ form.reqMethod }} /data/{{ form.apiUrl }}</span>
                       </div>
                       <div class="info-item">
                         <span class="label">状态：</span>
@@ -219,13 +219,13 @@
                         </span>
                       </div>
                       <div class="info-item">
-                        <span class="label">响应时间：</span>
+                        <span class="label">耗时：</span>
                         <span class="value">{{ testResult.costTime }} ms</span>
                       </div>
-                      <div class="info-item" v-if="testResult.debugInfo">
-                        <span class="label">日志：</span>
-                        <span class="value">{{ testResult.debugInfo }}</span>
-                      </div>
+                        <div class="info-item">
+                            <span class="label">日志：</span>
+                            <span class="value">{{ testResult.debugInfo }}</span>
+                        </div>
                     </div>
                     <div class="result-data">
                       <span class="label">响应结果：</span>
@@ -242,16 +242,25 @@
         </div>
       </div>
 
-      <!-- 底部操作按钮 -->
-      <div class="fixed-bottom">
-        <el-card>
-          <div class="button-container">
-            <el-button @click="handleCancel">取消</el-button>
-            <el-button v-if="activeStep > 1" @click="handlePrev">上一步</el-button>
-            <el-button v-if="activeStep < 4" type="primary" @click="handleNext">下一步</el-button>
-            <el-button v-else type="primary" @click="handleSave">保存</el-button>
-          </div>
-        </el-card>
+      <!-- 底部操作栏 -->
+      <div
+        class="bottom-button-container"
+        style="
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background-color: #fff;
+          padding: 10px 20px;
+          text-align: center;
+          box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+        "
+      >
+        <el-button @click="handleCancel">取消</el-button>
+        <el-button @click="handlePrev" v-if="activeStep > 1">上一步</el-button>
+        <el-button type="primary" @click="handleNext" v-if="activeStep < 4">下一步</el-button>
+        <el-button type="success" @click="handleTest" v-if="activeStep === 4">测试</el-button>
+        <el-button type="primary" @click="handleSave" v-if="activeStep === 4">保存</el-button>
       </div>
     </el-card>
 
@@ -590,6 +599,22 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.fixed-bottom {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #fff;
+  padding: 10px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 100%;
+}
+
+.app-container {
+  padding-bottom: 60px;
+}
 .app-container {
   padding: 20px;
   padding-bottom: 80px;
