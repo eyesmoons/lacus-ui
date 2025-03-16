@@ -196,7 +196,7 @@
                       </template>
                     </el-table-column>
                     <el-table-column label="描述" prop="columnDesc" />
-                    <el-table-column label="测试值" width="200">
+                    <el-table-column label="测试值" width="100" fixed="right">
                       <template #default="scope">
                         <el-input
                           v-model="testForm[scope.row.columnName]"
