@@ -14,8 +14,10 @@
         <el-step title="请求参数" />
         <el-step title="API测试" />
       </el-steps>
+    </el-card>
 
-      <!-- 步骤内容区域 -->
+    <!-- 步骤内容区域 -->
+    <el-card style="margin-top: 20px; min-height: calc(100vh - 400px)">
       <div class="step-content">
         <!-- 步骤1：接口信息配置 -->
         <div v-if="activeStep === 1">
@@ -227,7 +229,9 @@
                     </div>
                     <div class="result-data">
                       <span class="label">响应结果：</span>
-                      <pre class="json-viewer" :class="testResult.code === 0 ? 'success' : 'error'">{{ testResult.data }}</pre>
+                      <pre class="json-viewer" :class="testResult.code === 0 ? 'success' : 'error'">{{
+                        testResult.data
+                      }}</pre>
                     </div>
                   </div>
                   <div v-else class="no-result">暂无测试结果</div>
@@ -238,13 +242,16 @@
         </div>
       </div>
 
-      <!-- 步骤操作按钮 -->
-      <div class="step-action">
-        <el-button @click="handlePrev" v-if="activeStep > 1">上一步</el-button>
-        <el-button type="primary" @click="handleNext" v-if="activeStep < 4">下一步</el-button>
-        <el-button type="success" @click="handleTest" v-if="activeStep === 4">测试</el-button>
-          <el-button type="success" @click="handleSave" v-if="activeStep === 4">保存</el-button>
-        <el-button @click="handleCancel">取消</el-button>
+      <!-- 底部操作按钮 -->
+      <div class="fixed-bottom">
+        <el-card>
+          <div class="button-container">
+            <el-button @click="handleCancel">取消</el-button>
+            <el-button v-if="activeStep > 1" @click="handlePrev">上一步</el-button>
+            <el-button v-if="activeStep < 4" type="primary" @click="handleNext">下一步</el-button>
+            <el-button v-else type="primary" @click="handleSave">保存</el-button>
+          </div>
+        </el-card>
       </div>
     </el-card>
 
@@ -453,10 +460,10 @@ function handleCancel() {
 
 // 保存API
 function handleSave() {
-    if(!form.apiResponse) {
-        ElMessage.warning('请测试通过后再保存！');
-        return;
-    }
+  if (!form.apiResponse) {
+    ElMessage.warning('请测试通过后再保存！');
+    return;
+  }
   // 构建API配置
   const apiConfig = {
     apiName: form.apiName,
@@ -703,7 +710,7 @@ onMounted(() => {
 .json-viewer {
   margin: 0;
   padding: 12px;
-  font-family: Monaco, Menlo, Consolas, "Courier New", monospace;
+  font-family: Monaco, Menlo, Consolas, 'Courier New', monospace;
   font-size: 13px;
   line-height: 1.5;
   white-space: pre-wrap;
