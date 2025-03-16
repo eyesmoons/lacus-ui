@@ -437,7 +437,6 @@ function handleSave() {
     queryTimeout: form.queryTimeout,
     limitCount: form.limitCount,
     pageFlag: form.isPaging,
-    apiUrl: "/data/" + form.apiUrl,
     sql: form.sqlScript,
     apiParams: {
       requestParams: requestParams.value.map((param) => ({
@@ -451,6 +450,7 @@ function handleSave() {
     apiReturn: form.apiResponse,
     preSQL: [],
   };
+  form.apiUrl = "/data/" + form.apiUrl;
   form.apiConfig = JSON.stringify(apiConfig);
   isEdit.value ? updateApiInfo(form) : addApiInfo(form);
   ElMessage.success('保存成功');
