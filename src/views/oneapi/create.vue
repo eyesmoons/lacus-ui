@@ -211,16 +211,23 @@
                         <span class="value">{{ form.reqMethod }} {{ form.apiUrl }}</span>
                       </div>
                       <div class="info-item">
-                        <span class="label">日志：</span>
-                        <span class="value">{{ testResult.debugInfo }}</span>
+                        <span class="label">状态：</span>
+                        <span class="value" :class="testResult.code === 0 ? 'success' : 'error'">
+                          {{ testResult.code === 0 ? '成功' : '失败' }}
+                        </span>
                       </div>
                       <div class="info-item">
                         <span class="label">响应时间：</span>
                         <span class="value">{{ testResult.costTime }} ms</span>
                       </div>
+                      <div class="info-item" v-if="testResult.debugInfo">
+                        <span class="label">日志：</span>
+                        <span class="value">{{ testResult.debugInfo }}</span>
+                      </div>
                     </div>
                     <div class="result-data">
-                      <pre>{{ JSON.stringify(testResult.data, null, 2) }}</pre>
+                      <span class="label">响应结果：</span>
+                      <pre class="json-viewer" :class="testResult.code === 0 ? 'success' : 'error'">{{ testResult.data }}</pre>
                     </div>
                   </div>
                   <div v-else class="no-result">暂无测试结果</div>
@@ -647,47 +654,82 @@ onMounted(() => {
 
 .test-result-content {
   height: 100%;
+  overflow-y: auto;
+  padding: 10px;
 }
 
 .result-info {
-  margin-bottom: 20px;
-  padding: 15px;
-  background: #f5f7fa;
+  margin-bottom: 15px;
+  background: #f8f9fa;
+  padding: 12px;
   border-radius: 4px;
 }
 
 .info-item {
   margin-bottom: 8px;
-  line-height: 1.5;
+  display: flex;
+  align-items: flex-start;
+}
+
+.info-item:last-child {
+  margin-bottom: 0;
 }
 
 .info-item .label {
   color: #606266;
-  margin-right: 8px;
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.info-item .value {
+  color: #303133;
+  word-break: break-all;
+}
+
+.info-item .value.success {
+  color: #67c23a;
+}
+
+.info-item .value.error {
+  color: #f56c6c;
 }
 
 .result-data {
-  background: #f8f9fb;
-  padding: 15px;
+  background: #f8f9fa;
   border-radius: 4px;
-  max-height: calc(100% - 150px);
-  overflow-y: auto;
+  overflow: hidden;
 }
 
-.result-data pre {
+.json-viewer {
   margin: 0;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  color: #303133;
-  font-family: Monaco, Menlo, Consolas, 'Courier New', monospace;
+  padding: 12px;
+  font-family: Monaco, Menlo, Consolas, "Courier New", monospace;
   font-size: 13px;
   line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.json-viewer.success {
+  color: #303133;
+  background: #f0f9eb;
+  border: 1px solid #e1f3d8;
+}
+
+.json-viewer.error {
+  color: #303133;
+  background: #fef0f0;
+  border: 1px solid #fde2e2;
 }
 
 .no-result {
-  text-align: center;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #909399;
-  padding: 40px 0;
   font-size: 14px;
+  background: #f8f9fa;
+  border-radius: 4px;
 }
 </style>
