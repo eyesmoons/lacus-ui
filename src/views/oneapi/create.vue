@@ -185,17 +185,26 @@
                   <h4>请求参数</h4>
                 </div>
                 <div class="panel-content">
-                  <el-form :model="testForm" label-width="120px">
-                    <el-form-item
-                      v-for="param in requestParams"
-                      :key="param.columnName"
-                      :label="param.columnName"
-                      :prop="param.columnName"
-                      :required="param.isMust === 1"
-                    >
-                      <el-input v-model="testForm[param.columnName]" :placeholder="param.columnDesc" />
-                    </el-form-item>
-                  </el-form>
+                  <el-table :data="requestParams" border style="width: 100%">
+                    <el-table-column label="参数名称" prop="columnName" width="180" />
+                    <el-table-column label="参数类型" prop="columnType" width="180" />
+                    <el-table-column label="是否必填" prop="isMust" width="100">
+                      <template #default="scope">
+                        <el-tag :type="scope.row.isMust === 1 ? 'danger' : 'info'">{{
+                          scope.row.isMust === 1 ? '是' : '否'
+                        }}</el-tag>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="描述" prop="columnDesc" />
+                    <el-table-column label="测试值" width="200">
+                      <template #default="scope">
+                        <el-input
+                          v-model="testForm[scope.row.columnName]"
+                          :placeholder="scope.row.columnDemo || '请输入测试值'"
+                        />
+                      </template>
+                    </el-table-column>
+                  </el-table>
                 </div>
               </div>
             </el-col>
@@ -222,10 +231,10 @@
                         <span class="label">耗时：</span>
                         <span class="value">{{ testResult.costTime }} ms</span>
                       </div>
-                        <div class="info-item">
-                            <span class="label">日志：</span>
-                            <pre class="value">{{ formatLogContent(testResult.debugInfo) }}</pre>
-                        </div>
+                      <div class="info-item">
+                        <span class="label">日志：</span>
+                        <pre class="value">{{ formatLogContent(testResult.debugInfo) }}</pre>
+                      </div>
                     </div>
                     <div class="result-data">
                       <span class="label">响应结果：</span>
@@ -358,25 +367,19 @@ const testResult = ref(null);
 // 测试表单数据
 const testForm = reactive({});
 
-
 // 格式化日志内容
 function formatLogContent(logStr) {
-    if (!logStr) return [];
+  if (!logStr) return [];
 
-    const logLines = [];
-    const regex = /\[INFO\] \[(\d{2}:\d{2}:\d{2}\.\d{3})\] \[([^\]]+)\] (.+?)(?=(?:\[INFO\]|$))/g;
-    let match;
+  const logLines = [];
+  const regex = /\[INFO\] \[(\d{2}:\d{2}:\d{2}\.\d{3})\] \[([^\]]+)\] (.+?)(?=(?:\[INFO\]|$))/g;
+  let match;
 
-    while ((match = regex.exec(logStr))) {
-        logLines.push(
-            '[INFO] ' +
-            '[' + match[1] + '] '+
-            '[' + match[2] + '] '+
-            match[3].trim()
-        );
-    }
+  while ((match = regex.exec(logStr))) {
+    logLines.push('[INFO] ' + '[' + match[1] + '] ' + '[' + match[2] + '] ' + match[3].trim());
+  }
 
-    return logLines;
+  return logLines;
 }
 
 // 获取API详情
