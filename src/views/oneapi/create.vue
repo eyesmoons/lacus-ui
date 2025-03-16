@@ -355,17 +355,13 @@ const testForm = reactive({});
 
 // 格式化日志内容
 function formatLogContent(logStr) {
-  if (!logStr) return [];
+  if (!logStr) return '';
 
-  const logLines = [];
-  const regex = /\[INFO\] \[(\d{2}:\d{2}:\d{2}\.\d{3})\] \[([^\]]+)\] (.+?)(?=(?:\[INFO\]|$))/g;
-  let match;
-
-  while ((match = regex.exec(logStr))) {
-    logLines.push('[INFO] ' + '[' + match[1] + '] ' + '[' + match[2] + '] ' + match[3].trim());
-  }
-
-  return logLines;
+  let result = '';
+  logStr.split('！').forEach((line) => {
+      result += line + '\n';
+  });
+  return result;
 }
 
 // 获取API详情
