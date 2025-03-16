@@ -228,12 +228,12 @@
                       </div>
                       <div class="info-item">
                         <span class="label">日志：</span>
-                        <pre class="value">{{ formatLogContent(testResult.debugInfo) }}</pre>
+                        <pre class="value log-content">{{ formatLogContent(testResult.debugInfo) }}</pre>
                       </div>
                     </div>
                     <div class="result-data">
                       <span class="label">响应结果：</span>
-                        <monaco-editor v-model="testResult.data" language="sql" height="300px" />
+                      <monaco-editor v-model="testResult.data" language="sql" height="300px" />
                     </div>
                   </div>
                   <div v-else class="no-result">暂无测试结果</div>
@@ -359,7 +359,7 @@ function formatLogContent(logStr) {
 
   let result = '';
   logStr.split('！').forEach((line) => {
-      result += line + '\n';
+    result += line + '\n';
   });
   return result;
 }
@@ -769,5 +769,33 @@ onMounted(() => {
   font-size: 14px;
   background: #f8f9fa;
   border-radius: 4px;
+}
+
+.log-content {
+  max-height: 200px;
+  overflow-y: auto;
+  background-color: #f8f9fa;
+  padding: 12px;
+  border-radius: 4px;
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: monospace;
+  font-size: 14px;
+  line-height: 1.5;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #c0c4cc;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f5f7fa;
+  }
 }
 </style>
