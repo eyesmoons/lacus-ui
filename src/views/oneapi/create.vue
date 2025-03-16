@@ -84,12 +84,7 @@
               </el-select>
             </el-form-item>
             <el-form-item label="SQL脚本" prop="sqlScript">
-              <el-input
-                type="textarea"
-                v-model="form.sqlScript"
-                placeholder="请输入SQL脚本，支持Mybatis语法"
-                :rows="10"
-              />
+              <monaco-editor v-model="form.sqlScript" language="sql" height="300px" />
             </el-form-item>
           </el-form>
         </div>
@@ -238,9 +233,7 @@
                     </div>
                     <div class="result-data">
                       <span class="label">响应结果：</span>
-                      <pre class="json-viewer" :class="testResult.code === 0 ? 'success' : 'error'">{{
-                        testResult.data
-                      }}</pre>
+                        <monaco-editor v-model="testResult.data" language="sql" height="300px" />
                     </div>
                   </div>
                   <div v-else class="no-result">暂无测试结果</div>
@@ -290,19 +283,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import {
-  getApiInfo,
-  addApiInfo,
-  updateApiInfo,
-  parseSql,
-  getColTypeList,
-  testApiInfo,
-  testApiInfoOnline,
-} from '@/api/oneapi/apiInfoApi';
+import { getApiInfo, addApiInfo, updateApiInfo, parseSql, getColTypeList, testApiInfo } from '@/api/oneapi/apiInfoApi';
 import { getDatasourceList } from '@/api/metadata/datasourceApi';
+import MonacoEditor from '@/components/MonacoEditor';
 
 const route = useRoute();
 const router = useRouter();
