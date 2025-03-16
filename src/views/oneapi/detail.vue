@@ -179,39 +179,4 @@ onMounted(() => {
   max-height: 400px;
   overflow-y: auto;
 }
-
-.test-container {
-  height: 500px;
-  overflow-y: auto;
-}
-
-.test-params, .test-result {
-  height: 100%;
-  padding: 10px;
-  border: 1px solid #ebeef5;
-  border-radius: 4px;
-}
-
-.test-result {
-  overflow-y: auto;
-}
-
-.result-info {
-  margin-bottom: 10px;
-}
-
-.result-data {
-  background-color: #f5f7fa;
-  padding: 10px;
-  border-radius: 4px;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.no-result {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 300px;
-}
 </style>

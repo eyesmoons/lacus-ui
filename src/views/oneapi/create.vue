@@ -94,7 +94,7 @@
           </el-form>
         </div>
 
-        <!-- 步骤3：请求参数配置 -->
+        <!-- 步骤3：请求参数 -->
         <div v-if="activeStep === 3" class="params-container">
           <div class="params-section">
             <h4>请求参数</h4>
@@ -178,11 +178,11 @@
         <!-- 步骤4：API测试 -->
         <div v-if="activeStep === 4" class="test-container">
           <el-row :gutter="24">
-            <!-- 左侧：请求参数配置 -->
+            <!-- 左侧：请求参数 -->
             <el-col :span="12">
               <div class="test-params-panel">
                 <div class="panel-header">
-                  <h4>请求参数配置</h4>
+                  <h4>请求参数</h4>
                 </div>
                 <div class="panel-content">
                   <el-form :model="testForm" label-width="120px">
@@ -224,7 +224,7 @@
                       </div>
                         <div class="info-item">
                             <span class="label">日志：</span>
-                            <span class="value">{{ testResult.debugInfo }}</span>
+                            <pre class="value">{{ formatLogContent(testResult.debugInfo) }}</pre>
                         </div>
                     </div>
                     <div class="result-data">
@@ -357,6 +357,27 @@ const testResult = ref(null);
 
 // 测试表单数据
 const testForm = reactive({});
+
+
+// 格式化日志内容
+function formatLogContent(logStr) {
+    if (!logStr) return [];
+
+    const logLines = [];
+    const regex = /\[INFO\] \[(\d{2}:\d{2}:\d{2}\.\d{3})\] \[([^\]]+)\] (.+?)(?=(?:\[INFO\]|$))/g;
+    let match;
+
+    while ((match = regex.exec(logStr))) {
+        logLines.push(
+            '[INFO] ' +
+            '[' + match[1] + '] '+
+            '[' + match[2] + '] '+
+            match[3].trim()
+        );
+    }
+
+    return logLines;
+}
 
 // 获取API详情
 function getDetail(apiId) {
