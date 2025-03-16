@@ -174,46 +174,60 @@
         </div>
 
         <!-- 步骤4：API测试 -->
-        <div v-if="activeStep === 4">
-          <div class="test-params">
-            <h4>请求参数配置</h4>
-            <el-form :model="testForm" label-width="120px">
-              <el-form-item
-                v-for="param in requestParams"
-                :key="param.columnName"
-                :label="param.columnName"
-                :prop="param.columnName"
-              >
-                <el-input v-model="testForm[param.columnName]" :placeholder="param.columnDesc" />
-              </el-form-item>
-            </el-form>
-          </div>
-          <div class="test-result-container" v-if="testResult">
-            <h4>返回内容</h4>
-            <div class="test-result-info">
-              <div class="info-item">
-                <span class="label">请求信息：</span>
-                <span class="value">{{ form.reqMethod }} {{ form.apiUrl }}</span>
-              </div>
-                <div class="info-item">
-                    <span class="label">日志：</span>
-                    <span class="value">{{ testResult.debugInfo }}</span>
+        <div v-if="activeStep === 4" class="test-container">
+          <el-row :gutter="24">
+            <!-- 左侧：请求参数配置 -->
+            <el-col :span="12">
+              <div class="test-params-panel">
+                <div class="panel-header">
+                  <h4>请求参数配置</h4>
                 </div>
-              <div class="info-item">
-                <span class="label">响应时间：</span>
-                <span class="value">{{ testResult.costTime }} ms</span>
+                <div class="panel-content">
+                  <el-form :model="testForm" label-width="120px">
+                    <el-form-item
+                      v-for="param in requestParams"
+                      :key="param.columnName"
+                      :label="param.columnName"
+                      :prop="param.columnName"
+                      :required="param.isMust === 1"
+                    >
+                      <el-input v-model="testForm[param.columnName]" :placeholder="param.columnDesc" />
+                    </el-form-item>
+                  </el-form>
+                </div>
               </div>
-              <div class="info-item">
-                <span class="label">状态：</span>
-                <span class="value" :class="testResult.code === 0 ? 'success' : 'error'">{{
-                  testResult.code === 0 ? '成功' : '失败'
-                }}</span>
+            </el-col>
+            <!-- 右侧：测试结果 -->
+            <el-col :span="12">
+              <div class="test-result-panel">
+                <div class="panel-header">
+                  <h4>测试结果</h4>
+                </div>
+                <div class="panel-content">
+                  <div v-if="testResult" class="test-result-content">
+                    <div class="result-info">
+                      <div class="info-item">
+                        <span class="label">请求信息：</span>
+                        <span class="value">{{ form.reqMethod }} {{ form.apiUrl }}</span>
+                      </div>
+                      <div class="info-item">
+                        <span class="label">日志：</span>
+                        <span class="value">{{ testResult.debugInfo }}</span>
+                      </div>
+                      <div class="info-item">
+                        <span class="label">响应时间：</span>
+                        <span class="value">{{ testResult.costTime }} ms</span>
+                      </div>
+                    </div>
+                    <div class="result-data">
+                      <pre>{{ JSON.stringify(testResult.data, null, 2) }}</pre>
+                    </div>
+                  </div>
+                  <div v-else class="no-result">暂无测试结果</div>
+                </div>
               </div>
-            </div>
-            <div class="test-result-data">
-              <pre>{{ JSON.stringify(testResult.data, null, 2) }}</pre>
-            </div>
-          </div>
+            </el-col>
+          </el-row>
         </div>
       </div>
 
@@ -221,7 +235,8 @@
       <div class="step-action">
         <el-button @click="handlePrev" v-if="activeStep > 1">上一步</el-button>
         <el-button type="primary" @click="handleNext" v-if="activeStep < 4">下一步</el-button>
-        <el-button type="success" @click="handleTestAndSave" v-if="activeStep === 4">测试并保存</el-button>
+        <el-button type="success" @click="handleTest" v-if="activeStep === 4">测试</el-button>
+          <el-button type="success" @click="handleSave" v-if="activeStep === 4">保存</el-button>
         <el-button @click="handleCancel">取消</el-button>
       </div>
     </el-card>
@@ -431,6 +446,10 @@ function handleCancel() {
 
 // 保存API
 function handleSave() {
+    if(!form.apiResponse) {
+        ElMessage.warning('请测试通过后再保存！');
+        return;
+    }
   // 构建API配置
   const apiConfig = {
     apiName: form.apiName,
@@ -450,7 +469,7 @@ function handleSave() {
     apiReturn: form.apiResponse,
     preSQL: [],
   };
-  form.apiUrl = "/data/" + form.apiUrl;
+  form.apiUrl = '/data/' + form.apiUrl;
   form.apiConfig = JSON.stringify(apiConfig);
   isEdit.value ? updateApiInfo(form) : addApiInfo(form);
   ElMessage.success('保存成功');
@@ -458,7 +477,7 @@ function handleSave() {
 }
 
 // 测试并保存API
-function handleTestAndSave() {
+function handleTest() {
   // 构建API配置
   const apiConfig = {
     apiName: form.apiName?.replace(/[\n\t]/g, ''),
@@ -495,7 +514,6 @@ function handleTestAndSave() {
           ElMessage.error('API响应数据格式错误，请检查返回数据');
           return;
         }
-        handleSave();
       } else {
         ElMessage.warning('测试未通过，请检查API配置');
       }
@@ -555,29 +573,6 @@ onMounted(() => {
     getDetail(route.params.id);
   }
 });
-
-// 获取默认的示例值
-function getDefaultDemo(columnType) {
-  switch (columnType.toUpperCase()) {
-    case 'INT':
-    case 'INTEGER':
-      return '1';
-    case 'LONG':
-      return '1000';
-    case 'FLOAT':
-    case 'DOUBLE':
-      return '1.0';
-    case 'BOOLEAN':
-      return 'true';
-    case 'DATE':
-      return '2024-01-01';
-    case 'DATETIME':
-      return '2024-01-01 00:00:00';
-    case 'STRING':
-    default:
-      return 'test';
-  }
-}
 </script>
 
 <style scoped>
@@ -610,67 +605,89 @@ function getDefaultDemo(columnType) {
   text-align: center;
 }
 
-.test-result {
-  margin-top: 20px;
+.test-container {
   padding: 20px;
-  background-color: #f5f7fa;
-  border-radius: 4px;
 }
 
-.test-result-info {
-  margin-bottom: 10px;
+.test-params-panel,
+.test-result-panel {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  height: 600px;
+  display: flex;
+  flex-direction: column;
 }
 
-.test-result-data {
-  background-color: #fff;
-  padding: 10px;
-  border-radius: 4px;
-  overflow-x: auto;
+.panel-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #ebeef5;
 }
 
-.test-result-data pre {
+.panel-header h4 {
   margin: 0;
-  white-space: pre-wrap;
-  word-wrap: break-word;
+  font-size: 16px;
+  color: #303133;
 }
-.test-params {
+
+.panel-content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.panel-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.panel-content::-webkit-scrollbar-thumb {
+  background: #c0c4cc;
+  border-radius: 3px;
+}
+
+.test-result-content {
+  height: 100%;
+}
+
+.result-info {
   margin-bottom: 20px;
-}
-.test-result-container {
-  margin-top: 20px;
-}
-.test-result-info {
-  background-color: #f5f7fa;
   padding: 15px;
+  background: #f5f7fa;
   border-radius: 4px;
-  margin-bottom: 15px;
 }
+
 .info-item {
   margin-bottom: 8px;
+  line-height: 1.5;
 }
-.info-item:last-child {
-  margin-bottom: 0;
-}
-.label {
+
+.info-item .label {
   color: #606266;
-  margin-right: 10px;
+  margin-right: 8px;
 }
-.success {
-  color: #67c23a;
-}
-.error {
-  color: #f56c6c;
-}
-.test-result-data {
-  background-color: #1e1e1e;
-  color: #fff;
+
+.result-data {
+  background: #f8f9fb;
   padding: 15px;
   border-radius: 4px;
-  overflow-x: auto;
+  max-height: calc(100% - 150px);
+  overflow-y: auto;
 }
-.test-result-data pre {
+
+.result-data pre {
   margin: 0;
   white-space: pre-wrap;
   word-wrap: break-word;
+  color: #303133;
+  font-family: Monaco, Menlo, Consolas, 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.no-result {
+  text-align: center;
+  color: #909399;
+  padding: 40px 0;
+  font-size: 14px;
 }
 </style>
