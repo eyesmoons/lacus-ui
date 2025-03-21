@@ -72,7 +72,7 @@ export function testApiInfo(data) {
 // 在线测试API
 export function testApiInfoOnline(data) {
   return request({
-    url: '/data/one/api/test/online',
+    url: '/one/api/test/online',
     method: 'post',
     data: data,
   });

@@ -1,30 +1,7 @@
 <template>
     <div class="modern-home">
-        <!-- Hero Section with Three.js Background -->
-        <div class="hero-section" ref="threeContainer">
-            <div class="hero-content" data-aos="fade-up">
-                <h1 class="gradient-text">Lacus开源大数据平台</h1>
-                <p class="subtitle" data-aos="fade-up" data-aos-delay="200">简单好用的大数据平台</p>
-                <div class="hero-buttons" data-aos="fade-up" data-aos-delay="400">
-                    <el-button type="primary" size="large" @click="goTarget('https://github.com/eyesmoons/lacus')">
-                        <el-icon>
-                            <Platform/>
-                        </el-icon>
-                        后端项目
-                    </el-button>
-                    <el-button type="info" size="large" @click="goTarget('https://github.com/eyesmoons/lacus-ui')">
-                        <el-icon>
-                            <Document/>
-                        </el-icon>
-                        前端项目
-                    </el-button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Features Section -->
         <div class="features-section">
-            <h2 class="section-title" data-aos="fade-up">核心特性</h2>
+            <h2 class="section-title gradient-text" data-aos="fade-up">Lacus开源大数据平台</h2>
             <el-row :gutter="20">
                 <el-col :span="8" v-for="(feature, index) in features" :key="index">
                     <div class="feature-card" data-aos="zoom-in" :data-aos-delay="index * 100">
@@ -98,6 +75,11 @@ const features = ref([
         description: '支持多种数据源实时数据采集',
     },
     {
+        icon: 'Menu',
+        title: '统一API',
+        description: '只需配好SQL，即可快速发布API供外部调用',
+    },
+    {
         icon: 'Monitor',
         title: 'Flink开发',
         description: '支持Flink sql和自定义jar包的实时开发',
@@ -110,30 +92,9 @@ const features = ref([
     {
         icon: 'Folder',
         title: '资源管理',
-        description: '全面的资源管理功能，优化资源配置',
+        description: '全面的Hdfs资源管理功能，优化资源配置',
     },
 ]);
-
-const backendTech = ref(['SpringBoot', 'Spring Security', 'JWT', 'MyBatis Plus', 'Druid', 'Jackson']);
-
-const frontendTech = ref(['Vue 3', 'Element Plus', 'Three.js', 'Axios', 'Sass', 'AOS']);
-
-const activities = ref([
-    {
-        timestamp: '2023-12-01',
-        content: '发布2.0版本，全新UI界面重构',
-        type: 'success',
-    },
-    {
-        timestamp: '2022-11-30',
-        content: '发布1.6.0版本，完成前后端重构',
-        type: 'info',
-    },
-]);
-
-const goTarget = (url) => {
-    window.open(url, '__blank');
-};
 
 onMounted(() => {
     AOS.init({
@@ -152,54 +113,15 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
+.gradient-text {
+    font-size: 3rem;
+    font-weight: bold;
+    background: linear-gradient(45deg, var(--el-color-primary), var(--el-color-success));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 1rem;
+}
 .modern-home {
-    .hero-section {
-        height: 100vh;
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-
-        canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
-    }
-
-    .hero-content {
-        text-align: center;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -60%);
-        z-index: 2;
-        padding: 2rem;
-
-        .gradient-text {
-            font-size: 3rem;
-            font-weight: bold;
-            background: linear-gradient(45deg, var(--el-color-primary), var(--el-color-success));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 1rem;
-        }
-
-        .subtitle {
-            font-size: 1.5rem;
-            color: var(--el-text-color-primary);
-            margin-bottom: 2rem;
-        }
-
-        .hero-buttons {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-        }
-    }
-
     .section-title {
         text-align: center;
         font-size: 2.5rem;

@@ -2,20 +2,10 @@
   <div class="app-container">
     <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="90px">
       <el-form-item label="接口名称" prop="apiName">
-        <el-input
-          v-model="queryParams.apiName"
-          placeholder="请输入接口名称"
-          clearable
-          @keyup.enter="handleQuery"
-        />
+        <el-input v-model="queryParams.apiName" placeholder="请输入接口名称" clearable @keyup.enter="handleQuery" />
       </el-form-item>
       <el-form-item label="接口地址" prop="apiUrl">
-        <el-input
-          v-model="queryParams.apiUrl"
-          placeholder="请输入接口地址"
-          clearable
-          @keyup.enter="handleQuery"
-        />
+        <el-input v-model="queryParams.apiUrl" placeholder="请输入接口地址" clearable @keyup.enter="handleQuery" />
       </el-form-item>
       <el-form-item label="数据源" prop="datasourceId">
         <el-select v-model="queryParams.datasourceId" placeholder="请选择数据源" clearable>
@@ -102,12 +92,37 @@
           <el-col :span="10">
             <div class="test-params">
               <h3>请求参数</h3>
-              <el-form label-width="100px">
-                <el-form-item v-for="(param, index) in testParams" :key="index" :label="param.columnName">
-                  <el-input v-model="param.value" :placeholder="`请输入${param.columnName}`" />
+              <el-form label-width="120px">
+                <el-form-item
+                  v-for="(param, index) in testParams"
+                  :key="index"
+                  :label="param.columnName"
+                  :required="param.required"
+                >
+                  <el-tooltip :content="param.description" placement="right" :disabled="!param.description">
+                    <el-input
+                      v-if="param.columnType === 'string'"
+                      v-model="param.value"
+                      :placeholder="`请输入${param.columnName}`"
+                    />
+                    <el-input-number
+                      v-else-if="param.columnType === 'number' || param.columnType === 'integer'"
+                      v-model="param.value"
+                      :placeholder="`请输入${param.columnName}`"
+                    />
+                    <el-switch v-else-if="param.columnType === 'boolean'" v-model="param.value" />
+                    <el-date-picker
+                      v-else-if="param.columnType === 'date'"
+                      v-model="param.value"
+                      type="date"
+                      placeholder="选择日期"
+                    />
+                    <el-input v-else v-model="param.value" :placeholder="`请输入${param.columnName}`" />
+                  </el-tooltip>
                 </el-form-item>
                 <el-form-item>
                   <el-button type="primary" @click="submitTest">执行测试</el-button>
+                  <el-button @click="loadLastTest" v-if="testHistory.length > 0">加载上次测试</el-button>
                 </el-form-item>
               </el-form>
             </div>
@@ -117,13 +132,46 @@
               <h3>测试结果</h3>
               <div v-if="testResult">
                 <div class="result-info">
-                  <p>耗时：{{ testResult.costTime }} ms</p>
-                  <p>状态：{{ testResult.code === 0 ? '成功' : '失败' }}</p>
+                  <el-descriptions :column="1" border>
+                    <el-descriptions-item label="请求时间">{{
+                      parseTime(testResult.requestTime)
+                    }}</el-descriptions-item>
+                    <el-descriptions-item label="响应时间">{{ testResult.costTime }} ms</el-descriptions-item>
+                    <el-descriptions-item label="状态码">
+                      <el-tag :type="testResult.code === 0 ? 'success' : 'danger'">
+                        {{ testResult.code === 0 ? '成功' : '失败' }}
+                      </el-tag>
+                    </el-descriptions-item>
+                  </el-descriptions>
                 </div>
                 <el-divider />
-                <div class="result-data">
-                  <pre>{{ JSON.stringify(testResult.data, null, 2) }}</pre>
-                </div>
+                <el-tabs v-model="activeTab">
+                  <el-tab-pane label="响应数据" name="data">
+                    <div class="result-data">
+                      <monaco-editor
+                        v-model="testResult.data"
+                        :options="{
+                          readOnly: true,
+                          minimap: { enabled: false },
+                          scrollBeyondLastLine: false,
+                          automaticLayout: true,
+                          wordWrap: 'on',
+                        }"
+                        language="sql"
+                        height="300px"
+                      />
+                    </div>
+                  </el-tab-pane>
+                  <el-tab-pane label="响应头" name="headers" v-if="testResult.headers">
+                    <div class="result-headers">
+                      <el-descriptions :column="1" border>
+                        <el-descriptions-item v-for="(value, key) in testResult.headers" :key="key" :label="key">
+                          {{ value }}
+                        </el-descriptions-item>
+                      </el-descriptions>
+                    </div>
+                  </el-tab-pane>
+                </el-tabs>
               </div>
               <div v-else class="no-result">
                 <el-empty description="暂无测试结果" />
@@ -138,8 +186,9 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
+import { parseTime } from '@/utils/dateUtil';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { listApiInfo, deleteApiInfo, testApiInfoOnline, updateApiStatus } from '@/api/oneapi/apiInfoApi';
+import { listApiInfo, deleteApiInfo, testApiInfoOnline, updateApiStatus, getApiInfo } from '@/api/oneapi/apiInfoApi';
 import { getDatasourceList } from '@/api/metadata/datasourceApi';
 import { useRouter } from 'vue-router';
 const router = useRouter();
@@ -165,7 +214,7 @@ const queryParams = reactive({
   apiName: undefined,
   apiUrl: undefined,
   datasourceId: undefined,
-  status: undefined
+  status: undefined,
 });
 
 // 数据源选项
@@ -175,12 +224,22 @@ const datasourceOptions = ref([]);
 const testOpen = ref(false);
 const testParams = ref([]);
 const testResult = ref(null);
+const activeTab = ref('data');
+const testHistory = ref([]);
+
+/** 加载上次测试参数 */
+function loadLastTest() {
+  if (testHistory.value.length > 0) {
+    const lastTest = testHistory.value[testHistory.value.length - 1];
+    testParams.value = JSON.parse(JSON.stringify(lastTest.params));
+  }
+}
 const currentTestApi = ref(null);
 
 /** 查询API列表 */
 function getList() {
   loading.value = true;
-  listApiInfo(queryParams).then(response => {
+  listApiInfo(queryParams).then((response) => {
     apiList.value = response.rows;
     total.value = response.total;
     loading.value = false;
@@ -204,7 +263,7 @@ function resetQuery() {
 
 /** 多选框选中数据 */
 function handleSelectionChange(selection) {
-  ids.value = selection.map(item => item.apiId);
+  ids.value = selection.map((item) => item.apiId);
   single.value = selection.length !== 1;
   multiple.value = !selection.length;
 }
@@ -233,76 +292,115 @@ function handleDelete(row) {
   ElMessageBox.confirm('是否确认删除所选API?', '警告', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
-    type: 'warning'
-  }).then(function() {
-    return deleteApiInfo(apiIds);
-  }).then(() => {
-    getList();
-    ElMessage.success('删除成功');
-  }).catch(() => {});
+    type: 'warning',
+  })
+    .then(function () {
+      return deleteApiInfo(apiIds);
+    })
+    .then(() => {
+      getList();
+      ElMessage.success('删除成功');
+    })
+    .catch(() => {});
 }
 
 /** 测试按钮操作 */
 function handleTest(row) {
   currentTestApi.value = row;
-  // 这里应该根据API的配置生成测试参数
-  // 简化处理，实际应该解析API的请求参数配置
-  testParams.value = [
-    { columnName: '参数1', columnType: 'string', value: '' },
-    { columnName: '参数2', columnType: 'number', value: '' }
-  ];
-  testResult.value = null;
-  testOpen.value = true;
+  // 根据API配置生成测试参数
+  getApiInfo(row.apiId).then((response) => {
+    const config = JSON.parse(response.apiConfig);
+    testParams.value = config.apiParams.requestParams.map((param) => ({
+      columnName: param.columnName,
+      columnType: param.columnType,
+      value: param.defaultValue || '',
+      required: param.required,
+      description: param.description || '',
+    }));
+    testResult.value = null;
+    testOpen.value = true;
+  });
 }
 
 /** 提交测试 */
 function submitTest() {
   if (!currentTestApi.value) return;
 
+  // 验证必填参数
+  const missingParams = testParams.value.filter((param) => param.required && !param.value);
+  if (missingParams.length > 0) {
+    ElMessage.warning(`请填写必填参数: ${missingParams.map((p) => p.columnName).join(', ')}`);
+    return;
+  }
+
   // 构建测试参数
   const testData = {
     ...currentTestApi.value,
-    params: {}
+    params: {},
   };
 
   // 将测试参数添加到请求中
-  testParams.value.forEach(param => {
-    testData.params[param.columnName] = param.value;
+  testParams.value.forEach((param) => {
+    if (param.value !== '') {
+      testData.params[param.columnName] = param.value;
+    }
   });
 
-  // 调用测试API
-  testApiInfoOnline(testData).then(response => {
-    testResult.value = response.data;
-  }).catch(() => {
-    testResult.value = { code: -1, data: '测试失败', costTime: 0 };
+  // 保存当前测试参数到历史记录
+  testHistory.value.push({
+    timestamp: new Date().getTime(),
+    params: JSON.parse(JSON.stringify(testParams.value)),
   });
+  // 只保留最近的5条记录
+  if (testHistory.value.length > 5) {
+    testHistory.value.shift();
+  }
+
+  // 调用测试API
+  testApiInfoOnline(testData)
+    .then((response) => {
+      testResult.value = {
+        ...response.data,
+        requestTime: new Date().getTime(),
+        headers: response.headers,
+      };
+    })
+    .catch((error) => {
+      testResult.value = {
+        code: error.code || -1,
+        data: error.message || '测试失败',
+        costTime: 0,
+        requestTime: new Date().getTime(),
+      };
+    });
 }
 
 /** 修改状态操作 */
 function handleStatusChange(row, status) {
-  ElMessageBox.confirm(
-    `确认要${status === 1 ? '上线' : '下线'}「${row.apiName}」接口吗?`,
-    '警告',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }
-  ).then(function() {
-    return updateApiStatus(row.apiId, status);
-  }).then(() => {
-    getList();
-    ElMessage.success(`${status === 1 ? '上线' : '下线'}成功`);
-  }).catch(() => {});
+  ElMessageBox.confirm(`确认要${status === 1 ? '上线' : '下线'}「${row.apiName}」接口吗?`, '警告', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  })
+    .then(function () {
+      return updateApiStatus(row.apiId, status);
+    })
+    .then(() => {
+      getList();
+      ElMessage.success(`${status === 1 ? '上线' : '下线'}成功`);
+    })
+    .catch(() => {});
 }
 
 // 获取数据源列表
 function loadDatasourceOptions() {
-  getDatasourceList('', null).then(response => {
-    datasourceOptions.value = response || [];
-  }).catch(() => {
-    ElMessage.error('获取数据源列表失败');
-  });
+  getDatasourceList('', null)
+    .then((response) => {
+      datasourceOptions.value = response || [];
+    })
+    .catch(() => {
+      ElMessage.error('获取数据源列表失败');
+    });
 }
 
 onMounted(() => {
@@ -325,7 +423,8 @@ onMounted(() => {
   overflow-y: auto;
 }
 
-.test-params, .test-result {
+.test-params,
+.test-result {
   height: 100%;
   padding: 10px;
   border: 1px solid #ebeef5;

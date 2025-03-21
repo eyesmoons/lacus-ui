@@ -538,7 +538,8 @@ function handleTest() {
       testResult.value = res;
       if (res.code === 0) {
         try {
-          form.apiResponse = res.data;
+            testResult.data = JSON.parse(res.data).list;
+          console.log('testResult', testResult.data);
         } catch (error) {
           ElMessage.error('API响应数据格式错误，请检查返回数据');
         }
