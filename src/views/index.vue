@@ -25,43 +25,6 @@ import * as THREE from 'three';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
-const version = ref('1.0.0');
-const threeContainer = ref(null);
-let scene, camera, renderer, particles;
-
-// 三维背景动画
-const initThree = () => {
-    scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    renderer = new THREE.WebGLRenderer({alpha: true});
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    threeContainer.value.appendChild(renderer.domElement);
-
-    // 创建粒子系统
-    const geometry = new THREE.BufferGeometry();
-    const vertices = [];
-    for (let i = 0; i < 5000; i++) {
-        vertices.push(
-            THREE.MathUtils.randFloatSpread(2000),
-            THREE.MathUtils.randFloatSpread(2000),
-            THREE.MathUtils.randFloatSpread(2000),
-        );
-    }
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-    const material = new THREE.PointsMaterial({color: 0x888888, size: 2});
-    particles = new THREE.Points(geometry, material);
-    scene.add(particles);
-    camera.position.z = 1000;
-
-    const animate = () => {
-        requestAnimationFrame(animate);
-        particles.rotation.x += 0.0001;
-        particles.rotation.y += 0.0001;
-        renderer.render(scene, camera);
-    };
-    animate();
-};
-
 // 页面数据
 const features = ref([
     {
@@ -102,7 +65,6 @@ onMounted(() => {
         easing: 'ease-in-out',
         once: true,
     });
-    initThree();
 });
 
 onUnmounted(() => {
