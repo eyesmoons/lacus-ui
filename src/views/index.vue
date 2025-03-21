@@ -21,7 +21,6 @@
 
 <script setup name="Index">
 import {ref, onMounted, onUnmounted} from 'vue';
-import * as THREE from 'three';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
