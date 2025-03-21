@@ -11,7 +11,7 @@ let scene, camera, renderer, particles;
 
 const initThree = () => {
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 1000);
   renderer = new THREE.WebGLRenderer({ alpha: true });
 
   const containerEl = container.value;
@@ -20,21 +20,24 @@ const initThree = () => {
 
   // 创建粒子
   const geometry = new THREE.BufferGeometry();
-  const particlesCount = 1000;
+  const particlesCount = 2000;
   const positions = new Float32Array(particlesCount * 3);
 
   for (let i = 0; i < particlesCount * 3; i += 3) {
-    positions[i] = (Math.random() - 0.5) * 10;
-    positions[i + 1] = (Math.random() - 0.5) * 10;
-    positions[i + 2] = (Math.random() - 0.5) * 10;
+    positions[i] = (Math.random() - 0.5) * 25;
+    positions[i + 1] = (Math.random() - 0.5) * 25;
+    positions[i + 2] = (Math.random() - 0.5) * 25;
   }
 
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
   const material = new THREE.PointsMaterial({
     color: '#409eff',
-    size: 0.05,
+    size: 0.06,
     transparent: true,
+    opacity: 0.8,
+    sizeAttenuation: true,
+    blending: THREE.AdditiveBlending,
   });
 
   particles = new THREE.Points(geometry, material);
