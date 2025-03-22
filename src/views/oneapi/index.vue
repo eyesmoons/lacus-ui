@@ -92,65 +92,75 @@
           <el-col :span="10">
             <div class="test-params">
               <h3>请求参数</h3>
-              <el-form label-width="120px">
-                <el-form-item
-                  v-for="(param, index) in testParams"
-                  :key="index"
-                  :label="param.columnName"
-                  :required="param.required"
-                >
-                  <el-tooltip :content="param.description" placement="right" :disabled="!param.description">
-                    <el-input
-                      v-if="param.columnType === 'string'"
-                      v-model="param.value"
-                      :placeholder="`请输入${param.columnName}`"
-                    />
-                    <el-input-number
-                      v-else-if="param.columnType === 'number' || param.columnType === 'integer'"
-                      v-model="param.value"
-                      :placeholder="`请输入${param.columnName}`"
-                    />
-                    <el-switch v-else-if="param.columnType === 'boolean'" v-model="param.value" />
-                    <el-date-picker
-                      v-else-if="param.columnType === 'date'"
-                      v-model="param.value"
-                      type="date"
-                      placeholder="选择日期"
-                    />
-                    <el-input v-else v-model="param.value" :placeholder="`请输入${param.columnName}`" />
-                  </el-tooltip>
-                </el-form-item>
-                <el-form-item>
-                  <el-button type="primary" @click="submitTest">执行测试</el-button>
-                </el-form-item>
-              </el-form>
+              <el-table :data="testParams" border stripe style="width: 100%">
+                <el-table-column prop="columnName" label="参数名称" width="120" />
+                <el-table-column prop="columnType" label="参数类型" width="100" />
+                <el-table-column prop="required" label="是否必填" width="80">
+                  <template #default="scope">
+                    <el-tag :type="scope.row.required ? 'danger' : 'info'">
+                      {{ scope.row.required ? '是' : '否' }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="参数值" min-width="180" fixed="right">
+                  <template #default="scope">
+                    <el-tooltip :content="scope.row.description" placement="top" :disabled="!scope.row.description">
+                      <el-input
+                        v-if="scope.row.columnType === 'string'"
+                        v-model="scope.row.value"
+                        :placeholder="`请输入${scope.row.columnName}`"
+                      />
+                      <el-input-number
+                        v-else-if="scope.row.columnType === 'number' || scope.row.columnType === 'integer'"
+                        v-model="scope.row.value"
+                        :placeholder="`请输入${scope.row.columnName}`"
+                      />
+                      <el-switch v-else-if="scope.row.columnType === 'boolean'" v-model="scope.row.value" />
+                      <el-date-picker
+                        v-else-if="scope.row.columnType === 'date'"
+                        v-model="scope.row.value"
+                        type="date"
+                        placeholder="选择日期"
+                      />
+                      <el-input v-else v-model="scope.row.value" :placeholder="`请输入${scope.row.columnName}`" />
+                    </el-tooltip>
+                  </template>
+                </el-table-column>
+              </el-table>
+              <div class="mt-3">
+                <el-button type="primary" @click="submitTest">执行测试</el-button>
+              </div>
             </div>
           </el-col>
           <el-col :span="14">
             <div class="test-result">
               <div v-if="testResult">
-                  <h3>
-                      测试结果
-                      <el-tag :type="testResult.code === 0 ? 'success' : 'danger'">
-                      {{ testResult.code === 0 ? '成功' : '失败' }}
+                <h3>
+                  测试结果
+                  <el-tag :type="testResult.code === 0 ? 'success' : 'danger'">
+                    {{ testResult.code === 0 ? '成功' : '失败' }}
                   </el-tag>
-                  </h3>
+                </h3>
                 <div class="result-info">
                   <el-descriptions :column="1" border>
-                    <el-descriptions-item label="请求时间">{{ parseTime(testResult.requestTime) }}</el-descriptions-item>
+                    <el-descriptions-item label="请求时间">{{
+                      parseTime(testResult.requestTime)
+                    }}</el-descriptions-item>
                     <el-descriptions-item label="请求耗时">{{ testResult.costTime }} ms</el-descriptions-item>
-                      <el-descriptions-item label="请求日志" :span="2">
-                          <el-scrollbar max-height="150px">
-                              <pre style="white-space: pre-wrap; word-wrap: break-word;">{{ formatLogContent(testResult.debugInfo) }}</pre>
-                          </el-scrollbar>
-                      </el-descriptions-item>
+                    <el-descriptions-item label="请求日志" :span="2">
+                      <el-scrollbar max-height="150px">
+                        <pre style="white-space: pre-wrap; word-wrap: break-word">{{
+                          formatLogContent(testResult.debugInfo)
+                        }}</pre>
+                      </el-scrollbar>
+                    </el-descriptions-item>
                   </el-descriptions>
                 </div>
                 <el-divider />
                 <el-tabs v-model="activeTab">
                   <el-tab-pane label="响应数据" name="data">
                     <div class="result-data">
-                        <monaco-editor v-model="testResult.data" language="sql" height="300px" readonly="readonly"/>
+                      <monaco-editor v-model="testResult.data" language="sql" height="300px" readonly="readonly" />
                     </div>
                   </el-tab-pane>
                   <el-tab-pane label="响应头" name="headers" v-if="testResult.headers">
@@ -182,7 +192,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { listApiInfo, deleteApiInfo, testApiInfoOnline, updateApiStatus, getApiInfo } from '@/api/oneapi/apiInfoApi';
 import { getDatasourceList } from '@/api/metadata/datasourceApi';
 import { useRouter } from 'vue-router';
-import MonacoEditor from "@/components/MonacoEditor/index.vue";
+import MonacoEditor from '@/components/MonacoEditor/index.vue';
 const router = useRouter();
 
 // 遮罩层
@@ -290,13 +300,13 @@ function handleDelete(row) {
 }
 
 function formatLogContent(logStr) {
-    if (!logStr) return '';
+  if (!logStr) return '';
 
-    let result = '';
-    logStr.split('！').forEach((line) => {
-        result += line + '\n';
-    });
-    return result;
+  let result = '';
+  logStr.split('！').forEach((line) => {
+    result += line + '\n';
+  });
+  return result;
 }
 
 /** 测试按钮操作 */
@@ -334,9 +344,9 @@ function submitTest() {
     params: [],
   };
 
-  let apiConfig = JSON.parse(testData.apiConfig)
-  apiConfig.apiParams.requestParams=testParams.value
-  testData.apiConfig=JSON.stringify(apiConfig)
+  let apiConfig = JSON.parse(testData.apiConfig);
+  apiConfig.apiParams.requestParams = testParams.value;
+  testData.apiConfig = JSON.stringify(apiConfig);
   // 保存当前测试参数到历史记录
   testHistory.value.push({
     timestamp: new Date().getTime(),
@@ -355,7 +365,7 @@ function submitTest() {
         requestTime: new Date().getTime(),
         headers: response.headers,
       };
-      console.log(testResult.value)
+      console.log(testResult.value);
     })
     .catch((error) => {
       testResult.value = {
