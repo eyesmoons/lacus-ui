@@ -86,23 +86,23 @@
     />
 
     <!-- 测试API对话框 -->
-    <el-dialog title="接口测试" v-model="testOpen" width="900px" append-to-body>
+    <el-dialog title="接口测试" v-model="testOpen" width="1000px" append-to-body>
       <div class="test-container">
         <el-row :gutter="20">
-          <el-col :span="10">
+          <el-col :span="12">
             <div class="test-params">
               <h3>请求参数</h3>
               <el-table :data="testParams" border stripe style="width: 100%">
-                <el-table-column prop="columnName" label="参数名称" width="120" />
+                <el-table-column prop="columnName" label="参数名称" width="100" />
                 <el-table-column prop="columnType" label="参数类型" width="100" />
-                <el-table-column prop="required" label="是否必填" width="80">
+                <el-table-column prop="required" label="是否必填" width="100">
                   <template #default="scope">
                     <el-tag :type="scope.row.required ? 'danger' : 'info'">
                       {{ scope.row.required ? '是' : '否' }}
                     </el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column label="参数值" min-width="180" fixed="right">
+                <el-table-column label="参数值" min-width="120" fixed="right">
                   <template #default="scope">
                     <el-tooltip :content="scope.row.description" placement="top" :disabled="!scope.row.description">
                       <el-input
@@ -132,7 +132,7 @@
               </div>
             </div>
           </el-col>
-          <el-col :span="14">
+          <el-col :span="12">
             <div class="test-result">
               <div v-if="testResult">
                 <h3>
