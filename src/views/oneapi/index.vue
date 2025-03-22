@@ -136,29 +136,19 @@
                       parseTime(testResult.requestTime)
                     }}</el-descriptions-item>
                     <el-descriptions-item label="响应时间">{{ testResult.costTime }} ms</el-descriptions-item>
-                    <el-descriptions-item label="状态码">
+                    <el-descriptions-item label="请求结果">
                       <el-tag :type="testResult.code === 0 ? 'success' : 'danger'">
                         {{ testResult.code === 0 ? '成功' : '失败' }}
                       </el-tag>
                     </el-descriptions-item>
+                      <el-descriptions-item label="日志">{{ formatLogContent(testResult.debugInfo) }}</el-descriptions-item>
                   </el-descriptions>
                 </div>
                 <el-divider />
                 <el-tabs v-model="activeTab">
                   <el-tab-pane label="响应数据" name="data">
                     <div class="result-data">
-                      <monaco-editor
-                        v-model="testResult.data"
-                        :options="{
-                          readOnly: true,
-                          minimap: { enabled: false },
-                          scrollBeyondLastLine: false,
-                          automaticLayout: true,
-                          wordWrap: 'on',
-                        }"
-                        language="sql"
-                        height="300px"
-                      />
+                        <monaco-editor v-model="testResult.data" language="sql" height="300px" readonly="readonly"/>
                     </div>
                   </el-tab-pane>
                   <el-tab-pane label="响应头" name="headers" v-if="testResult.headers">
@@ -190,6 +180,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { listApiInfo, deleteApiInfo, testApiInfoOnline, updateApiStatus, getApiInfo } from '@/api/oneapi/apiInfoApi';
 import { getDatasourceList } from '@/api/metadata/datasourceApi';
 import { useRouter } from 'vue-router';
+import MonacoEditor from "@/components/MonacoEditor/index.vue";
 const router = useRouter();
 
 // 遮罩层
@@ -296,6 +287,16 @@ function handleDelete(row) {
     .catch(() => {});
 }
 
+function formatLogContent(logStr) {
+    if (!logStr) return '';
+
+    let result = '';
+    logStr.split('！').forEach((line) => {
+        result += line + '\n';
+    });
+    return result;
+}
+
 /** 测试按钮操作 */
 function handleTest(row) {
   currentTestApi.value = row;
@@ -332,8 +333,8 @@ function submitTest() {
   };
 
   let apiConfig = JSON.parse(testData.apiConfig)
-  apiConfig.apiParams.requestParams=testParams.value;
-  testData.apiConfig=apiConfig
+  apiConfig.apiParams.requestParams=testParams.value
+  testData.apiConfig=JSON.stringify(apiConfig)
   // 保存当前测试参数到历史记录
   testHistory.value.push({
     timestamp: new Date().getTime(),
@@ -344,15 +345,15 @@ function submitTest() {
     testHistory.value.shift();
   }
 
-  console.log(testData);
   // 调用测试API
   testApiInfoOnline(testData)
     .then((response) => {
       testResult.value = {
-        ...response.data,
+        ...response,
         requestTime: new Date().getTime(),
         headers: response.headers,
       };
+      console.log(testResult.value)
     })
     .catch((error) => {
       testResult.value = {

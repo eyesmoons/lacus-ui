@@ -233,7 +233,7 @@
                     </div>
                     <div class="result-data">
                       <span class="label">响应结果：</span>
-                      <monaco-editor v-model="testResult.data" language="sql" height="300px" readonly="readonly"/>
+                      <monaco-editor v-model="testResult.data" language="sql" height="300px" readonly="readonly" />
                     </div>
                   </div>
                   <div v-else class="no-result">暂无测试结果</div>
@@ -494,6 +494,11 @@ function handleSave() {
         description: param.description,
         value: param.value,
       })),
+      returnParams: responseParams.value.map((param) => ({
+        columnName: param.columnName,
+        columnType: param.columnType,
+        columnDesc: param.description,
+      })),
     },
     apiReturn: form.apiResponse,
     preSQL: [],
@@ -538,8 +543,8 @@ function handleTest() {
       testResult.value = res;
       if (res.code === 0) {
         try {
-            form.apiResponse = res.data;
-            testResult.data = JSON.parse(res.data).list;
+          form.apiResponse = res.data;
+          testResult.data = JSON.parse(res.data).list;
         } catch (error) {
           ElMessage.error('API响应数据格式错误，请检查返回数据');
         }
