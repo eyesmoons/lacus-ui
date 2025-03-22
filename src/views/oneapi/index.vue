@@ -86,7 +86,7 @@
     />
 
     <!-- 测试API对话框 -->
-    <el-dialog title="接口测试" v-model="testOpen" width="1000px" append-to-body>
+    <el-dialog title="接口测试" v-model="testOpen" width="1100px" append-to-body>
       <div class="test-container">
         <el-row :gutter="20">
           <el-col :span="12">

@@ -37,7 +37,7 @@
               <el-tag type="info" v-else>否</el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="SQL脚本">
-                <monaco-editor v-model="apiConfig.sql" language="sql" height="300px" readonly="readonly"/>
+              <monaco-editor v-model="apiConfig.sql" language="sql" height="300px" readonly="readonly" />
             </el-descriptions-item>
           </el-descriptions>
         </el-tab-pane>
@@ -57,6 +57,20 @@
             <el-table-column label="描述" prop="description" />
           </el-table>
         </el-tab-pane>
+
+        <!-- 返回参数 -->
+        <el-tab-pane label="返回参数" name="response">
+          <el-table :data="apiConfig.returnParams" border style="width: 100%">
+            <el-table-column label="参数名称" prop="columnName" width="180" />
+            <el-table-column label="参数类型" prop="columnType" width="180" />
+            <el-table-column label="描述" prop="description" />
+          </el-table>
+
+          <el-divider content-position="left">返回结果示例</el-divider>
+          <div class="code-block">
+            <monaco-editor v-model="apiConfig.apiReturn" language="json" height="300px" readonly="readonly" />
+          </div>
+        </el-tab-pane>
       </el-tabs>
     </el-card>
   </div>
@@ -67,7 +81,7 @@ import { ref, reactive, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { getApiInfo, testApiInfoOnline } from '@/api/oneapi/apiInfoApi';
-import MonacoEditor from "@/components/MonacoEditor/index.vue";
+import MonacoEditor from '@/components/MonacoEditor/index.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -83,7 +97,8 @@ const apiInfo = ref({});
 const apiConfig = ref({
   sqlScript: '',
   isPaging: 0,
-  requestParams: []
+  requestParams: [],
+  returnParams: [],
 });
 
 // 测试结果
@@ -91,29 +106,32 @@ const testResult = ref(null);
 
 // 获取API详情
 function getDetail() {
-  getApiInfo(apiId).then(response => {
-    apiInfo.value = response;
+  getApiInfo(apiId)
+    .then((response) => {
+      apiInfo.value = response;
 
-    // 解析API配置
-    if (apiInfo.value.apiConfig) {
-      try {
-        const config = JSON.parse(apiInfo.value.apiConfig);
-        apiConfig.value = config;
-        apiConfig.value.requestParams=config.apiParams.requestParams;
-        // 为请求参数添加value字段，用于测试
-        if (apiConfig.value.requestParams) {
-          apiConfig.value.requestParams.forEach(param => {
-            param.value = '';
-          });
+      // 解析API配置
+      if (apiInfo.value.apiConfig) {
+        try {
+          const config = JSON.parse(apiInfo.value.apiConfig);
+          apiConfig.value = config;
+          apiConfig.value.requestParams = config.apiParams.requestParams;
+          apiConfig.value.returnParams = config.apiParams.returnParams || [];
+          // 为请求参数添加value字段，用于测试
+          if (apiConfig.value.requestParams) {
+            apiConfig.value.requestParams.forEach((param) => {
+              param.value = '';
+            });
+          }
+        } catch (error) {
+          console.error('解析API配置失败', error);
         }
-      } catch (error) {
-        console.error('解析API配置失败', error);
       }
-    }
-  }).catch(() => {
-    ElMessage.error('获取API详情失败');
-    router.push('/oneapi');
-  });
+    })
+    .catch(() => {
+      ElMessage.error('获取API详情失败');
+      router.push('/oneapi');
+    });
 }
 
 // 返回列表页
@@ -132,22 +150,24 @@ function submitTest() {
     sql: apiInfo.value.sql,
     preSQL: apiInfo.value.preSQL || [],
     apiParams: {
-      requestParams: apiConfig.value.requestParams.map(param => ({
+      requestParams: apiConfig.value.requestParams.map((param) => ({
         columnName: param.columnName,
         value: param.value,
         columnType: param.columnType,
-        required: param.required
+        required: param.required,
       })),
-      returnParams: apiConfig.value.returnParams || []
-    }
+      returnParams: apiConfig.value.returnParams || [],
+    },
   };
 
   // 调用测试API
-  testApiInfoOnline(testData).then(response => {
-    testResult.value = response.data;
-  }).catch(() => {
-    testResult.value = { code: -1, data: '测试失败', costTime: 0 };
-  });
+  testApiInfoOnline(testData)
+    .then((response) => {
+      testResult.value = response.data;
+    })
+    .catch(() => {
+      testResult.value = { code: -1, data: '测试失败', costTime: 0 };
+    });
 }
 
 onMounted(() => {
