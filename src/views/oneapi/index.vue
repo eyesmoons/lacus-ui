@@ -128,20 +128,22 @@
           </el-col>
           <el-col :span="14">
             <div class="test-result">
-              <h3>测试结果</h3>
               <div v-if="testResult">
+                  <h3>
+                      测试结果
+                      <el-tag :type="testResult.code === 0 ? 'success' : 'danger'">
+                      {{ testResult.code === 0 ? '成功' : '失败' }}
+                  </el-tag>
+                  </h3>
                 <div class="result-info">
                   <el-descriptions :column="1" border>
-                    <el-descriptions-item label="请求时间">{{
-                      parseTime(testResult.requestTime)
-                    }}</el-descriptions-item>
-                    <el-descriptions-item label="响应时间">{{ testResult.costTime }} ms</el-descriptions-item>
-                    <el-descriptions-item label="请求结果">
-                      <el-tag :type="testResult.code === 0 ? 'success' : 'danger'">
-                        {{ testResult.code === 0 ? '成功' : '失败' }}
-                      </el-tag>
-                    </el-descriptions-item>
-                      <el-descriptions-item label="日志">{{ formatLogContent(testResult.debugInfo) }}</el-descriptions-item>
+                    <el-descriptions-item label="请求时间">{{ parseTime(testResult.requestTime) }}</el-descriptions-item>
+                    <el-descriptions-item label="请求耗时">{{ testResult.costTime }} ms</el-descriptions-item>
+                      <el-descriptions-item label="请求日志" :span="2">
+                          <el-scrollbar max-height="150px">
+                              <pre style="white-space: pre-wrap; word-wrap: break-word;">{{ formatLogContent(testResult.debugInfo) }}</pre>
+                          </el-scrollbar>
+                      </el-descriptions-item>
                   </el-descriptions>
                 </div>
                 <el-divider />
