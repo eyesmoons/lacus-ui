@@ -111,22 +111,22 @@
                   </el-select>
                 </template>
               </el-table-column>
-              <el-table-column label="是否必填" prop="isMust" width="100">
+              <el-table-column label="是否必填" prop="required" width="100">
                 <template #default="scope">
-                  <el-select v-model="scope.row.isMust" placeholder="是否必填" style="width: 100%">
+                  <el-select v-model="scope.row.required" placeholder="是否必填" style="width: 100%">
                     <el-option :label="'是'" :value="1" />
                     <el-option :label="'否'" :value="0" />
                   </el-select>
                 </template>
               </el-table-column>
-              <el-table-column label="实例值" prop="columnDemo">
+              <el-table-column label="实例值" prop="value">
                 <template #default="scope">
-                  <el-input v-model="scope.row.columnDemo" placeholder="实例值" />
+                  <el-input v-model="scope.row.value" placeholder="实例值" />
                 </template>
               </el-table-column>
-              <el-table-column label="描述" prop="columnDesc">
+              <el-table-column label="描述" prop="description">
                 <template #default="scope">
-                  <el-input v-model="scope.row.columnDesc" placeholder="描述" />
+                  <el-input v-model="scope.row.description" placeholder="描述" />
                 </template>
               </el-table-column>
             </el-table>
@@ -161,9 +161,9 @@
                   </el-select>
                 </template>
               </el-table-column>
-              <el-table-column label="描述" prop="columnDesc">
+              <el-table-column label="描述" prop="description">
                 <template #default="scope">
-                  <el-input v-model="scope.row.columnDesc" placeholder="描述" />
+                  <el-input v-model="scope.row.description" placeholder="描述" />
                 </template>
               </el-table-column>
             </el-table>
@@ -183,19 +183,19 @@
                   <el-table :data="requestParams" border style="width: 100%">
                     <el-table-column label="参数名称" prop="columnName" width="180" />
                     <el-table-column label="参数类型" prop="columnType" width="180" />
-                    <el-table-column label="是否必填" prop="isMust" width="100">
+                    <el-table-column label="是否必填" prop="required" width="100">
                       <template #default="scope">
-                        <el-tag :type="scope.row.isMust === 1 ? 'danger' : 'info'">{{
-                          scope.row.isMust === 1 ? '是' : '否'
+                        <el-tag :type="scope.row.required === 1 ? 'danger' : 'info'">{{
+                          scope.row.required === 1 ? '是' : '否'
                         }}</el-tag>
                       </template>
                     </el-table-column>
-                    <el-table-column label="描述" prop="columnDesc" />
+                    <el-table-column label="描述" prop="description" />
                     <el-table-column label="测试值" width="100" fixed="right">
                       <template #default="scope">
                         <el-input
                           v-model="testForm[scope.row.columnName]"
-                          :placeholder="scope.row.columnDemo || '请输入测试值'"
+                          :placeholder="scope.row.value || '请输入测试值'"
                         />
                       </template>
                     </el-table-column>
@@ -426,15 +426,15 @@ function handleNext() {
             requestParams.value = reqParams.map((item) => ({
               columnName: item.columnName,
               columnType: item.columnType || 'STRING',
-              isMust: 0,
-              columnDemo: '',
-              columnDesc: '',
+              required: 0,
+              value: '',
+              description: '',
             }));
 
             responseParams.value = returnParams.map((item) => ({
               columnName: item.columnName,
               columnType: item.columnType || 'STRING',
-              columnDesc: '',
+              description: '',
             }));
 
             ElMessage.success('SQL解析成功');
@@ -453,7 +453,7 @@ function handleNext() {
     }
     // 验证所有必填参数是否已填写
     const hasEmptyRequired = requestParams.value.some((param) => {
-      return param.isMust === 1 && (!param.columnName || !param.columnType);
+      return param.required === 1 && (!param.columnName || !param.columnType);
     });
     if (hasEmptyRequired) {
       ElMessage.warning('请填写所有必填参数的信息');
@@ -490,9 +490,9 @@ function handleSave() {
       requestParams: requestParams.value.map((param) => ({
         columnName: param.columnName,
         columnType: param.columnType,
-        isMust: param.isMust,
-        columnDesc: param.columnDesc,
-        columnDemo: param.columnDemo,
+        required: param.required,
+        description: param.description,
+        value: param.value,
       })),
     },
     apiReturn: form.apiResponse,
@@ -518,14 +518,14 @@ function handleTest() {
       requestParams: requestParams.value.map((param) => ({
         columnName: param.columnName,
         columnType: param.columnType,
-        isMust: param.isMust,
-        columnDesc: param.columnDesc?.replace(/[\n\t]/g, ''),
-        columnDemo: (testForm[param.columnName] || param.columnDemo)?.replace(/[\n\t]/g, ''),
+        required: param.required,
+        description: param.description?.replace(/[\n\t]/g, ''),
+        value: (testForm[param.columnName] || param.value)?.replace(/[\n\t]/g, ''),
       })),
       returnParams: responseParams.value.map((param) => ({
         columnName: param.columnName,
         columnType: param.columnType,
-        columnDesc: param.columnDesc?.replace(/[\n\t]/g, ''),
+        description: param.description?.replace(/[\n\t]/g, ''),
       })),
     },
     preSQL: [],
@@ -538,8 +538,8 @@ function handleTest() {
       testResult.value = res;
       if (res.code === 0) {
         try {
+            form.apiResponse = res.data;
             testResult.data = JSON.parse(res.data).list;
-          console.log('testResult', testResult.data);
         } catch (error) {
           ElMessage.error('API响应数据格式错误，请检查返回数据');
         }
@@ -559,16 +559,16 @@ function handlePagingChange(value) {
       {
         columnName: 'pageNum',
         columnType: 'INT',
-        isMust: 1,
-        columnDemo: '1',
-        columnDesc: '当前页码',
+        required: 1,
+        value: '1',
+        description: '当前页码',
       },
       {
         columnName: 'pageSize',
         columnType: 'INT',
-        isMust: 1,
-        columnDemo: '10',
-        columnDesc: '每页显示条数',
+        required: 1,
+        value: '10',
+        description: '每页显示条数',
       },
     );
   } else {

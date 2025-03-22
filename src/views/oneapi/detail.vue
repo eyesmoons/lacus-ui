@@ -47,14 +47,14 @@
           <el-table :data="apiConfig.requestParams" border style="width: 100%">
             <el-table-column label="参数名称" prop="columnName" width="180" />
             <el-table-column label="参数类型" prop="columnType" width="180" />
-            <el-table-column label="是否必填" prop="isMust" width="100">
+            <el-table-column label="是否必填" prop="required" width="100">
               <template #default="scope">
                 <el-tag type="success" v-if="scope.row.isMust === 1">是</el-tag>
                 <el-tag type="info" v-else>否</el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="实例值" prop="columnDemo" />
-            <el-table-column label="描述" prop="columnDesc" />
+            <el-table-column label="实例值" prop="value" />
+            <el-table-column label="描述" prop="description" />
           </el-table>
         </el-tab-pane>
       </el-tabs>

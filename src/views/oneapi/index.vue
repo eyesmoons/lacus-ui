@@ -122,7 +122,6 @@
                 </el-form-item>
                 <el-form-item>
                   <el-button type="primary" @click="submitTest">执行测试</el-button>
-                  <el-button @click="loadLastTest" v-if="testHistory.length > 0">加载上次测试</el-button>
                 </el-form-item>
               </el-form>
             </div>
@@ -227,13 +226,6 @@ const testResult = ref(null);
 const activeTab = ref('data');
 const testHistory = ref([]);
 
-/** 加载上次测试参数 */
-function loadLastTest() {
-  if (testHistory.value.length > 0) {
-    const lastTest = testHistory.value[testHistory.value.length - 1];
-    testParams.value = JSON.parse(JSON.stringify(lastTest.params));
-  }
-}
 const currentTestApi = ref(null);
 
 /** 查询API列表 */
@@ -336,16 +328,12 @@ function submitTest() {
   // 构建测试参数
   const testData = {
     ...currentTestApi.value,
-    params: {},
+    params: [],
   };
 
-  // 将测试参数添加到请求中
-  testParams.value.forEach((param) => {
-    if (param.value !== '') {
-      testData.params[param.columnName] = param.value;
-    }
-  });
-
+  let apiConfig = JSON.parse(testData.apiConfig)
+  apiConfig.apiParams.requestParams=testParams.value;
+  testData.apiConfig=apiConfig
   // 保存当前测试参数到历史记录
   testHistory.value.push({
     timestamp: new Date().getTime(),
@@ -356,6 +344,7 @@ function submitTest() {
     testHistory.value.shift();
   }
 
+  console.log(testData);
   // 调用测试API
   testApiInfoOnline(testData)
     .then((response) => {
