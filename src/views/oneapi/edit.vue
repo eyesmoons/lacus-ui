@@ -92,8 +92,7 @@
         <!-- 步骤3：请求参数 -->
         <div v-if="activeStep === 3" class="params-container">
           <div class="params-section">
-            <h4>请求参数</h4>
-            <el-button type="primary" @click="addRequestParam" style="margin-bottom: 20px">添加参数</el-button>
+            <h4><el-divider content-position="left">请求参数</el-divider></h4>
             <el-table :data="requestParams" border style="width: 100%">
               <el-table-column label="参数名称" prop="columnName" width="180">
                 <template #default="scope">
@@ -130,17 +129,12 @@
                   <el-input v-model="scope.row.description" placeholder="描述" />
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="100" fixed="right">
-                <template #default="scope">
-                  <el-button type="danger" link @click="removeRequestParam(scope.$index)">删除</el-button>
-                </template>
-              </el-table-column>
             </el-table>
           </div>
 
           <div class="params-section">
             <div class="response-header">
-              <h4>返回参数</h4>
+              <el-divider content-position="left">返回参数
               <el-switch
                 v-model="form.isPaging"
                 active-text="结果集是否分页"
@@ -148,6 +142,7 @@
                 :inactive-value="0"
                 @change="handlePagingChange"
               />
+              </el-divider>
             </div>
             <el-table :data="responseParams" border style="width: 100%">
               <el-table-column label="参数名称" prop="columnName" width="180">
@@ -183,7 +178,7 @@
             <el-col :span="12">
               <div class="test-params-panel">
                 <div class="panel-header">
-                  <h4>请求参数</h4>
+                    <el-divider content-position="left">请求参数</el-divider>
                 </div>
                 <div class="panel-content">
                   <el-table :data="requestParams" border style="width: 100%">
@@ -242,7 +237,7 @@ import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import MonacoEditor from '@/components/MonacoEditor/index.vue';
-import { getApiInfo, parseSql } from '@/api/oneapi/apiInfoApi';
+import {getApiInfo, parseSql, testApiInfo, updateApiInfo} from '@/api/oneapi/apiInfoApi';
 import { getDatasourceList } from '@/api/metadata/datasourceApi';
 
 const route = useRoute();
@@ -307,6 +302,7 @@ const getDetail = async () => {
       requestParams.value = res.requestParams || [];
       responseParams.value = res.responseParams || [];
       form.value.sqlScript = JSON.parse(res.apiConfig).sql;
+      form.value.apiUrl=res.apiUrl.substring(6,res.apiUrl.length);
     }
   } catch (error) {
     console.error('获取API详情失败:', error);
@@ -323,22 +319,6 @@ const getDatasources = async () => {
     console.error('获取数据源列表失败:', error);
     ElMessage.error('获取数据源列表失败');
   }
-};
-
-// 添加请求参数
-const addRequestParam = () => {
-  requestParams.value.push({
-    columnName: '',
-    columnType: 'String',
-    required: 0,
-    value: '',
-    description: '',
-  });
-};
-
-// 删除请求参数
-const removeRequestParam = (index) => {
-  requestParams.value.splice(index, 1);
 };
 
 // 处理分页开关变化

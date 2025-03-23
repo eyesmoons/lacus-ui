@@ -446,11 +446,6 @@ function handleNext() {
       }
     });
   } else if (activeStep.value === 3) {
-    // 验证请求参数和响应参数是否已配置
-    if (requestParams.value.length === 0) {
-      ElMessage.warning('请配置请求参数');
-      return;
-    }
     // 验证所有必填参数是否已填写
     const hasEmptyRequired = requestParams.value.some((param) => {
       return param.required === 1 && (!param.columnName || !param.columnType);
