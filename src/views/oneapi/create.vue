@@ -502,7 +502,7 @@ function handleSave() {
   form.apiConfig = JSON.stringify(apiConfig);
   isEdit.value ? updateApiInfo(form) : addApiInfo(form);
   ElMessage.success('保存成功');
-  router.push('/oneapi');
+  router.push('/oneapi/oneapi');
 }
 
 // 测试并保存API

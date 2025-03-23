@@ -446,7 +446,7 @@ const submitForm = async () => {
     };
     await updateApiInfo(params);
     ElMessage.success('保存成功');
-    router.push('/oneapi');
+    router.push('/oneapi/oneapi');
   } catch (error) {
     console.error('保存失败:', error);
     ElMessage.error('保存失败');

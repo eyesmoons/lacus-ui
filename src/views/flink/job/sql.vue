@@ -184,16 +184,12 @@ const jobTypeOptions = [
 
 /** 提交按钮 */
 function submitForm() {
-  console.log('Submit button clicked');
   proxy.$refs.formRef.validate((valid) => {
-    console.log('Form validation result:', valid);
     if (valid) {
-      console.log('Form is valid, proceeding with submission');
       if (jobId.value) {
         jobApi
           .editStreamingSqlJob(form.value)
           .then((response) => {
-            console.log('Edit job response:', response);
             proxy.$modal.msgSuccess('修改成功');
             router.push('/flink/job');
           })
@@ -204,7 +200,6 @@ function submitForm() {
         const api = form.value.jobType === 'STREAMING_SQL' ? jobApi.addStreamingSqlJob : jobApi.addBatchSqlJob;
         api(form.value)
           .then((response) => {
-            console.log('Add job response:', response);
             proxy.$modal.msgSuccess('新增成功');
             router.push('/flink/job');
           })
