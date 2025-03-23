@@ -6,6 +6,13 @@
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import * as monaco from 'monaco-editor';
 
+// 配置Monaco编辑器的worker环境
+window.MonacoEnvironment = {
+  getWorkerUrl: function (moduleId, label) {
+    return `${window.location.origin}/monaco-editor/min/vs/base/worker/workerMain.js`;
+  },
+};
+
 const props = defineProps({
   modelValue: {
     type: String,

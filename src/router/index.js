@@ -310,7 +310,7 @@ export const constantRoutes = [
       },
       {
         path: 'edit/:apiId',
-        component: () => import('@/views/oneapi/create'),
+        component: () => import('@/views/oneapi/edit'),
         name: 'EditApi',
         meta: { title: '编辑Api', activeMenu: '/oneapi' },
         hidden: true,
