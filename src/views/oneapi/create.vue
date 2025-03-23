@@ -738,28 +738,6 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.json-viewer {
-  margin: 0;
-  padding: 12px;
-  font-family: Monaco, Menlo, Consolas, 'Courier New', monospace;
-  font-size: 13px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-all;
-}
-
-.json-viewer.success {
-  color: #303133;
-  background: #f0f9eb;
-  border: 1px solid #e1f3d8;
-}
-
-.json-viewer.error {
-  color: #303133;
-  background: #fef0f0;
-  border: 1px solid #fde2e2;
-}
-
 .no-result {
   height: 100%;
   display: flex;

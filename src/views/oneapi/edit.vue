@@ -209,12 +209,37 @@
             <el-col :span="12">
               <div class="test-result-panel">
                 <div class="panel-header">
-                  <h4>测试结果</h4>
-                  <el-button type="primary" @click="testApi" :loading="testing">执行测试</el-button>
+                  <h4>响应结果</h4>
                 </div>
-                <div class="panel-content">
-                  <monaco-editor v-model="testResult" language="json" :options="{ readOnly: true }" height="400px" />
-                </div>
+                  <div class="panel-content">
+                      <div v-if="testResult" class="test-result-content">
+                          <div class="result-info">
+                              <div class="info-item">
+                                  <span class="label">地址：</span>
+                                  <span class="value">{{ form.reqMethod }} /data/{{ form.apiUrl }}</span>
+                              </div>
+                              <div class="info-item">
+                                  <span class="label">状态：</span>
+                                  <span class="value" :class="testResult.code === 0 ? 'success' : 'error'">
+                          {{ testResult.code === 0 ? '成功' : '失败' }}
+                        </span>
+                              </div>
+                              <div class="info-item">
+                                  <span class="label">耗时：</span>
+                                  <span class="value">{{ testResult.costTime }} ms</span>
+                              </div>
+                              <div class="info-item">
+                                  <span class="label">日志：</span>
+                                  <pre class="value log-content">{{ formatLogContent(testResult.debugInfo) }}</pre>
+                              </div>
+                          </div>
+                          <div class="result-data">
+                              <span class="label">响应结果：</span>
+                              <monaco-editor v-model="testResult.data" language="sql" height="300px" readonly="readonly" />
+                          </div>
+                      </div>
+                      <div v-else class="no-result">暂无测试结果</div>
+                  </div>
               </div>
             </el-col>
           </el-row>
@@ -226,6 +251,7 @@
     <div class="fixed-bottom">
       <el-button @click="prevStep" v-if="activeStep > 1">上一步</el-button>
       <el-button type="primary" @click="nextStep" v-if="activeStep < 4">下一步</el-button>
+        <el-button type="success" @click="testApi" v-if="activeStep === 4">测试</el-button>
       <el-button type="success" @click="submitForm" v-if="activeStep === 4">保存</el-button>
       <el-button @click="goBack">返回</el-button>
     </div>
@@ -233,12 +259,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import {onMounted, ref} from 'vue';
+import {useRoute, useRouter} from 'vue-router';
+import {ElMessage} from 'element-plus';
 import MonacoEditor from '@/components/MonacoEditor/index.vue';
 import {getApiInfo, parseSql, testApiInfo, updateApiInfo} from '@/api/oneapi/apiInfoApi';
-import { getDatasourceList } from '@/api/metadata/datasourceApi';
+import {getDatasourceList} from '@/api/metadata/datasourceApi';
 
 const route = useRoute();
 const router = useRouter();
@@ -310,6 +336,17 @@ const getDetail = async () => {
   }
 };
 
+// 格式化日志内容
+function formatLogContent(logStr) {
+    if (!logStr) return '';
+
+    let result = '';
+    logStr.split('！').forEach((line) => {
+        result += line + '\n';
+    });
+    return result;
+}
+
 // 获取数据源列表
 const getDatasources = async () => {
   try {
@@ -362,14 +399,30 @@ const testApi = async () => {
   if (testing.value) return;
   testing.value = true;
   try {
-    const params = {
-      ...form.value,
-      requestParams: requestParams.value,
-      responseParams: responseParams.value,
-      testParams: testForm.value,
-    };
-    const res = await testApiInfo(params);
-    testResult.value = JSON.stringify(res, null, 2);
+      const apiConfig = {
+          apiName: form.value.apiName?.replace(/[\n\t]/g, ''),
+          queryTimeout: form.value.queryTimeout,
+          limitCount: form.value.limitCount,
+          pageFlag: form.value.isPaging,
+          sql: form.value.sqlScript?.replace(/[\n\t]/g, ''),
+          apiParams: {
+              requestParams: requestParams.value.map((param) => ({
+                  columnName: param.columnName,
+                  columnType: param.columnType,
+                  required: param.required,
+                  description: param.description?.replace(/[\n\t]/g, ''),
+                  value: (testForm.value[param.columnName] || param.value)?.replace(/[\n\t]/g, ''),
+              })),
+              returnParams: responseParams.value.map((param) => ({
+                  columnName: param.columnName,
+                  columnType: param.columnType,
+                  description: param.description?.replace(/[\n\t]/g, ''),
+              })),
+          },
+          preSQL: [],
+      };
+      form.value.apiConfig = JSON.stringify(apiConfig);
+      testResult.value = await testApiInfo(form.value);
   } catch (error) {
     console.error('测试API失败:', error);
     ElMessage.error('测试API失败');
@@ -381,6 +434,10 @@ const testApi = async () => {
 // 提交表单
 const submitForm = async () => {
   try {
+      if (!testResult.value) {
+          ElMessage.warning('请测试通过后再保存！');
+          return;
+      }
     const params = {
       ...form.value,
       requestParams: requestParams.value,
@@ -496,5 +553,57 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   gap: 10px;
+}
+.panel-content::-webkit-scrollbar-thumb {
+    background: #c0c4cc;
+    border-radius: 3px;
+}
+
+.test-result-content {
+    height: 100%;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.result-info {
+    margin-bottom: 15px;
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 4px;
+}
+
+.info-item {
+    margin-bottom: 8px;
+    display: flex;
+    align-items: flex-start;
+}
+
+.info-item:last-child {
+    margin-bottom: 0;
+}
+
+.info-item .label {
+    color: #606266;
+    width: 80px;
+    flex-shrink: 0;
+}
+
+.info-item .value {
+    color: #303133;
+    word-break: break-all;
+}
+
+.info-item .value.success {
+    color: #67c23a;
+}
+
+.info-item .value.error {
+    color: #f56c6c;
+}
+
+.result-data {
+    background: #f8f9fa;
+    border-radius: 4px;
+    overflow: hidden;
 }
 </style>
