@@ -28,22 +28,30 @@
 
     <!-- 实例列表 -->
     <el-table v-loading="loading" :data="instanceList" stripe border>
-      <el-table-column label="实例名称" align="left" prop="instanceName" :show-overflow-tooltip="true" />
+      <el-table-column label="实例名称" align="left" prop="instanceName" :show-overflow-tooltip="true" width="150"/>
       <el-table-column label="任务名称" align="left" prop="jobName" :show-overflow-tooltip="true" />
-      <el-table-column label="任务类型" align="center" prop="jobType">
+      <el-table-column label="任务类型" align="center" prop="jobType" width="120">
         <template #default="scope">
           <dict-tag :options="jobTypeOptions" :value="scope.row.jobType" />
         </template>
       </el-table-column>
-      <el-table-column label="部署模式" align="center" prop="deployMode" />
+      <el-table-column label="部署模式" align="center" prop="deployMode" width="170"/>
       <el-table-column label="实例状态" align="center" prop="status">
         <template #default="scope">
           <dict-tag :options="statusOptions" :value="scope.row.status" />
         </template>
       </el-table-column>
       <el-table-column label="应用ID" align="center" prop="applicationId" :show-overflow-tooltip="true" />
-      <el-table-column label="提交时间" align="center" prop="submitTime" width="180" />
-      <el-table-column label="完成时间" align="center" prop="finishedTime" width="180" />
+        <el-table-column label="提交时间" align="center" prop="submitTime" width="195">
+            <template #default="scope">
+                <span>{{ parseTime(scope.row.submitTime) }}</span>
+            </template>
+        </el-table-column>
+        <el-table-column label="完成时间" align="center" prop="finishedTime" width="195">
+            <template #default="scope">
+                <span>{{ parseTime(scope.row.finishedTime) }}</span>
+            </template>
+        </el-table-column>
       <el-table-column label="操作" align="center" width="150" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button type="text" icon="View" @click="handleDetail(scope.row)">详情</el-button>

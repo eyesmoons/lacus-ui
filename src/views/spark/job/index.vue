@@ -44,7 +44,7 @@
 
     <!-- 任务列表 -->
     <el-table v-loading="loading" :data="jobList" stripe border>
-      <el-table-column label="任务名称" align="left" prop="jobName" :show-overflow-tooltip="true" />
+      <el-table-column label="任务名称" align="left" prop="jobName" :show-overflow-tooltip="true" width="100"/>
       <el-table-column label="任务类型" align="center" prop="jobType">
         <template #default="scope">
           <dict-tag :options="jobTypeOptions" :value="scope.row.jobType" />
@@ -90,7 +90,7 @@
                 type="success"
                 icon="VideoPlay"
                 @click="handleStart(scope.row)"
-                v-if="scope.row.jobStatus === 'CREATED'"
+                v-if="scope.row.jobStatus !== 'RUNNING'"
               />
             </el-tooltip>
             <el-tooltip content="停止" placement="top">
