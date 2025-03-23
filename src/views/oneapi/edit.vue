@@ -242,7 +242,7 @@ import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import MonacoEditor from '@/components/MonacoEditor/index.vue';
-import {getApiInfo, parseSql} from "@/api/oneapi/apiInfoApi";
+import { getApiInfo, parseSql } from '@/api/oneapi/apiInfoApi';
 import { getDatasourceList } from '@/api/metadata/datasourceApi';
 
 const route = useRoute();
@@ -349,20 +349,31 @@ const handlePagingChange = (value) => {
 // 解析SQL获取返回参数
 const parseSqlScript = async () => {
   try {
-    const res = await parseSql({
-        datasourceId: form.value.datasourceId,
-        sqlScript: form.value.sqlScript,
+    const response = await parseSql({
+      datasourceId: form.value.datasourceId,
+      sqlScript: form.value.sqlScript,
     });
-    if (res) {
-      responseParams.value = res.map((item) => ({
-        columnName: item.columnName,
-        columnType: item.columnType,
-        description: '',
-      }));
+    if (response) {
+        const reqParams = response.requestParams;
+        const returnParams = response.returnParams;
+        requestParams.value = reqParams.map((item) => ({
+            columnName: item.columnName,
+            columnType: item.columnType || 'STRING',
+            required: 0,
+            value: '',
+            description: '',
+        }));
+
+        responseParams.value = returnParams.map((item) => ({
+            columnName: item.columnName,
+            columnType: item.columnType || 'STRING',
+            description: '',
+        }));
     }
   } catch (error) {
     console.error('解析SQL失败:', error);
-    ElMessage.error('解析SQL失败');
+    ElMessage.error(`解析SQL失败: ${error.message || '未知错误'}`);
+    throw error;
   }
 };
 
