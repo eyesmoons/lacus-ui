@@ -438,6 +438,7 @@ const submitForm = async () => {
           ElMessage.warning('请测试通过后再保存！');
           return;
       }
+    form.value.apiUrl = '/data/' + form.value.apiUrl;
     const params = {
       ...form.value,
       requestParams: requestParams.value,
