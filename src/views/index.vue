@@ -37,6 +37,11 @@ const features = ref([
         description: '支持多种数据源实时数据采集',
     },
     {
+        icon: 'Share',
+        title: '数据挖掘',
+        description: '可视化任务设计平台，支持多子任务编排',
+    },
+    {
         icon: 'Menu',
         title: '统一API',
         description: '只需配好SQL，即可快速发布API供外部调用',
