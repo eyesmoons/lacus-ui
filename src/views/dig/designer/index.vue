@@ -63,7 +63,7 @@
           <!-- Sink 组件 -->
           <div class="component-group">
             <div class="group-title">
-              <el-icon><Upload /></el-icon>
+              <el-icon><Document /></el-icon>
               <span>输出组件 (Sink)</span>
             </div>
             <div class="component-list">
@@ -74,7 +74,7 @@
                 draggable="true"
                 @dragstart="handleDragStart($event, 'SINK', sink)"
               >
-                <el-icon><Upload /></el-icon>
+                <el-icon><Document /></el-icon>
                 <span>{{ sink.pluginIdentifier.pluginName }}</span>
               </div>
             </div>
@@ -542,9 +542,9 @@ function resetCanvas() {
             display: flex;
             align-items: center;
             margin-bottom: 8px;
-            font-size: 13px;
-            font-weight: 600;
-            color: #222;
+            font-size: 16px;
+            font-weight: 800;
+            color: #3a71a8;
             .el-icon {
               margin-right: 6px;
             }
