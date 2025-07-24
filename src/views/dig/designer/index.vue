@@ -90,6 +90,14 @@
             <el-button size="small" icon="ZoomIn" @click="zoomIn">放大</el-button>
             <el-button size="small" icon="ZoomOut" @click="zoomOut">缩小</el-button>
             <el-button size="small" icon="Refresh" @click="resetCanvas">重置</el-button>
+            <el-button
+              size="small"
+              icon="Delete"
+              :disabled="!selectedTask && !selectedEdge"
+              @click="handleDelete"
+              style="margin-left: 12px"
+              >删除</el-button
+            >
           </div>
         </div>
         <div class="canvas-content" ref="canvasRef" @drop="handleDrop" @dragover="handleDragOver">
@@ -121,7 +129,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick } from 'vue';
+import { ref, reactive, onMounted, nextTick, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import {
@@ -138,6 +146,7 @@ import {
   Document,
   VideoPlay,
   Close,
+  Delete,
 } from '@element-plus/icons-vue';
 import * as connectorApi from '@/api/dig/connectorApi';
 import * as taskApi from '@/api/dig/taskApi';
@@ -161,6 +170,7 @@ const x6Container = ref(null);
 let graph = null;
 let draggedComponent = null;
 let taskIdCounter = 1;
+const selectedEdge = ref(null);
 
 const jobInfo = reactive({
   jobId: null,
@@ -268,19 +278,55 @@ function getDefaultPorts() {
     groups: {
       top: {
         position: 'top',
-        attrs: { circle: { r: 6, magnet: true, stroke: '#409EFF', fill: '#fff', strokeWidth: 2 } },
+        attrs: {
+          circle: {
+            r: 6,
+            magnet: true,
+            stroke: '#409EFF',
+            fill: '#fff',
+            strokeWidth: 2,
+            style: { visibility: 'hidden' },
+          },
+        },
       },
       right: {
         position: 'right',
-        attrs: { circle: { r: 6, magnet: true, stroke: '#409EFF', fill: '#fff', strokeWidth: 2 } },
+        attrs: {
+          circle: {
+            r: 6,
+            magnet: true,
+            stroke: '#409EFF',
+            fill: '#fff',
+            strokeWidth: 2,
+            style: { visibility: 'hidden' },
+          },
+        },
       },
       bottom: {
         position: 'bottom',
-        attrs: { circle: { r: 6, magnet: true, stroke: '#409EFF', fill: '#fff', strokeWidth: 2 } },
+        attrs: {
+          circle: {
+            r: 6,
+            magnet: true,
+            stroke: '#409EFF',
+            fill: '#fff',
+            strokeWidth: 2,
+            style: { visibility: 'hidden' },
+          },
+        },
       },
       left: {
         position: 'left',
-        attrs: { circle: { r: 6, magnet: true, stroke: '#409EFF', fill: '#fff', strokeWidth: 2 } },
+        attrs: {
+          circle: {
+            r: 6,
+            magnet: true,
+            stroke: '#409EFF',
+            fill: '#fff',
+            strokeWidth: 2,
+            style: { visibility: 'hidden' },
+          },
+        },
       },
     },
     items: [
@@ -310,24 +356,35 @@ function initGraph() {
       snap: true,
       createEdge() {
         return new Shape.Edge({
+          shape: 'edge',
           attrs: {
             line: {
               stroke: '#409EFF',
               strokeWidth: 2,
               targetMarker: {
-                name: 'classic',
-                size: 8,
+                name: 'block',
+                size: 10,
+                fill: '#409EFF',
+                stroke: '#409EFF',
               },
+              sourceMarker: null,
             },
           },
+          zIndex: 1,
+          // 不设置 tools，或只保留如 vertices/segments/boundary/button-remove
         });
       },
+      allowEdge: true,
+      allowNode: false,
+      allowMulti: false,
+      allowEdgePort: true,
     },
     selecting: {
       enabled: true,
       multiple: false,
       rubberband: false,
       showNodeSelectionBox: true,
+      showEdgeSelectionBox: true,
     },
     highlighting: {
       magnetAvailable: {
@@ -339,9 +396,30 @@ function initGraph() {
           },
         },
       },
+      edgeSelected: {
+        name: 'stroke',
+        args: {
+          attrs: {
+            stroke: '#FF4500',
+            strokeWidth: 3,
+          },
+        },
+      },
     },
     panning: true,
     mousewheel: true,
+  });
+
+  // 只有鼠标悬停节点时显示连接点
+  graph.on('node:mouseenter', ({ node }) => {
+    node.getPorts().forEach((port) => {
+      node.portProp(port.id, 'attrs/circle', { style: { visibility: 'visible' } });
+    });
+  });
+  graph.on('node:mouseleave', ({ node }) => {
+    node.getPorts().forEach((port) => {
+      node.portProp(port.id, 'attrs/circle', { style: { visibility: 'hidden' } });
+    });
   });
 
   graph.on('node:click', ({ node }) => {
@@ -350,16 +428,79 @@ function initGraph() {
       taskId: node.id,
       position: { x: node.getPosition().x, y: node.getPosition().y },
     };
+    selectedEdge.value = null;
   });
 
   graph.on('blank:click', () => {
     selectedTask.value = null;
+    selectedEdge.value = null;
+    // 重置所有连线高亮
+    graph.getEdges().forEach((e) => {
+      e.attr('line/stroke', '#409EFF');
+      e.attr('line/strokeWidth', 2);
+    });
   });
 
-  graph.on('edge:added', ({ edge }) => {
-    // 可在此同步 edges.value
+  graph.on('edge:click', ({ edge }) => {
+    selectedEdge.value = edge;
+    selectedTask.value = null;
+    // 高亮选中
+    graph.getEdges().forEach((e) => e.attr('line/stroke', '#409EFF'));
+    edge.attr('line/stroke', '#FF4500');
+    edge.attr('line/strokeWidth', 3);
+  });
+
+  graph.on('edge:unselected', ({ edge }) => {
+    edge.attr('line/stroke', '#409EFF');
+    edge.attr('line/strokeWidth', 2);
+  });
+
+  graph.on('edge:removed', ({ edge }) => {
+    // 同步 edges.value
+    const id = edge.id;
+    const source = edge.getSource();
+    const target = edge.getTarget();
+    edges.value = edges.value.filter(
+      (e) =>
+        !(
+          e.sourceTaskId === source.cell &&
+          e.sinkTaskId === target.cell &&
+          e.sourcePosition === source.port &&
+          e.sinkPosition === target.port
+        ),
+    );
+    selectedEdge.value = null;
+  });
+
+  // 键盘删除
+  document.addEventListener('keydown', handleKeyDown);
+  // 右键菜单删除
+  graph.on('edge:contextmenu', ({ edge, e }) => {
+    e.preventDefault();
+    graph.removeEdge(edge.id);
   });
 }
+
+function handleKeyDown(e) {
+  if ((e.key === 'Delete' || e.key === 'Backspace') && selectedEdge.value) {
+    graph.removeEdge(selectedEdge.value.id);
+    selectedEdge.value = null;
+  }
+}
+
+function handleDelete() {
+  if (selectedEdge.value) {
+    graph.removeEdge(selectedEdge.value.id);
+    selectedEdge.value = null;
+  } else if (selectedTask.value) {
+    graph.removeNode(selectedTask.value.taskId);
+    selectedTask.value = null;
+  }
+}
+
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', handleKeyDown);
+});
 
 function renderGraphFromData() {
   if (!graph) return;
@@ -395,6 +536,7 @@ function renderGraphFromData() {
   // 渲染边
   edges.value.forEach((edge) => {
     graph.addEdge({
+      shape: 'edge',
       source: { cell: edge.sourceTaskId, port: edge.sourcePosition },
       target: { cell: edge.sinkTaskId, port: edge.sinkPosition },
       attrs: {
@@ -402,9 +544,12 @@ function renderGraphFromData() {
           stroke: '#409EFF',
           strokeWidth: 2,
           targetMarker: {
-            name: 'classic',
-            size: 8,
+            name: 'block',
+            size: 10,
+            fill: '#409EFF',
+            stroke: '#409EFF',
           },
+          sourceMarker: null,
         },
       },
     });
@@ -550,8 +695,8 @@ function resetCanvas() {
             }
           }
           .component-list {
-              height: 155px;
-              overflow-y: auto;
+            height: 155px;
+            overflow-y: auto;
             .component-item {
               display: flex;
               align-items: center;
