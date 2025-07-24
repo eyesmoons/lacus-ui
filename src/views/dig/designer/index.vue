@@ -105,20 +105,28 @@
         </div>
       </div>
 
-      <!-- 右侧属性面板 -->
-      <div class="property-panel">
-        <div class="panel-header">
-          <h3>属性配置</h3>
-        </div>
-        <div class="panel-content">
-          <div v-if="!selectedTask" class="no-selection">
-            <el-empty description="请选择一个任务节点进行配置" />
+      <!-- 移除右侧属性面板 -->
+      <!-- <div class="property-panel"> ... </div> -->
+
+      <!-- 属性弹框 -->
+      <el-drawer
+        v-model="showPropertyDialog"
+        direction="rtl"
+        size="420px"
+        :with-header="false"
+        custom-class="property-drawer-glass"
+        @close="closePropertyDialog"
+      >
+        <div class="property-drawer-content">
+          <div class="dialog-header">
+            <h3>属性配置</h3>
+            <el-button icon="Close" circle size="small" @click="closePropertyDialog" />
           </div>
-          <div v-else>
+          <div class="dialog-body">
             <task-config-form :task="selectedTask" @update="updateTaskConfig" />
           </div>
         </div>
-      </div>
+      </el-drawer>
     </div>
 
     <!-- 配置预览对话框 -->
@@ -171,6 +179,7 @@ let graph = null;
 let draggedComponent = null;
 let taskIdCounter = 1;
 const selectedEdge = ref(null);
+const showPropertyDialog = ref(false);
 
 const jobInfo = reactive({
   jobId: null,
@@ -182,6 +191,26 @@ onMounted(async () => {
   await loadConnectors();
   await nextTick();
   initGraph();
+  // 只有在 onMounted 里绑定一次
+  graph.on('node:dblclick', ({ node }) => {
+    selectedTask.value = {
+      ...node.getData(),
+      taskId: node.id,
+      position: { x: node.getPosition().x, y: node.getPosition().y },
+    };
+    showPropertyDialog.value = true;
+  });
+  // 画布空白点击关闭弹框
+  graph.on('blank:click', () => {
+    showPropertyDialog.value = false;
+    selectedTask.value = null;
+    selectedEdge.value = null;
+    // 重置所有连线高亮
+    graph.getEdges().forEach((e) => {
+      e.attr('line/stroke', '#409EFF');
+      e.attr('line/strokeWidth', 2);
+    });
+  });
   // 如果有 jobId，加载现有作业
   const jobId = route.query.jobId;
   if (jobId) {
@@ -596,6 +625,11 @@ function zoomOut() {
 function resetCanvas() {
   if (graph) graph.zoomTo(1);
 }
+
+function closePropertyDialog() {
+  showPropertyDialog.value = false;
+  selectedTask.value = null;
+}
 </script>
 
 <style scoped lang="scss">
@@ -940,5 +974,90 @@ function resetCanvas() {
   height: 100%;
   min-height: 600px;
   background: #f7faff;
+}
+
+.property-dialog-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1000;
+  background: rgba(30, 40, 60, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s;
+}
+.property-dialog-content {
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 20px;
+  box-shadow: 0 12px 48px 0 rgba(64, 158, 255, 0.18), 0 1.5px 8px 0 rgba(64, 158, 255, 0.08);
+  padding: 0 0 28px 0;
+  min-width: 360px;
+  max-width: 420px;
+  min-height: 220px;
+  overflow: hidden;
+  animation: dialog-pop-in 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+}
+@keyframes dialog-pop-in {
+  0% {
+    opacity: 0;
+    transform: translateY(40px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 28px 0 28px;
+  h3 {
+    margin: 0;
+    font-size: 20px;
+    color: #409eff;
+    font-weight: 800;
+    letter-spacing: 1px;
+  }
+  .el-button {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    transition: background 0.2s;
+    &:hover {
+      background: #f2f6fc;
+    }
+  }
+}
+.dialog-body {
+  padding: 22px 28px 0 28px;
+}
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+.property-drawer-glass {
+  background: rgba(255, 255, 255, 0.92) !important;
+  box-shadow: 0 12px 48px 0 rgba(64, 158, 255, 0.18), 0 1.5px 8px 0 rgba(64, 158, 255, 0.08) !important;
+  border-radius: 20px 0 0 20px !important;
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  padding: 0 !important;
+}
+.property-drawer-content {
+  min-width: 360px;
+  max-width: 420px;
+  min-height: 220px;
+  padding: 0 0 28px 0;
+  overflow: hidden;
 }
 </style>
