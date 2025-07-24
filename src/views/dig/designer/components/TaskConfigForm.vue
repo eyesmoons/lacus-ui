@@ -1,121 +1,139 @@
 <template>
   <div class="task-config-form">
-    <el-form :model="formData" :rules="rules" ref="formRef" label-width="80px" size="small">
-      <!-- 基本信息 -->
-      <div class="config-section">
-        <div class="section-title">基本信息</div>
-        <el-form-item label="任务名称" prop="taskName">
-          <el-input v-model="formData.taskName" placeholder="请输入任务名称" />
-        </el-form-item>
-
-        <el-form-item label="连接器" prop="connectorName">
-          <el-input v-model="formData.connectorName" disabled />
-        </el-form-item>
-      </div>
-
-      <!-- 数据源配置 -->
-      <div class="config-section" v-if="formData.connectorType === 'SOURCE'">
-        <div class="section-title">数据源配置</div>
-        <el-form-item label="数据源" prop="datasourceId">
-          <el-select v-model="formData.datasourceId" placeholder="请选择数据源" @change="onDatasourceChange" filterable>
-            <el-option v-for="ds in datasourceList" :key="ds.id" :label="ds.name" :value="ds.id" />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="数据库" prop="database" v-if="databaseList.length > 0">
-          <el-select
-            v-model="formData.datasourceConfig.database"
-            placeholder="请选择数据库"
-            @change="onDatabaseChange"
-            filterable
-          >
-            <el-option v-for="db in databaseList" :key="db" :label="db" :value="db" />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="数据表" prop="tables" v-if="tableList.length > 0">
-          <el-select
-            v-model="formData.datasourceConfig.tables"
-            placeholder="请选择数据表"
-            multiple
-            filterable
-            @change="onTableChange"
-          >
-            <el-option v-for="table in tableList" :key="table" :label="table" :value="table" />
-          </el-select>
-        </el-form-item>
-      </div>
-
-      <!-- 字段配置 -->
-      <div class="config-section" v-if="showFieldConfig">
-        <div class="section-title">字段配置</div>
-        <div class="field-config">
-          <el-table :data="fieldList" size="small" max-height="200">
-            <el-table-column prop="name" label="字段名" width="100" />
-            <el-table-column prop="type" label="类型" width="80" />
-            <el-table-column prop="comment" label="注释" show-overflow-tooltip />
-            <el-table-column label="主键" width="60" align="center">
-              <template #default="scope">
-                <el-checkbox v-model="scope.row.primaryKey" />
-              </template>
-            </el-table-column>
-            <el-table-column label="可空" width="60" align="center">
-              <template #default="scope">
-                <el-checkbox v-model="scope.row.nullable" />
-              </template>
-            </el-table-column>
-          </el-table>
+    <el-tabs v-model="activeTab">
+      <el-tab-pane label="属性配置" name="props">
+        <el-form :model="formData" :rules="rules" ref="formRef" label-width="80px" size="small">
+          <!-- 基本信息 -->
+          <div class="config-section">
+            <div class="section-title">基本信息</div>
+            <el-form-item label="任务名称" prop="taskName">
+              <el-input v-model="formData.taskName" placeholder="请输入任务名称" />
+            </el-form-item>
+            <el-form-item label="连接器" prop="connectorName">
+              <el-input v-model="formData.connectorName" disabled />
+            </el-form-item>
+          </div>
+          <!-- 数据源配置 -->
+          <div class="config-section" v-if="formData.connectorType === 'SOURCE'">
+            <div class="section-title">数据源配置</div>
+            <el-form-item label="数据源" prop="datasourceId">
+              <el-select
+                v-model="formData.datasourceId"
+                placeholder="请选择数据源"
+                @change="onDatasourceChange"
+                filterable
+              >
+                <el-option
+                  v-for="ds in datasourceList"
+                  :key="ds.datasourceId"
+                  :label="ds.datasourceName"
+                  :value="ds.datasourceId"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="数据库" prop="database" v-if="databaseList.length > 0">
+              <el-select
+                v-model="formData.datasourceConfig.database"
+                placeholder="请选择数据库"
+                @change="onDatabaseChange"
+                filterable
+              >
+                <el-option v-for="db in databaseList" :key="db" :label="db" :value="db" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="数据表" prop="tables" v-if="tableList.length > 0">
+              <el-select
+                v-model="formData.datasourceConfig.tables"
+                placeholder="请选择数据表"
+                multiple
+                filterable
+                @change="onTableChange"
+              >
+                <el-option v-for="table in tableList" :key="table" :label="table" :value="table" />
+              </el-select>
+            </el-form-item>
+          </div>
+          <!-- 字段配置 -->
+          <div class="config-section" v-if="showFieldConfig">
+            <div class="section-title">字段配置</div>
+            <div class="field-config">
+              <el-table :data="fieldList" size="small" max-height="200">
+                <el-table-column prop="name" label="字段名" width="100" />
+                <el-table-column prop="type" label="类型" width="80" />
+                <el-table-column prop="comment" label="注释" show-overflow-tooltip />
+                <el-table-column label="主键" width="60" align="center">
+                  <template #default="scope">
+                    <el-checkbox v-model="scope.row.primaryKey" />
+                  </template>
+                </el-table-column>
+                <el-table-column label="可空" width="60" align="center">
+                  <template #default="scope">
+                    <el-checkbox v-model="scope.row.nullable" />
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </div>
+          <!-- 动态表单配置 -->
+          <div class="config-section" v-if="dynamicFormConfig && dynamicFormConfig.length > 0">
+            <div class="section-title">连接器配置</div>
+            <dynamic-form :config="dynamicFormConfig" v-model="formData.taskConfig" @change="onConfigChange" />
+          </div>
+          <!-- Transform 配置 -->
+          <div class="config-section" v-if="formData.connectorType === 'TRANSFORM'">
+            <div class="section-title">转换配置</div>
+            <el-form-item label="转换规则">
+              <monaco-editor v-model="transformConfig" language="sql" :height="200" @change="onTransformConfigChange" />
+            </el-form-item>
+          </div>
+          <!-- Sink 配置 -->
+          <div class="config-section" v-if="formData.connectorType === 'SINK'">
+            <div class="section-title">输出配置</div>
+            <el-form-item label="目标数据源" prop="sinkDatasourceId">
+              <el-select
+                v-model="formData.sinkDatasourceId"
+                placeholder="请选择目标数据源"
+                @change="onSinkDatasourceChange"
+                filterable
+              >
+                <el-option
+                  v-for="ds in sinkDatasourceList"
+                  :key="ds.datasourceId"
+                  :label="ds.datasourceName"
+                  :value="ds.datasourceId"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="目标表" prop="sinkTable">
+              <el-input v-model="formData.sinkTable" placeholder="请输入目标表名" />
+            </el-form-item>
+            <el-form-item label="写入模式" prop="writeMode">
+              <el-select v-model="formData.writeMode" placeholder="请选择写入模式">
+                <el-option label="追加" value="append" />
+                <el-option label="覆盖" value="overwrite" />
+                <el-option label="更新插入" value="upsert" />
+              </el-select>
+            </el-form-item>
+          </div>
+          <!-- 操作按钮 -->
+          <div class="form-actions">
+            <el-button type="primary" @click="saveConfig" :loading="saving"> 保存配置 </el-button>
+            <el-button @click="resetConfig">重置</el-button>
+            <el-button type="success" @click="testConnection" :loading="testing"> 测试连接 </el-button>
+          </div>
+        </el-form>
+      </el-tab-pane>
+      <el-tab-pane label="输出模型" name="output">
+        <div class="output-model-section">
+          <div class="section-title">选择输出字段</div>
+          <el-checkbox-group v-model="outputFields">
+            <el-checkbox v-for="field in fieldList" :key="field.name" :label="field.name">
+              {{ field.name }}<span v-if="field.comment">（{{ field.comment }}）</span>
+            </el-checkbox>
+          </el-checkbox-group>
         </div>
-      </div>
-
-      <!-- 动态表单配置 -->
-      <div class="config-section" v-if="dynamicFormConfig">
-        <div class="section-title">连接器配置</div>
-        <dynamic-form :config="dynamicFormConfig" v-model="formData.taskConfig" @change="onConfigChange" />
-      </div>
-
-      <!-- Transform 配置 -->
-      <div class="config-section" v-if="formData.connectorType === 'TRANSFORM'">
-        <div class="section-title">转换配置</div>
-        <el-form-item label="转换规则">
-          <monaco-editor v-model="transformConfig" language="sql" :height="200" @change="onTransformConfigChange" />
-        </el-form-item>
-      </div>
-
-      <!-- Sink 配置 -->
-      <div class="config-section" v-if="formData.connectorType === 'SINK'">
-        <div class="section-title">输出配置</div>
-        <el-form-item label="目标数据源" prop="sinkDatasourceId">
-          <el-select
-            v-model="formData.sinkDatasourceId"
-            placeholder="请选择目标数据源"
-            @change="onSinkDatasourceChange"
-            filterable
-          >
-            <el-option v-for="ds in sinkDatasourceList" :key="ds.id" :label="ds.name" :value="ds.id" />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="目标表" prop="sinkTable">
-          <el-input v-model="formData.sinkTable" placeholder="请输入目标表名" />
-        </el-form-item>
-
-        <el-form-item label="写入模式" prop="writeMode">
-          <el-select v-model="formData.writeMode" placeholder="请选择写入模式">
-            <el-option label="追加" value="append" />
-            <el-option label="覆盖" value="overwrite" />
-            <el-option label="更新插入" value="upsert" />
-          </el-select>
-        </el-form-item>
-      </div>
-
-      <!-- 操作按钮 -->
-      <div class="form-actions">
-        <el-button type="primary" @click="saveConfig" :loading="saving"> 保存配置 </el-button>
-        <el-button @click="resetConfig">重置</el-button>
-        <el-button type="success" @click="testConnection" :loading="testing"> 测试连接 </el-button>
-      </div>
-    </el-form>
+      </el-tab-pane>
+    </el-tabs>
   </div>
 </template>
 
@@ -147,6 +165,8 @@ const tableList = ref([]);
 const fieldList = ref([]);
 const dynamicFormConfig = ref(null);
 const transformConfig = ref('');
+const activeTab = ref('props');
+const outputFields = ref([]); // 选中的输出字段
 
 // 表单数据
 const formData = reactive({
@@ -182,12 +202,19 @@ const loadTaskConfig = async () => {
 
   try {
     // 加载动态表单配置
-    const formConfig = await connectorApi.getConnectorForm(formData.connectorType, formData.connectorName);
-    dynamicFormConfig.value = formConfig;
+    const formConfigResp = await connectorApi.getConnectorForm(formData.connectorType, formData.connectorName);
+    let formConfig = formConfigResp?.data || formConfigResp;
+    if (typeof formConfig === 'string') {
+      try {
+        formConfig = JSON.parse(formConfig);
+      } catch (e) {
+        formConfig = {};
+      }
+    }
+    dynamicFormConfig.value = formConfig.forms || formConfig.fields || (Array.isArray(formConfig) ? formConfig : []);
 
     // 加载数据源列表
     if (formData.connectorType === 'SOURCE' || formData.connectorType === 'SINK') {
-      // 新接口调用
       const { data } = await getDatasourceList();
       if (formData.connectorType === 'SOURCE') {
         datasourceList.value = data || [];
@@ -369,5 +396,9 @@ onMounted(() => {
       margin-bottom: 8px;
     }
   }
+}
+
+.output-model-section {
+  padding: 24px 28px 0 28px;
 }
 </style>

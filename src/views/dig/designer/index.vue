@@ -130,8 +130,8 @@
     </div>
 
     <!-- 配置预览对话框 -->
-    <el-dialog v-model="previewVisible" title="配置预览" width="60%" top="5vh">
-      <monaco-editor v-model="configPreview" language="json" :height="400" :options="{ readOnly: true }" />
+    <el-dialog v-model="previewVisible" title="配置预览" width="80%" top="5vh">
+      <monaco-editor v-model="configPreview" language="json" height="600px" :options="{ readOnly: true }" />
     </el-dialog>
   </div>
 </template>
