@@ -338,7 +338,7 @@ export const constantRoutes = [
       },
       {
         path: 'job/designer/',
-        component: () => import('@/views/dig/job/designer/index'),
+        component: () => import('@/views/dig/designer/index'),
         name: 'DigJobDesigner',
         meta: { title: '任务设计器', activeMenu: '/dig/job' },
         hidden: true

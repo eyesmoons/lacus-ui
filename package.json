@@ -16,6 +16,8 @@
     "url": "https://github.com/eyesmoons/lacus-ui"
   },
   "dependencies": {
+    "@antv/x6": "^2.18.1",
+    "@antv/x6-vue-shape": "^2.1.2",
     "@element-plus/icons-vue": "1.1.4",
     "@vueuse/core": "^9.3.0",
     "aos": "^2.3.4",
