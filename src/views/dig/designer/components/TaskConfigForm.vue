@@ -38,7 +38,7 @@
                 @change="onDatabaseChange"
                 filterable
               >
-                <el-option v-for="db in databaseList" :key="db" :label="db" :value="db" />
+                <el-option v-for="db in databaseList" :key="db.dbId" :label="db.dbName" :value="db.dbName" />
               </el-select>
             </el-form-item>
             <el-form-item label="数据表" prop="tables" v-if="tableList.length > 0">
@@ -49,12 +49,17 @@
                 filterable
                 @change="onTableChange"
               >
-                <el-option v-for="table in tableList" :key="table" :label="table" :value="table" />
+                <el-option
+                  v-for="table in tableList"
+                  :key="table.tableId"
+                  :label="table.tableName"
+                  :value="table.tableName"
+                />
               </el-select>
             </el-form-item>
           </div>
-          <!-- 字段配置 -->
-          <div class="config-section" v-if="showFieldConfig">
+          <!-- 移除字段配置 config-section -->
+          <!-- <div class="config-section" v-if="showFieldConfig">
             <div class="section-title">字段配置</div>
             <div class="field-config">
               <el-table :data="fieldList" size="small" max-height="200">
@@ -73,11 +78,25 @@
                 </el-table-column>
               </el-table>
             </div>
-          </div>
-          <!-- 动态表单配置 -->
+          </div> -->
+          <!-- 动态表单配置，隐藏 database/table 字段 -->
           <div class="config-section" v-if="dynamicFormConfig && dynamicFormConfig.length > 0">
             <div class="section-title">连接器配置</div>
-            <dynamic-form :config="dynamicFormConfig" v-model="formData.taskConfig" @change="onConfigChange" />
+            <dynamic-form
+              :config="
+                dynamicFormConfig.filter(
+                  (f) =>
+                    !(
+                      (f.field === 'database' && formData.datasourceConfig.database) ||
+                      (f.field === 'table' &&
+                        formData.datasourceConfig.tables &&
+                        formData.datasourceConfig.tables.length > 0)
+                    ),
+                )
+              "
+              v-model="formData.taskConfig"
+              @change="onConfigChange"
+            />
           </div>
           <!-- Transform 配置 -->
           <div class="config-section" v-if="formData.connectorType === 'TRANSFORM'">
@@ -125,12 +144,60 @@
       </el-tab-pane>
       <el-tab-pane label="输出模型" name="output">
         <div class="output-model-section">
-          <div class="section-title">选择输出字段</div>
-          <el-checkbox-group v-model="outputFields">
-            <el-checkbox v-for="field in fieldList" :key="field.name" :label="field.name">
-              {{ field.name }}<span v-if="field.comment">（{{ field.comment }}）</span>
-            </el-checkbox>
-          </el-checkbox-group>
+          <div class="output-model-container">
+            <!-- 左侧表名选择 -->
+            <div class="table-select-panel">
+              <div class="section-title">表名</div>
+              <el-input
+                v-model="selectedTable"
+                placeholder="当前选中的表"
+                readonly
+                size="small"
+                style="margin-bottom: 16px"
+              />
+              <div class="table-options">
+                <div class="table-options-title">选择表：</div>
+                <ul class="table-list">
+                  <li
+                    v-for="tableName in formData.datasourceConfig.tables"
+                    :key="tableName"
+                    :class="{ active: selectedTable === tableName }"
+                    @click="onOutputTableChange(tableName)"
+                  >
+                    {{ tableName }}
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- 右侧输出表结构 -->
+            <div class="field-table-panel">
+              <div class="section-title">输出表结构</div>
+              <div v-if="!selectedTable" class="no-table-selected">请先选择左侧的表</div>
+              <div v-else-if="fieldList.length === 0" class="loading-fields">正在加载字段...</div>
+              <div v-else>
+                <el-table
+                  :data="fieldList"
+                  size="small"
+                  max-height="280"
+                  style="width: 100%"
+                  @selection-change="(val) => (outputFields = val.map((f) => f.name))"
+                >
+                  <el-table-column type="selection" width="30" />
+                  <el-table-column type="index" label="#" width="30" align="center" />
+                  <el-table-column prop="columnName" label="字段名称" min-width="100" show-overflow-tooltip />
+                  <el-table-column prop="columnType" label="字段类型" min-width="100" show-overflow-tooltip />
+                  <el-table-column prop="isNullable" label="非空" width="60" align="center"/>
+                  <el-table-column prop="comment" label="字段注释" min-width="120" show-overflow-tooltip>
+                    <template #default="scope">
+                      <span v-if="scope.row.comment">{{ scope.row.comment }}</span>
+                      <span v-else style="color: #c0c4cc">-</span>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </div>
+            </div>
+          </div>
         </div>
       </el-tab-pane>
     </el-tabs>
@@ -141,7 +208,10 @@
 import { ref, reactive, watch, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import * as connectorApi from '@/api/dig/connectorApi';
-import { getDatasourceList } from '@/api/metadata/datasourceApi';
+import { getDatasourceList as getDsList } from '@/api/metadata/datasourceApi';
+import { getDatasourceList as getDbList } from '@/api/metadata/dbApi';
+import { listTable } from '@/api/metadata/tableApi';
+import { listColumn } from '@/api/metadata/columnApi';
 import DynamicForm from './DynamicForm.vue';
 import MonacoEditor from '@/components/MonacoEditor/index.vue';
 
@@ -160,13 +230,14 @@ const saving = ref(false);
 const testing = ref(false);
 const datasourceList = ref([]);
 const sinkDatasourceList = ref([]);
-const databaseList = ref([]);
-const tableList = ref([]);
-const fieldList = ref([]);
+const databaseList = ref([]); // 数据库列表
+const tableList = ref([]); // 表列表
+const fieldList = ref([]); // 字段列表
+const selectedTable = ref(''); // 当前选中的表名
+const outputFields = ref([]); // 输出模型Tab选中的字段名
 const dynamicFormConfig = ref(null);
 const transformConfig = ref('');
 const activeTab = ref('props');
-const outputFields = ref([]); // 选中的输出字段
 
 // 表单数据
 const formData = reactive({
@@ -199,7 +270,6 @@ const showFieldConfig = computed(() => {
 // 加载任务配置
 const loadTaskConfig = async () => {
   if (!formData.connectorName) return;
-
   try {
     // 加载动态表单配置
     const formConfigResp = await connectorApi.getConnectorForm(formData.connectorType, formData.connectorName);
@@ -212,23 +282,21 @@ const loadTaskConfig = async () => {
       }
     }
     dynamicFormConfig.value = formConfig.forms || formConfig.fields || (Array.isArray(formConfig) ? formConfig : []);
-
-    // 加载数据源列表
+    // 加载数据源列表（使用datasourceApi.js的getDatasourceList）
     if (formData.connectorType === 'SOURCE' || formData.connectorType === 'SINK') {
-      const data = await getDatasourceList();
+      const res = await getDsList();
+      const data = res?.data || res || [];
       if (formData.connectorType === 'SOURCE') {
-        datasourceList.value = data || [];
+        datasourceList.value = data;
       } else {
-        sinkDatasourceList.value = data || [];
+        sinkDatasourceList.value = data;
       }
     }
-
     // 如果已有数据源配置，加载相关数据
     if (formData.datasourceId) {
       await onDatasourceChange(formData.datasourceId);
     }
   } catch (error) {
-    console.error('加载任务配置失败:', error);
     ElMessage.error('加载任务配置失败');
   }
 };
@@ -248,58 +316,73 @@ watch(
 // 数据源变化
 const onDatasourceChange = async (datasourceId) => {
   if (!datasourceId) return;
-
   try {
-    const databases = await connectorApi.getDatabaseList(datasourceId);
-    databaseList.value = databases;
-
-    // 清空下级选择
+    // 获取数据库列表
+    const res = await getDbList(datasourceId);
+    databaseList.value = Array.isArray(res) ? res : res.data || [];
     formData.datasourceConfig.database = '';
-    formData.datasourceConfig.tables = [];
     tableList.value = [];
+    formData.datasourceConfig.tables = [];
     fieldList.value = [];
+    selectedTable.value = '';
+    outputFields.value = [];
   } catch (error) {
-    console.error('加载数据库列表失败:', error);
     ElMessage.error('加载数据库列表失败');
   }
 };
-
 // 数据库变化
 const onDatabaseChange = async (database) => {
   if (!database || !formData.datasourceId) return;
-
   try {
-    const tables = await connectorApi.getTableList(formData.datasourceId, database);
-    tableList.value = tables;
-
-    // 清空下级选择
+    // 获取表列表
+    const res = await listTable({ datasourceId: formData.datasourceId, dbName: database });
+    tableList.value = Array.isArray(res) ? res : res.data || [];
     formData.datasourceConfig.tables = [];
     fieldList.value = [];
+    selectedTable.value = '';
+    outputFields.value = [];
   } catch (error) {
-    console.error('加载表列表失败:', error);
     ElMessage.error('加载表列表失败');
   }
 };
-
 // 表变化
 const onTableChange = async (tables) => {
   if (!tables || tables.length === 0) {
     fieldList.value = [];
+    selectedTable.value = '';
+    outputFields.value = [];
     return;
   }
-
+  // 只支持单表输出模型
+  selectedTable.value = tables[0];
   try {
-    // 加载第一个表的字段信息
-    const fields = await connectorApi.getTableFields(
-      formData.datasourceId,
-      formData.datasourceConfig.database,
-      tables[0],
-    );
-    fieldList.value = fields;
+    // 根据 tableName 找到对应的 tableId
+    const selectedTableObj = tableList.value.find((t) => t.tableName === selectedTable.value);
+    if (!selectedTableObj) {
+      ElMessage.error('未找到对应的表信息');
+      return;
+    }
+    // 获取字段列表，传入 tableId
+    const res = await listColumn(selectedTableObj.tableId);
+    fieldList.value = Array.isArray(res) ? res : res.data || [];
+    // 默认全选
+    outputFields.value = fieldList.value.map((f) => f.name);
   } catch (error) {
-    console.error('加载字段列表失败:', error);
     ElMessage.error('加载字段列表失败');
   }
+};
+// 输出模型Tab切换表时
+const onOutputTableChange = async (tableName) => {
+  selectedTable.value = tableName;
+  const selectedTableObj = tableList.value.find((t) => t.tableName === tableName);
+  if (!selectedTableObj) {
+    fieldList.value = [];
+    outputFields.value = [];
+    return;
+  }
+  const res = await listColumn(selectedTableObj.tableId);
+  fieldList.value = Array.isArray(res) ? res : res.data || [];
+  outputFields.value = fieldList.value.map((f) => f.name);
 };
 
 // 目标数据源变化
@@ -322,20 +405,17 @@ const saveConfig = async () => {
   try {
     await formRef.value.validate();
     saving.value = true;
-
     // 构建完整的任务配置
     const taskConfig = {
       ...formData,
-      sourceFieldsConfig: {
-        tableName: formData.datasourceConfig.tables[0] || '',
-        tableFields: fieldList.value,
+      outputModel: {
+        tableName: selectedTable.value,
+        fields: fieldList.value.filter((f) => outputFields.value.includes(f.name)),
       },
     };
-
     emit('update', taskConfig);
     ElMessage.success('配置保存成功');
   } catch (error) {
-    console.error('保存配置失败:', error);
     ElMessage.error('保存配置失败');
   } finally {
     saving.value = false;
@@ -373,10 +453,10 @@ onMounted(() => {
     margin-bottom: 20px;
 
     .section-title {
-      font-size: 14px;
+      font-size: 12px;
       font-weight: 800;
       color: #3a71a8;
-      margin-bottom: 12px;
+      margin-bottom: 5px;
       padding-bottom: 6px;
       border-bottom: 1px solid var(--el-border-color-lighter);
     }
@@ -399,6 +479,74 @@ onMounted(() => {
 }
 
 .output-model-section {
-  padding: 24px 28px 0 28px;
+  padding: 2px 4px 0 4px;
+}
+
+.output-model-container {
+  display: flex;
+  gap: 20px;
+}
+
+.table-select-panel {
+  flex: 1;
+  width: 100px;
+
+  .section-title {
+      font-size: 13px;
+      font-weight: 500;
+  }
+
+  .table-options {
+    .table-options-title {
+      font-size: 13px;
+      color: #606266;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .table-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+
+      li {
+        padding: 2px 5px;
+        font-size: 13px;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: background-color 0.2s ease;
+
+        &:hover {
+          background-color: #f5f7fa;
+        }
+
+        &.active {
+          font-weight: bold;
+          color: #409eff;
+        }
+      }
+    }
+  }
+}
+
+.field-table-panel {
+  flex: 1;
+  width: 200px;
+  .section-title {
+      font-size: 13px;
+      font-weight: 500;
+  }
+
+  .no-table-selected {
+    text-align: center;
+    color: #909399;
+    padding: 10px 0;
+  }
+
+  .loading-fields {
+    text-align: center;
+    color: #909399;
+    padding: 10px 0;
+  }
 }
 </style>

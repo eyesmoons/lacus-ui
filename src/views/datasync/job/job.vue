@@ -569,7 +569,7 @@ function columnMappingConf(index, row) {
   let [sourceDb, sourceTable] = sourceTableName.split('.');
 
   // 先获取目标表字段列表
-  columnApi.listTableByName(form.value.sinkDatasourceId, form.value.sinkDbName, row.tableName).then((response) => {
+  columnApi.listColumnByName(form.value.sinkDatasourceId, form.value.sinkDbName, row.tableName).then((response) => {
     sinkColumns.value = response.map((col) => ({
       columnId: col.columnId,
       columnName: col.columnName,
@@ -589,7 +589,7 @@ function columnMappingConf(index, row) {
 
     // 获取源表字段
     columnApi
-      .listTableByName(
+      .listColumnByName(
         form.value.sourceDatasourceId,
         sourceDb || form.value.sourceDbName,
         sourceTable || sourceTableName,

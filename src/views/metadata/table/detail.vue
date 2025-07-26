@@ -72,7 +72,7 @@ const metadata = reactive({
         tableApi.tableDetail(tableId).then((response) => {
             metadata.tableInfo = response;
         });
-        columnApi.listTable(tableId).then((response2) => {
+        columnApi.listColumn(tableId).then((response2) => {
             columnList.value = response2;
         });
     }
