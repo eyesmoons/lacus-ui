@@ -215,7 +215,7 @@ const loadTaskConfig = async () => {
 
     // 加载数据源列表
     if (formData.connectorType === 'SOURCE' || formData.connectorType === 'SINK') {
-      const { data } = await getDatasourceList();
+      const data = await getDatasourceList();
       if (formData.connectorType === 'SOURCE') {
         datasourceList.value = data || [];
       } else {
@@ -373,9 +373,9 @@ onMounted(() => {
     margin-bottom: 20px;
 
     .section-title {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--el-text-color-primary);
+      font-size: 14px;
+      font-weight: 800;
+      color: #3a71a8;
       margin-bottom: 12px;
       padding-bottom: 6px;
       border-bottom: 1px solid var(--el-border-color-lighter);

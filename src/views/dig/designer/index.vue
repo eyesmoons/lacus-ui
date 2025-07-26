@@ -112,7 +112,7 @@
       <el-drawer
         v-model="showPropertyDialog"
         direction="rtl"
-        size="420px"
+        size="450px"
         :with-header="false"
         custom-class="property-drawer-glass"
         @close="closePropertyDialog"
@@ -657,10 +657,9 @@ function closePropertyDialog() {
       align-items: center;
 
       .job-title {
-        font-size: 18px;
-        font-weight: 600;
+        font-size: 14px;
         color: #222;
-        margin-left: 16px;
+        margin-left: 10px;
         letter-spacing: 1px;
       }
     }
