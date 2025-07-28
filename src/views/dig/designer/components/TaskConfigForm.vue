@@ -154,9 +154,9 @@
                 readonly
                 size="small"
                 style="margin-bottom: 16px"
+                hidden="hidden"
               />
               <div class="table-options">
-                <div class="table-options-title">选择表：</div>
                 <ul class="table-list">
                   <li
                     v-for="tableName in formData.datasourceConfig.tables"
@@ -184,11 +184,11 @@
                   @selection-change="(val) => (outputFields = val.map((f) => f.name))"
                 >
                   <el-table-column type="selection" width="30" />
-                  <el-table-column type="index" label="#" width="30" align="center" />
+                  <el-table-column type="index" label="#" width="50" align="center" />
                   <el-table-column prop="columnName" label="字段名称" min-width="100" show-overflow-tooltip />
                   <el-table-column prop="columnType" label="字段类型" min-width="100" show-overflow-tooltip />
                   <el-table-column prop="isNullable" label="非空" width="60" align="center"/>
-                  <el-table-column prop="comment" label="字段注释" min-width="120" show-overflow-tooltip>
+                  <el-table-column prop="comment" label="注释" min-width="120" show-overflow-tooltip>
                     <template #default="scope">
                       <span v-if="scope.row.comment">{{ scope.row.comment }}</span>
                       <span v-else style="color: #c0c4cc">-</span>
@@ -488,8 +488,7 @@ onMounted(() => {
 }
 
 .table-select-panel {
-  flex: 1;
-  width: 100px;
+  width: 120px;
 
   .section-title {
       font-size: 13px;
@@ -497,6 +496,10 @@ onMounted(() => {
   }
 
   .table-options {
+      overflow-x: auto;
+      width: 100%;
+      display: inline-block;
+      line-height: 16px;
     .table-options-title {
       font-size: 13px;
       color: #606266;

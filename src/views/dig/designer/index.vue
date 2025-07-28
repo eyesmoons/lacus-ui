@@ -112,7 +112,7 @@
       <el-drawer
         v-model="showPropertyDialog"
         direction="rtl"
-        size="450px"
+        size="600px"
         :with-header="false"
         custom-class="property-drawer-glass"
         @close="closePropertyDialog"
@@ -1053,10 +1053,9 @@ function closePropertyDialog() {
   padding: 0 !important;
 }
 .property-drawer-content {
-  min-width: 360px;
-  max-width: 420px;
+  width: 100%;
   min-height: 220px;
-  padding: 0 0 28px 0;
+  padding: 0 0 8px 0;
   overflow: hidden;
 }
 </style>
