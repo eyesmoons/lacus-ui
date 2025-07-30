@@ -11,7 +11,6 @@
         <el-button icon="View" @click="previewConfig">预览配置</el-button>
         <el-button icon="Check" @click="validateConfig">验证配置</el-button>
         <el-button type="primary" icon="Document" @click="saveJob">保存</el-button>
-        <el-button type="success" icon="VideoPlay" @click="executeJob">执行</el-button>
       </div>
     </div>
 
@@ -609,9 +608,6 @@ function previewConfig() {
   };
   configPreview.value = JSON.stringify(config, null, 2);
   previewVisible.value = true;
-}
-function executeJob() {
-  ElMessage.success('作业执行成功（示例）');
 }
 function goBack() {
   router.push('/dig/job');
