@@ -82,6 +82,17 @@ export function getJobTasks(jobId) {
 }
 
 /**
+ * 获取作业的DAG信息
+ * @param {number} jobId - 作业ID
+ */
+export function getJobDag(jobId) {
+  return request({
+    url: `/st/job/task/dag/${jobId}`,
+    method: 'get',
+  });
+}
+
+/**
  * 保存作业任务配置
  * @param {Object} data - 作业任务配置
  */

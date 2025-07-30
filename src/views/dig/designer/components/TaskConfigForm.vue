@@ -195,7 +195,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update', 'close']);
+const emit = defineEmits(['update', 'close', 'updateTaskId']);
 const route = useRoute();
 
 // 响应式数据
@@ -389,7 +389,7 @@ const saveConfig = async () => {
 
     // 构建完整的任务配置数据
     const taskData = {
-      taskId: props.task.taskId || 0, // 使用现有taskId或设为0
+      taskId: props.task.taskId || '', // 直接使用原始的taskId字符串类型
       taskName: formData.taskName,
       jobId: parseInt(jobId),
       connectorType: formData.connectorType,
@@ -439,13 +439,19 @@ const saveConfig = async () => {
     if (newTaskId) {
       // 更新当前节点的taskId
       props.task.taskId = newTaskId;
-      formData.taskId = newTaskId;
 
       // 通知父组件更新节点数据并关闭弹框
       emit('update', {
         ...taskData,
         taskId: newTaskId,
       });
+
+      // 通知父组件更新相关边的ID
+      emit('updateTaskId', {
+        oldTaskId: props.task.taskId,
+        newTaskId: newTaskId,
+      });
+
       emit('close');
     }
   } catch (error) {

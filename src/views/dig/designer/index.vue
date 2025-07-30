@@ -122,7 +122,12 @@
             <el-button icon="Close" circle size="small" @click="handleTaskConfigClose" />
           </div>
           <div class="dialog-body">
-            <task-config-form :task="selectedTask" @update="handleTaskConfigUpdate" @close="handleTaskConfigClose" />
+            <task-config-form
+              :task="selectedTask"
+              @update="handleTaskConfigUpdate"
+              @close="handleTaskConfigClose"
+              @updateTaskId="handleTaskIdUpdate"
+            />
           </div>
         </div>
       </el-drawer>
@@ -190,6 +195,7 @@ onMounted(async () => {
   await loadConnectors();
   await nextTick();
   initGraph();
+
   // 只有在 onMounted 里绑定一次
   graph.on('node:dblclick', ({ node }) => {
     const taskData = {
@@ -199,6 +205,7 @@ onMounted(async () => {
     };
     openTaskConfig(taskData);
   });
+
   // 画布空白点击关闭弹框
   graph.on('blank:click', () => {
     showPropertyDialog.value = false;
@@ -210,10 +217,11 @@ onMounted(async () => {
       e.attr('line/strokeWidth', 2);
     });
   });
-  // 如果有 jobId，加载现有作业
+
+  // 如果有 jobId，先获取已保存的DAG信息
   const jobId = route.query.jobId;
   if (jobId) {
-    await loadJobData(jobId);
+    await loadJobDagData(jobId);
     renderGraphFromData();
   }
 });
@@ -242,6 +250,36 @@ const loadJobData = async (jobId) => {
     if (jobData.edges) edges.value = jobData.edges;
   } catch (error) {
     ElMessage.error('加载作业数据失败');
+  }
+};
+
+// 加载作业的DAG信息
+const loadJobDagData = async (jobId) => {
+  try {
+    const dagData = await taskApi.getJobDag(jobId);
+    // 更新作业信息
+    jobInfo.jobId = jobId;
+    // 更新任务数据
+    if (dagData.tasks && Array.isArray(dagData.tasks)) {
+      tasks.value = dagData.tasks.map((task) => ({
+        ...task,
+        taskId: task.taskId || `node_${Date.now()}_${Math.random()}`, // 直接使用taskId
+        position: task.position || { x: 100, y: 100 },
+      }));
+    }
+
+    // 更新边数据
+    if (dagData.relations && Array.isArray(dagData.relations)) {
+      edges.value = dagData.relations.map((relation) => ({
+        sourceTaskId: relation.sourceTaskId,
+        sinkTaskId: relation.sinkTaskId,
+        sourcePosition: relation.sourcePosition || 'right',
+        sinkPosition: relation.sinkPosition || 'left',
+      }));
+    }
+    console.log('加载的DAG数据:', dagData);
+  } catch (error) {
+    ElMessage.error('加载作业DAG数据失败');
   }
 };
 
@@ -291,7 +329,7 @@ function handleDrop(event) {
   node.setData(nodeData.data);
   tasks.value.push({
     ...nodeData.data,
-    taskId: nodeData.id,
+    taskId: nodeData.id, // 使用前端生成的taskId
     position: { x: nodeData.x, y: nodeData.y },
   });
   draggedComponent = null;
@@ -485,7 +523,6 @@ function initGraph() {
 
   graph.on('edge:removed', ({ edge }) => {
     // 同步 edges.value
-    const id = edge.id;
     const source = edge.getSource();
     const target = edge.getTarget();
     edges.value = edges.value.filter(
@@ -498,6 +535,20 @@ function initGraph() {
         ),
     );
     selectedEdge.value = null;
+  });
+
+  // 处理边创建事件
+  graph.on('edge:connected', ({ edge }) => {
+    const source = edge.getSource();
+    const target = edge.getTarget();
+
+    // 添加到edges.value
+    edges.value.push({
+      sourceTaskId: source.cell,
+      sinkTaskId: target.cell,
+      sourcePosition: source.port,
+      sinkPosition: target.port,
+    });
   });
 
   // 键盘删除
@@ -608,23 +659,31 @@ function saveJob() {
       return;
     }
 
+    // 验证所有连接的节点是否都已保存配置
+    const invalidEdges = edges.value.filter((edge) => !edge.sourceTaskId || !edge.sinkTaskId);
+
+    if (invalidEdges.length > 0) {
+      ElMessage.warning('请先保存所有任务节点的配置，然后再保存DAG关系');
+      return;
+    }
+
     // 组装DAG数据（节点和边的关系）
     const dagData = {
       jobId: parseInt(jobId),
-      tasks: tasks.value.map((task) => ({
-        taskId: task.taskId,
-        taskName: task.taskName,
-        connectorType: task.connectorType,
-        connectorName: task.connectorName,
-        position: task.position,
-      })),
-      edges: edges.value.map((edge) => ({
-        sourceTaskId: edge.sourceTaskId,
-        sinkTaskId: edge.sinkTaskId,
-        sourcePosition: edge.sourcePosition,
-        sinkPosition: edge.sinkPosition,
-      })),
+      relations: edges.value
+        .filter((edge) => edge.sourceTaskId && edge.sinkTaskId) // 只保存有效的边
+        .map((edge) => ({
+          sourceTaskId: edge.sourceTaskId,
+          sinkTaskId: edge.sinkTaskId,
+        })),
     };
+
+    console.log('当前所有边:', edges.value);
+    console.log(
+      '有效的边:',
+      edges.value.filter((edge) => edge.sourceTaskId && edge.sinkTaskId),
+    );
+    console.log('保存的DAG数据:', dagData);
 
     // 调用保存DAG API
     taskApi
@@ -632,6 +691,21 @@ function saveJob() {
       .then((response) => {
         ElMessage.success('作业保存成功');
         console.log('保存的DAG数据:', dagData);
+
+        // 如果API返回了边的ID信息，更新边的后端ID
+        if (response.data && response.data.relations) {
+          response.data.relations.forEach((relation, index) => {
+            const edge = edges.value.find(
+              (e) => e.sourceTaskId === relation.sourceTaskId && e.sinkTaskId === relation.sinkTaskId,
+            );
+            if (edge) {
+              // 更新边的ID（如果有的话）
+              if (relation.edgeId) {
+                edge.edgeId = relation.edgeId;
+              }
+            }
+          });
+        }
       })
       .catch((error) => {
         console.error('保存作业失败:', error);
@@ -757,6 +831,21 @@ const handleTaskConfigUpdate = (taskData) => {
 const handleTaskConfigClose = () => {
   showPropertyDialog.value = false;
   selectedTask.value = null;
+};
+
+// 处理任务ID更新
+const handleTaskIdUpdate = ({ oldTaskId, newTaskId }) => {
+  // 更新所有相关边的ID
+  edges.value.forEach((edge) => {
+    if (edge.sourceTaskId === oldTaskId) {
+      edge.sourceTaskId = newTaskId;
+    }
+    if (edge.sinkTaskId === oldTaskId) {
+      edge.sinkTaskId = newTaskId;
+    }
+  });
+
+  console.log('更新后的边数据:', edges.value);
 };
 </script>
 
