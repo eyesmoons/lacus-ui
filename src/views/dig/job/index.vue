@@ -1,17 +1,5 @@
 <template>
   <div class="job-container">
-    <div class="header-section">
-      <div class="title-area">
-        <h2>任务定义</h2>
-        <p>管理数据挖掘任务的定义和配置</p>
-      </div>
-      <div class="action-area">
-        <el-button type="primary" icon="Plus" @click="createNewJob"> 新建任务 </el-button>
-        <el-button icon="Refresh" @click="refreshJobList"> 刷新 </el-button>
-      </div>
-    </div>
-
-    <div class="content-section">
       <!-- 搜索区域 -->
       <el-form :model="queryParams" ref="queryRef" :inline="true" class="search-form">
         <el-form-item label="任务名称" prop="jobName">
@@ -39,6 +27,12 @@
         </el-form-item>
       </el-form>
 
+        <el-row :gutter="10" class="mb8">
+            <el-col :span="1.5">
+                <el-button type="primary" icon="Plus" @click="createNewJob"> 新建任务 </el-button>
+            </el-col>
+            <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
+        </el-row>
       <!-- 任务列表 -->
       <el-table v-loading="loading" :data="jobList" stripe border @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="55" align="center" />
@@ -66,22 +60,21 @@
           <template #default="scope">
             <el-button-group>
               <el-tooltip content="设计任务" placement="top">
-                <el-button type="primary" icon="Refresh" size="small" @click="designJob(scope.row)" />
+                <el-button type="primary" icon="Refresh" @click="designJob(scope.row)" />
               </el-tooltip>
               <el-tooltip content="编辑任务" placement="top">
-                <el-button type="warning" icon="Edit" size="small" @click="editJob(scope.row)" />
+                <el-button type="warning" icon="Edit" @click="editJob(scope.row)" />
               </el-tooltip>
               <el-tooltip content="发布任务" placement="top">
                 <el-button
                   type="success"
                   icon="Upload"
-                  size="small"
                   @click="publishJob(scope.row)"
                   :disabled="scope.row.status === 1"
                 />
               </el-tooltip>
               <el-tooltip content="删除任务" placement="top">
-                <el-button type="danger" icon="Delete" size="small" @click="deleteJob(scope.row)" />
+                <el-button type="danger" icon="Delete" @click="deleteJob(scope.row)" />
               </el-tooltip>
             </el-button-group>
           </template>
@@ -96,7 +89,6 @@
         v-model:limit="queryParams.pageSize"
         @pagination="getJobList"
       />
-    </div>
 
     <!-- 批量操作 -->
     <div class="batch-actions" v-if="selectedJobs.length > 0">
