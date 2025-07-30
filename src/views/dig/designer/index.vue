@@ -594,12 +594,99 @@ function updateTaskConfig(config) {
 }
 
 function saveJob() {
-  // 组装 tasks/edges 数据
-  // ... 保持原有逻辑 ...
-  ElMessage.success('保存成功（示例）');
+  try {
+    // 验证是否有任务数据
+    if (tasks.value.length === 0) {
+      ElMessage.warning('请先添加任务节点');
+      return;
+    }
+
+    // 获取当前作业ID
+    const jobId = route.query.jobId;
+    if (!jobId) {
+      ElMessage.error('作业ID不能为空');
+      return;
+    }
+
+    // 组装DAG数据（节点和边的关系）
+    const dagData = {
+      jobId: parseInt(jobId),
+      tasks: tasks.value.map((task) => ({
+        taskId: task.taskId,
+        taskName: task.taskName,
+        connectorType: task.connectorType,
+        connectorName: task.connectorName,
+        position: task.position,
+      })),
+      edges: edges.value.map((edge) => ({
+        sourceTaskId: edge.sourceTaskId,
+        sinkTaskId: edge.sinkTaskId,
+        sourcePosition: edge.sourcePosition,
+        sinkPosition: edge.sinkPosition,
+      })),
+    };
+
+    // 调用保存DAG API
+    taskApi
+      .saveDag(dagData)
+      .then((response) => {
+        ElMessage.success('作业保存成功');
+        console.log('保存的DAG数据:', dagData);
+      })
+      .catch((error) => {
+        console.error('保存作业失败:', error);
+        ElMessage.error('保存作业失败');
+      });
+  } catch (error) {
+    console.error('保存作业时发生错误:', error);
+    ElMessage.error('保存作业失败');
+  }
 }
 function validateConfig() {
-  ElMessage.success('配置验证通过（示例）');
+  try {
+    // 验证是否有任务数据
+    if (tasks.value.length === 0) {
+      ElMessage.warning('请先添加任务节点');
+      return;
+    }
+
+    // 获取当前作业ID
+    const jobId = route.query.jobId;
+    if (!jobId) {
+      ElMessage.error('作业ID不能为空');
+      return;
+    }
+
+    // 组装验证数据
+    const validateData = {
+      jobId: parseInt(jobId),
+      tasks: tasks.value.map((task) => ({
+        taskName: task.taskName,
+        connectorType: task.connectorType,
+        connectorName: task.connectorName,
+        datasourceId: task.datasourceId || 0,
+        taskConfig: task.taskConfig || '',
+        datasourceConfig: task.datasourceConfig || {},
+        outputModel: task.outputModel || null,
+      })),
+      edges: edges.value,
+    };
+
+    // 调用验证API
+    taskApi
+      .validateTaskConfig(validateData)
+      .then((response) => {
+        ElMessage.success('配置验证通过');
+        console.log('验证结果:', response);
+      })
+      .catch((error) => {
+        console.error('配置验证失败:', error);
+        ElMessage.error('配置验证失败');
+      });
+  } catch (error) {
+    console.error('验证配置时发生错误:', error);
+    ElMessage.error('配置验证失败');
+  }
 }
 function previewConfig() {
   const config = {

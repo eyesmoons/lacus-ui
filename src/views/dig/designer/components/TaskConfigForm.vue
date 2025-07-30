@@ -183,8 +183,10 @@ import { getDatasourceList as getDsList } from '@/api/metadata/datasourceApi';
 import { getDatasourceList as getDbList } from '@/api/metadata/dbApi';
 import { listTable } from '@/api/metadata/tableApi';
 import { listColumn } from '@/api/metadata/columnApi';
+import * as taskApi from '@/api/dig/taskApi';
 import DynamicForm from './DynamicForm.vue';
 import MonacoEditor from '@/components/MonacoEditor/index.vue';
+import { useRoute } from 'vue-router';
 
 const props = defineProps({
   task: {
@@ -194,6 +196,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update']);
+const route = useRoute();
 
 // 响应式数据
 const formRef = ref(null);
@@ -376,17 +379,70 @@ const saveConfig = async () => {
   try {
     await formRef.value.validate();
     saving.value = true;
-    // 构建完整的任务配置
-    const taskConfig = {
-      ...formData,
-      outputModel: {
-        tableName: selectedTable.value,
-        fields: fieldList.value.filter((f) => outputFields.value.includes(f.name)),
+
+    // 获取当前作业ID
+    const jobId = route.query.jobId;
+    if (!jobId) {
+      ElMessage.error('作业ID不能为空');
+      return;
+    }
+
+    // 构建完整的任务配置数据
+    const taskData = {
+      taskId: 0, // 新建任务时设为0
+      taskName: formData.taskName,
+      jobId: parseInt(jobId),
+      connectorType: formData.connectorType,
+      connectorName: formData.connectorName,
+      datasourceId: formData.datasourceId || 0,
+      taskConfig: formData.taskConfig || '',
+      datasourceConfig: {
+        database: formData.datasourceConfig?.database || '',
+        tables: formData.datasourceConfig?.tables || [],
       },
+      sourceFieldsConfig: null,
+      transformConfig: null,
+      sinkFieldsConfig: null,
     };
-    emit('update', taskConfig);
-    ElMessage.success('配置保存成功');
+
+    // 根据连接器类型设置不同的配置
+    if (formData.connectorType === 'SOURCE') {
+      // Source 任务配置
+      if (selectedTable.value && fieldList.value.length > 0) {
+        taskData.sourceFieldsConfig = {
+          tableName: selectedTable.value,
+          tableFields: fieldList.value.filter((f) => outputFields.value.includes(f.name)),
+        };
+      }
+    } else if (formData.connectorType === 'TRANSFORM') {
+      // Transform 任务配置
+      taskData.transformConfig = formData.transformConfig || {};
+    } else if (formData.connectorType === 'SINK') {
+      // Sink 任务配置
+      if (selectedTable.value && fieldList.value.length > 0) {
+        taskData.sinkFieldsConfig = [
+          {
+            database: formData.datasourceConfig?.database || '',
+            tableName: selectedTable.value,
+            fields: fieldList.value.filter((f) => outputFields.value.includes(f.name)),
+          },
+        ];
+      }
+    }
+
+    // 调用创建任务API
+    const response = await taskApi.createTask(taskData);
+    ElMessage.success('任务配置保存成功');
+
+    // 更新任务ID（如果是新建任务）
+    if (formData.taskId && response.taskId) {
+      formData.taskId = response.taskId;
+    }
+
+    // 通知父组件更新
+    emit('update', taskData);
   } catch (error) {
+    console.error('保存配置失败:', error);
     ElMessage.error('保存配置失败');
   } finally {
     saving.value = false;

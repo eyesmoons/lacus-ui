@@ -5,10 +5,10 @@ import request from '@/utils/request';
  * @param {number} jobId - 作业ID
  */
 export function getTaskList(jobId) {
-    return request({
-        url: `/st/job/task/list/${jobId}`,
-        method: 'get'
-    });
+  return request({
+    url: `/st/job/task/list/${jobId}`,
+    method: 'get',
+  });
 }
 
 /**
@@ -16,11 +16,11 @@ export function getTaskList(jobId) {
  * @param {Object} data - 任务数据
  */
 export function createTask(data) {
-    return request({
-        url: '/st/job/task',
-        method: 'post',
-        data
-    });
+  return request({
+    url: '/st/job/task',
+    method: 'post',
+    data,
+  });
 }
 
 /**
@@ -28,11 +28,11 @@ export function createTask(data) {
  * @param {Object} data - 任务数据
  */
 export function updateTask(data) {
-    return request({
-        url: '/st/job/task',
-        method: 'put',
-        data
-    });
+  return request({
+    url: '/st/job/task',
+    method: 'put',
+    data,
+  });
 }
 
 /**
@@ -40,10 +40,10 @@ export function updateTask(data) {
  * @param {number} taskId - 任务ID
  */
 export function deleteTask(taskId) {
-    return request({
-        url: `/st/job/task/${taskId}`,
-        method: 'delete'
-    });
+  return request({
+    url: `/st/job/task/${taskId}`,
+    method: 'delete',
+  });
 }
 
 /**
@@ -51,10 +51,10 @@ export function deleteTask(taskId) {
  * @param {number} taskId - 任务ID
  */
 export function getTaskDetail(taskId) {
-    return request({
-        url: `/st/job/task/${taskId}`,
-        method: 'get'
-    });
+  return request({
+    url: `/st/job/task/${taskId}`,
+    method: 'get',
+  });
 }
 
 /**
@@ -63,11 +63,11 @@ export function getTaskDetail(taskId) {
  * @param {Array} tasks - 任务列表
  */
 export function batchCreateTasks(jobId, tasks) {
-    return request({
-        url: `/st/job/task/batch/${jobId}`,
-        method: 'post',
-        data: tasks
-    });
+  return request({
+    url: `/st/job/task/batch/${jobId}`,
+    method: 'post',
+    data: tasks,
+  });
 }
 
 /**
@@ -75,10 +75,10 @@ export function batchCreateTasks(jobId, tasks) {
  * @param {number} jobId - 作业ID
  */
 export function getJobTasks(jobId) {
-    return request({
-        url: `/st/job/task/job/${jobId}`,
-        method: 'get'
-    });
+  return request({
+    url: `/st/job/task/job/${jobId}`,
+    method: 'get',
+  });
 }
 
 /**
@@ -86,11 +86,23 @@ export function getJobTasks(jobId) {
  * @param {Object} data - 作业任务配置
  */
 export function saveJobTaskConfig(data) {
-    return request({
-        url: '/st/job/task/config',
-        method: 'post',
-        data
-    });
+  return request({
+    url: '/st/job/task/config',
+    method: 'post',
+    data,
+  });
+}
+
+/**
+ * 保存DAG（节点关系）
+ * @param {Object} data - DAG数据，包含节点和边的关系
+ */
+export function saveDag(data) {
+  return request({
+    url: '/st/job/task/dag',
+    method: 'post',
+    data,
+  });
 }
 
 /**
@@ -98,11 +110,11 @@ export function saveJobTaskConfig(data) {
  * @param {Object} data - 任务配置
  */
 export function validateTaskConfig(data) {
-    return request({
-        url: '/st/job/task/validate',
-        method: 'post',
-        data
-    });
+  return request({
+    url: '/st/job/task/validate',
+    method: 'post',
+    data,
+  });
 }
 
 /**
@@ -110,10 +122,10 @@ export function validateTaskConfig(data) {
  * @param {number} taskId - 任务ID
  */
 export function getTaskStatus(taskId) {
-    return request({
-        url: `/st/job/task/status/${taskId}`,
-        method: 'get'
-    });
+  return request({
+    url: `/st/job/task/status/${taskId}`,
+    method: 'get',
+  });
 }
 
 /**
@@ -121,8 +133,8 @@ export function getTaskStatus(taskId) {
  * @param {number} taskId - 任务ID
  */
 export function getTaskLogs(taskId) {
-    return request({
-        url: `/st/job/task/logs/${taskId}`,
-        method: 'get'
-    });
+  return request({
+    url: `/st/job/task/logs/${taskId}`,
+    method: 'get',
+  });
 }
