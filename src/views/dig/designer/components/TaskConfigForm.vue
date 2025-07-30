@@ -278,13 +278,14 @@ const loadTaskConfig = async () => {
 // 监听任务变化
 watch(
   () => props.task,
-  (newTask) => {
-    if (newTask) {
+  (newTask, oldTask) => {
+    if (newTask && (!oldTask || newTask.taskId !== oldTask.taskId)) {
+      console.log('任务变化，重新加载配置:', newTask.taskId);
       Object.assign(formData, newTask);
       loadTaskConfig();
     }
   },
-  { immediate: true, deep: true },
+  { immediate: true, deep: false }, // 移除deep: true，避免深度监听导致无限循环
 );
 
 // 数据源变化

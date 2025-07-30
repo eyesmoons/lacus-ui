@@ -192,6 +192,10 @@ const jobInfo = reactive({
 });
 
 onMounted(async () => {
+  console.log('组件挂载开始');
+  console.log('当前路由参数:', route.query);
+  console.log('jobId:', route.query.jobId);
+
   await loadConnectors();
   await nextTick();
   initGraph();
@@ -221,8 +225,14 @@ onMounted(async () => {
   // 如果有 jobId，先获取已保存的DAG信息
   const jobId = route.query.jobId;
   if (jobId) {
+    console.log('检测到jobId，开始加载DAG数据:', jobId);
     await loadJobDagData(jobId);
+    // 添加延迟确保数据加载完成
+    await nextTick();
+    console.log('开始渲染DAG数据');
     renderGraphFromData();
+  } else {
+    console.log('没有检测到jobId，跳过DAG数据加载');
   }
 });
 
@@ -256,29 +266,81 @@ const loadJobData = async (jobId) => {
 // 加载作业的DAG信息
 const loadJobDagData = async (jobId) => {
   try {
-    const dagData = await taskApi.getJobDag(jobId);
+    console.log('开始加载DAG数据，jobId:', jobId);
+    const response = await taskApi.getJobDag(jobId);
+    console.log('API返回的完整响应:', response);
+
+    // 处理可能的响应包装
+    const dagData = response.data || response;
+    console.log('处理后的DAG数据:', dagData);
+
     // 更新作业信息
     jobInfo.jobId = jobId;
-    // 更新任务数据
-    if (dagData.tasks && Array.isArray(dagData.tasks)) {
-      tasks.value = dagData.tasks.map((task) => ({
-        ...task,
-        taskId: task.taskId || `node_${Date.now()}_${Math.random()}`, // 直接使用taskId
-        position: task.position || { x: 100, y: 100 },
-      }));
+
+    // 创建ID映射表，用于更新边的引用
+    const idMapping = {};
+
+    // 更新任务数据 - 使用plugins字段，为null的taskId生成新ID
+    if (dagData.plugins && Array.isArray(dagData.plugins)) {
+      tasks.value = dagData.plugins.map((task, index) => {
+        let newTaskId;
+        if (!task.taskId || task.taskId === 'null') {
+          // 为没有taskId的节点生成新ID
+          newTaskId = `node_${Date.now()}_${index}`;
+          // 记录ID映射关系
+          if (task.taskId) {
+            idMapping[task.taskId] = newTaskId;
+          }
+        } else {
+          newTaskId = String(task.taskId);
+        }
+
+        return {
+          ...task,
+          taskId: newTaskId,
+          position: task.position || { x: 100 + index * 200, y: 100 },
+        };
+      });
+      console.log('处理后的任务数据:', tasks.value);
+      console.log('ID映射表:', idMapping);
+    } else {
+      console.log('没有找到任务数据或数据格式不正确');
+      console.log('dagData.plugins:', dagData.plugins);
     }
 
-    // 更新边数据
-    if (dagData.relations && Array.isArray(dagData.relations)) {
-      edges.value = dagData.relations.map((relation) => ({
-        sourceTaskId: relation.sourceTaskId,
-        sinkTaskId: relation.sinkTaskId,
-        sourcePosition: relation.sourcePosition || 'right',
-        sinkPosition: relation.sinkPosition || 'left',
-      }));
+    // 更新边数据 - 使用edges字段，更新ID引用
+    if (dagData.edges && Array.isArray(dagData.edges)) {
+      edges.value = dagData.edges.map((edge) => {
+        // 更新sourceTaskId和sinkTaskId
+        let sourceTaskId = String(edge.sourceTaskId);
+        let sinkTaskId = String(edge.sinkTaskId);
+
+        // 如果ID在映射表中，使用新的ID
+        if (idMapping[sourceTaskId]) {
+          sourceTaskId = idMapping[sourceTaskId];
+        }
+        if (idMapping[sinkTaskId]) {
+          sinkTaskId = idMapping[sinkTaskId];
+        }
+
+        return {
+          sourceTaskId: sourceTaskId,
+          sinkTaskId: sinkTaskId,
+          sourcePosition: edge.sourcePosition || 'right',
+          sinkPosition: edge.sinkPosition || 'left',
+        };
+      });
+      console.log('处理后的边数据:', edges.value);
+    } else {
+      console.log('没有找到关系数据或数据格式不正确');
+      console.log('dagData.edges:', dagData.edges);
     }
-    console.log('加载的DAG数据:', dagData);
+
+    console.log('最终的任务数据:', tasks.value);
+    console.log('最终的边数据:', edges.value);
   } catch (error) {
+    console.error('加载作业DAG数据失败:', error);
+    console.error('错误详情:', error.response || error);
     ElMessage.error('加载作业DAG数据失败');
   }
 };
@@ -582,10 +644,20 @@ onBeforeUnmount(() => {
 });
 
 function renderGraphFromData() {
-  if (!graph) return;
+  if (!graph) {
+    console.log('graph未初始化，无法渲染');
+    return;
+  }
+
+  console.log('开始渲染DAG数据');
+  console.log('当前任务数据:', tasks.value);
+  console.log('当前边数据:', edges.value);
+
   graph.clearCells();
+
   // 渲染节点
   tasks.value.forEach((task) => {
+    console.log('渲染节点:', task);
     graph.addNode({
       id: task.taskId,
       x: task.position.x,
@@ -612,8 +684,10 @@ function renderGraphFromData() {
       },
     });
   });
+
   // 渲染边
   edges.value.forEach((edge) => {
+    console.log('渲染边:', edge);
     graph.addEdge({
       shape: 'edge',
       source: { cell: edge.sourceTaskId, port: edge.sourcePosition },
@@ -633,6 +707,8 @@ function renderGraphFromData() {
       },
     });
   });
+
+  console.log('DAG渲染完成');
 }
 
 function updateTaskConfig(config) {
@@ -797,8 +873,7 @@ const openTaskConfig = (task) => {
 // 加载任务配置
 const loadTaskConfig = async (taskId) => {
   try {
-    const response = await taskApi.getTaskDetail(taskId);
-    const taskData = response.data;
+    const taskData = await taskApi.getTaskDetail(taskId);
 
     // 更新选中任务的配置数据
     if (selectedTask.value) {
@@ -808,7 +883,6 @@ const loadTaskConfig = async (taskId) => {
       selectedTask.value.transformConfig = taskData.transformConfig;
     }
   } catch (error) {
-    console.error('加载任务配置失败:', error);
     ElMessage.error('加载任务配置失败');
   }
 };
