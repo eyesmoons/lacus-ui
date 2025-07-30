@@ -1,6 +1,6 @@
 <template>
   <div class="dynamic-form">
-    <el-form :model="formData" ref="formRef" label-width="180px" size="small">
+    <el-form :model="formData" ref="formRef" size="small">
       <template v-for="field in formFields" :key="field.field || field.name">
         <!-- 文本输入框 -->
         <el-form-item
