@@ -114,15 +114,15 @@
         size="800px"
         :with-header="false"
         custom-class="property-drawer-glass"
-        @close="closePropertyDialog"
+        @close="handleTaskConfigClose"
       >
         <div class="property-drawer-content">
           <div class="dialog-header">
             <h3>属性配置</h3>
-            <el-button icon="Close" circle size="small" @click="closePropertyDialog" />
+            <el-button icon="Close" circle size="small" @click="handleTaskConfigClose" />
           </div>
           <div class="dialog-body">
-            <task-config-form :task="selectedTask" @update="updateTaskConfig" />
+            <task-config-form :task="selectedTask" @update="handleTaskConfigUpdate" @close="handleTaskConfigClose" />
           </div>
         </div>
       </el-drawer>
@@ -192,12 +192,12 @@ onMounted(async () => {
   initGraph();
   // 只有在 onMounted 里绑定一次
   graph.on('node:dblclick', ({ node }) => {
-    selectedTask.value = {
+    const taskData = {
       ...node.getData(),
       taskId: node.id,
       position: { x: node.getPosition().x, y: node.getPosition().y },
     };
-    showPropertyDialog.value = true;
+    openTaskConfig(taskData);
   });
   // 画布空白点击关闭弹框
   graph.on('blank:click', () => {
@@ -709,10 +709,55 @@ function resetCanvas() {
   if (graph) graph.zoomTo(1);
 }
 
-function closePropertyDialog() {
+// 打开属性配置弹框
+const openTaskConfig = (task) => {
+  selectedTask.value = task;
+  showPropertyDialog.value = true;
+
+  // 如果任务已有taskId，则加载已有配置
+  if (task.taskId) {
+    loadTaskConfig(task.taskId);
+  }
+};
+
+// 加载任务配置
+const loadTaskConfig = async (taskId) => {
+  try {
+    const response = await taskApi.getTaskDetail(taskId);
+    const taskData = response.data;
+
+    // 更新选中任务的配置数据
+    if (selectedTask.value) {
+      selectedTask.value.taskConfig = taskData.taskConfig;
+      selectedTask.value.datasourceConfig = taskData.datasourceConfig;
+      selectedTask.value.outputModel = taskData.outputModel;
+      selectedTask.value.transformConfig = taskData.transformConfig;
+    }
+  } catch (error) {
+    console.error('加载任务配置失败:', error);
+    ElMessage.error('加载任务配置失败');
+  }
+};
+
+// 处理任务配置更新
+const handleTaskConfigUpdate = (taskData) => {
+  if (selectedTask.value) {
+    // 更新节点数据
+    Object.assign(selectedTask.value, taskData);
+
+    // 更新画布中的节点
+    const node = graph.getCellById(selectedTask.value.id);
+    if (node) {
+      node.setData(selectedTask.value);
+    }
+  }
+};
+
+// 处理关闭任务配置弹框
+const handleTaskConfigClose = () => {
   showPropertyDialog.value = false;
   selectedTask.value = null;
-}
+};
 </script>
 
 <style scoped lang="scss">

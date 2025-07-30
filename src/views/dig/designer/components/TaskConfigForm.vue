@@ -195,7 +195,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update']);
+const emit = defineEmits(['update', 'close']);
 const route = useRoute();
 
 // 响应式数据
@@ -389,7 +389,7 @@ const saveConfig = async () => {
 
     // 构建完整的任务配置数据
     const taskData = {
-      taskId: 0, // 新建任务时设为0
+      taskId: props.task.taskId || 0, // 使用现有taskId或设为0
       taskName: formData.taskName,
       jobId: parseInt(jobId),
       connectorType: formData.connectorType,
@@ -434,13 +434,20 @@ const saveConfig = async () => {
     const response = await taskApi.createTask(taskData);
     ElMessage.success('任务配置保存成功');
 
-    // 更新任务ID（如果是新建任务）
-    if (formData.taskId && response.taskId) {
-      formData.taskId = response.taskId;
-    }
+    // 更新任务ID
+    const newTaskId = response.data?.taskId || response.taskId;
+    if (newTaskId) {
+      // 更新当前节点的taskId
+      props.task.taskId = newTaskId;
+      formData.taskId = newTaskId;
 
-    // 通知父组件更新
-    emit('update', taskData);
+      // 通知父组件更新节点数据并关闭弹框
+      emit('update', {
+        ...taskData,
+        taskId: newTaskId,
+      });
+      emit('close');
+    }
   } catch (error) {
     console.error('保存配置失败:', error);
     ElMessage.error('保存配置失败');
