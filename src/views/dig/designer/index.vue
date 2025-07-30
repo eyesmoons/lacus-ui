@@ -614,7 +614,7 @@ function executeJob() {
   ElMessage.success('作业执行成功（示例）');
 }
 function goBack() {
-  router.push('/seatunnel');
+  router.push('/dig/job');
 }
 function zoomIn() {
   if (graph) graph.zoom(0.1);

@@ -64,13 +64,7 @@
             <dynamic-form
               :config="
                 dynamicFormConfig.filter(
-                  (f) =>
-                    !(
-                      (f.field === 'database' && formData.datasourceConfig.database) ||
-                      (f.field === 'table' &&
-                        formData.datasourceConfig.tables &&
-                        formData.datasourceConfig.tables.length > 0)
-                    ),
+                  (f) => !(f.field === 'database' || f.field === 'table' || f.field === 'table_list'),
                 )
               "
               v-model="formData.taskConfig"
@@ -116,7 +110,6 @@
           <!-- 操作按钮 -->
           <div class="form-actions">
             <el-button size="medium" type="primary" @click="saveConfig" :loading="saving">保存配置</el-button>
-            <el-button size="medium" @click="resetConfig">重置</el-button>
           </div>
         </el-form>
       </el-tab-pane>
@@ -157,7 +150,7 @@
                 <el-table
                   :data="fieldList"
                   size="small"
-                  max-height="280"
+                  max-height="100%"
                   style="width: 100%"
                   @selection-change="(val) => (outputFields = val.map((f) => f.name))"
                 >
@@ -410,8 +403,6 @@ const resetConfig = () => {
     delete formData[key];
   });
   // 重新初始化表单数据
-  initFormData();
-  // 重置输出模型相关数据
   selectedTable.value = '';
   fieldList.value = [];
   outputFields.value = [];
@@ -463,7 +454,7 @@ onMounted(() => {
     display: flex;
     gap: 12px;
     justify-content: center;
-    position: fixed;
+    position: sticky;
     bottom: 0;
     background: white;
     z-index: 10;
