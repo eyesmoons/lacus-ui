@@ -58,27 +58,6 @@
               </el-select>
             </el-form-item>
           </div>
-          <!-- 移除字段配置 config-section -->
-          <!-- <div class="config-section" v-if="showFieldConfig">
-            <div class="section-title">字段配置</div>
-            <div class="field-config">
-              <el-table :data="fieldList" size="small" max-height="200">
-                <el-table-column prop="name" label="字段名" width="100" />
-                <el-table-column prop="type" label="类型" width="80" />
-                <el-table-column prop="comment" label="注释" show-overflow-tooltip />
-                <el-table-column label="主键" width="60" align="center">
-                  <template #default="scope">
-                    <el-checkbox v-model="scope.row.primaryKey" />
-                  </template>
-                </el-table-column>
-                <el-table-column label="可空" width="60" align="center">
-                  <template #default="scope">
-                    <el-checkbox v-model="scope.row.nullable" />
-                  </template>
-                </el-table-column>
-              </el-table>
-            </div>
-          </div> -->
           <!-- 动态表单配置，隐藏 database/table 字段 -->
           <div class="config-section" v-if="dynamicFormConfig && dynamicFormConfig.length > 0">
             <div class="section-title">连接器配置</div>
@@ -136,9 +115,8 @@
           </div>
           <!-- 操作按钮 -->
           <div class="form-actions">
-            <el-button type="primary" @click="saveConfig" :loading="saving"> 保存配置 </el-button>
-            <el-button @click="resetConfig">重置</el-button>
-            <el-button type="success" @click="testConnection" :loading="testing"> 测试连接 </el-button>
+            <el-button size="medium" type="primary" @click="saveConfig" :loading="saving">保存配置</el-button>
+            <el-button size="medium" @click="resetConfig">重置</el-button>
           </div>
         </el-form>
       </el-tab-pane>
@@ -187,7 +165,7 @@
                   <el-table-column type="index" label="#" width="50" align="center" />
                   <el-table-column prop="columnName" label="字段名称" min-width="100" show-overflow-tooltip />
                   <el-table-column prop="columnType" label="字段类型" min-width="100" show-overflow-tooltip />
-                  <el-table-column prop="isNullable" label="非空" width="60" align="center"/>
+                  <el-table-column prop="isNullable" label="非空" width="60" align="center" />
                   <el-table-column prop="comment" label="注释" min-width="120" show-overflow-tooltip>
                     <template #default="scope">
                       <span v-if="scope.row.comment">{{ scope.row.comment }}</span>
@@ -424,7 +402,19 @@ const saveConfig = async () => {
 
 // 重置配置
 const resetConfig = () => {
-  formRef.value.resetFields();
+  if (formRef.value) {
+    formRef.value.resetFields();
+  }
+  // 重置表单数据到初始状态
+  Object.keys(formData).forEach((key) => {
+    delete formData[key];
+  });
+  // 重新初始化表单数据
+  initFormData();
+  // 重置输出模型相关数据
+  selectedTable.value = '';
+  fieldList.value = [];
+  outputFields.value = [];
 };
 
 // 测试连接
@@ -470,10 +460,17 @@ onMounted(() => {
     margin-top: 20px;
     padding-top: 16px;
     border-top: 1px solid var(--el-border-color-lighter);
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    position: fixed;
+    bottom: 0;
+    background: white;
+    z-index: 10;
+    padding-bottom: 16px;
 
     .el-button {
-      width: 100%;
-      margin-bottom: 8px;
+      min-width: 100px;
     }
   }
 }
@@ -491,15 +488,15 @@ onMounted(() => {
   width: 120px;
 
   .section-title {
-      font-size: 13px;
-      font-weight: 500;
+    font-size: 13px;
+    font-weight: 500;
   }
 
   .table-options {
-      overflow-x: auto;
-      width: 100%;
-      display: inline-block;
-      line-height: 16px;
+    overflow-x: auto;
+    width: 100%;
+    display: inline-block;
+    line-height: 16px;
     .table-options-title {
       font-size: 13px;
       color: #606266;
@@ -536,8 +533,8 @@ onMounted(() => {
   flex: 1;
   width: 200px;
   .section-title {
-      font-size: 13px;
-      font-weight: 500;
+    font-size: 13px;
+    font-weight: 500;
   }
 
   .no-table-selected {

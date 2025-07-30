@@ -112,7 +112,7 @@
       <el-drawer
         v-model="showPropertyDialog"
         direction="rtl"
-        size="600px"
+        size="800px"
         :with-header="false"
         custom-class="property-drawer-glass"
         @close="closePropertyDialog"

@@ -1,19 +1,23 @@
 <template>
   <div class="dynamic-form">
-    <el-form :model="formData" ref="formRef" label-width="100px" size="small">
-      <template v-for="field in formFields" :key="field.name">
+    <el-form :model="formData" ref="formRef" label-width="180px" size="small">
+      <template v-for="field in formFields" :key="field.field || field.name">
         <!-- 文本输入框 -->
         <el-form-item
-          v-if="field.type === 'string' || field.type === 'text'"
+          v-if="field.type === 'input' || field.type === 'string' || field.type === 'text'"
           :label="field.label"
-          :prop="field.name"
+          :prop="field.field || field.name"
           :rules="getFieldRules(field)"
         >
           <el-input
-            v-model="formData[field.name]"
+            v-model="formData[field.field || field.name]"
             :placeholder="field.placeholder || `请输入${field.label}`"
             :disabled="field.disabled"
+            :clearable="field.clearable !== false"
+            :type="field.inputType || 'text'"
             @change="handleFieldChange"
+            @blur="handleFieldChange"
+            @input="handleFieldChange"
           />
         </el-form-item>
 
@@ -21,11 +25,11 @@
         <el-form-item
           v-else-if="field.type === 'number' || field.type === 'integer'"
           :label="field.label"
-          :prop="field.name"
+          :prop="field.field || field.name"
           :rules="getFieldRules(field)"
         >
           <el-input-number
-            v-model="formData[field.name]"
+            v-model="formData[field.field || field.name]"
             :min="field.min"
             :max="field.max"
             :step="field.step || 1"
@@ -36,23 +40,33 @@
         </el-form-item>
 
         <!-- 布尔值选择 -->
-        <el-form-item v-else-if="field.type === 'boolean'" :label="field.label" :prop="field.name">
-          <el-switch v-model="formData[field.name]" :disabled="field.disabled" @change="handleFieldChange" />
+        <el-form-item
+          v-else-if="field.type === 'boolean'"
+          :label="field.label"
+          :prop="field.field || field.name"
+          :rules="getFieldRules(field)"
+        >
+          <el-switch
+            v-model="formData[field.field || field.name]"
+            :disabled="field.disabled"
+            @change="handleFieldChange"
+          />
         </el-form-item>
 
         <!-- 下拉选择 -->
         <el-form-item
           v-else-if="field.type === 'select' || field.type === 'enum'"
           :label="field.label"
-          :prop="field.name"
+          :prop="field.field || field.name"
           :rules="getFieldRules(field)"
         >
           <el-select
-            v-model="formData[field.name]"
+            v-model="formData[field.field || field.name]"
             :placeholder="field.placeholder || `请选择${field.label}`"
             :disabled="field.disabled"
             :multiple="field.multiple"
             :filterable="field.filterable"
+            :clearable="field.clearable !== false"
             @change="handleFieldChange"
             style="width: 100%"
           >
@@ -69,16 +83,18 @@
         <el-form-item
           v-else-if="field.type === 'textarea'"
           :label="field.label"
-          :prop="field.name"
+          :prop="field.field || field.name"
           :rules="getFieldRules(field)"
         >
           <el-input
-            v-model="formData[field.name]"
+            v-model="formData[field.field || field.name]"
             type="textarea"
             :rows="field.rows || 3"
             :placeholder="field.placeholder || `请输入${field.label}`"
             :disabled="field.disabled"
+            :clearable="field.clearable !== false"
             @change="handleFieldChange"
+            @blur="handleFieldChange"
           />
         </el-form-item>
 
@@ -86,11 +102,11 @@
         <el-form-item
           v-else-if="field.type === 'json'"
           :label="field.label"
-          :prop="field.name"
+          :prop="field.field || field.name"
           :rules="getFieldRules(field)"
         >
           <monaco-editor
-            v-model="formData[field.name]"
+            v-model="formData[field.field || field.name]"
             language="json"
             :height="field.height || 200"
             @change="handleFieldChange"
@@ -101,16 +117,18 @@
         <el-form-item
           v-else-if="field.type === 'password'"
           :label="field.label"
-          :prop="field.name"
+          :prop="field.field || field.name"
           :rules="getFieldRules(field)"
         >
           <el-input
-            v-model="formData[field.name]"
+            v-model="formData[field.field || field.name]"
             type="password"
             :placeholder="field.placeholder || `请输入${field.label}`"
             :disabled="field.disabled"
+            :clearable="field.clearable !== false"
             show-password
             @change="handleFieldChange"
+            @blur="handleFieldChange"
           />
         </el-form-item>
 
@@ -118,14 +136,15 @@
         <el-form-item
           v-else-if="field.type === 'date' || field.type === 'datetime'"
           :label="field.label"
-          :prop="field.name"
+          :prop="field.field || field.name"
           :rules="getFieldRules(field)"
         >
           <el-date-picker
-            v-model="formData[field.name]"
+            v-model="formData[field.field || field.name]"
             :type="field.type === 'datetime' ? 'datetime' : 'date'"
             :placeholder="field.placeholder || `请选择${field.label}`"
             :disabled="field.disabled"
+            :clearable="field.clearable !== false"
             @change="handleFieldChange"
             style="width: 100%"
           />
@@ -135,7 +154,7 @@
         <el-form-item
           v-else-if="field.type === 'file'"
           :label="field.label"
-          :prop="field.name"
+          :prop="field.field || field.name"
           :rules="getFieldRules(field)"
         >
           <el-upload
@@ -160,29 +179,49 @@
         </el-form-item>
 
         <!-- 键值对编辑器 -->
-        <el-form-item v-else-if="field.type === 'keyvalue'" :label="field.label" :prop="field.name">
-          <key-value-editor v-model="formData[field.name]" @change="handleFieldChange" />
+        <el-form-item
+          v-else-if="field.type === 'keyvalue'"
+          :label="field.label"
+          :prop="field.field || field.name"
+          :rules="getFieldRules(field)"
+        >
+          <key-value-editor v-model="formData[field.field || field.name]" @change="handleFieldChange" />
         </el-form-item>
 
         <!-- 数组编辑器 -->
-        <el-form-item v-else-if="field.type === 'array'" :label="field.label" :prop="field.name">
-          <array-editor v-model="formData[field.name]" :item-type="field.itemType" @change="handleFieldChange" />
+        <el-form-item
+          v-else-if="field.type === 'array'"
+          :label="field.label"
+          :prop="field.field || field.name"
+          :rules="getFieldRules(field)"
+        >
+          <array-editor
+            v-model="formData[field.field || field.name]"
+            :item-type="field.itemType"
+            @change="handleFieldChange"
+          />
         </el-form-item>
 
         <!-- 分组字段 -->
         <el-form-item v-else-if="field.type === 'group'" :label="field.label">
           <el-card class="group-card" shadow="never">
-            <dynamic-form :config="field.fields" v-model="formData[field.name]" @change="handleFieldChange" />
+            <dynamic-form
+              :config="field.fields"
+              v-model="formData[field.field || field.name]"
+              @change="handleFieldChange"
+            />
           </el-card>
         </el-form-item>
 
         <!-- 默认文本输入 -->
-        <el-form-item v-else :label="field.label" :prop="field.name" :rules="getFieldRules(field)">
+        <el-form-item v-else :label="field.label" :prop="field.field || field.name" :rules="getFieldRules(field)">
           <el-input
-            v-model="formData[field.name]"
+            v-model="formData[field.field || field.name]"
             :placeholder="field.placeholder || `请输入${field.label}`"
             :disabled="field.disabled"
+            :clearable="field.clearable !== false"
             @change="handleFieldChange"
+            @blur="handleFieldChange"
           />
         </el-form-item>
       </template>
@@ -217,11 +256,13 @@ const formData = reactive({});
 // 初始化表单数据
 const initFormData = () => {
   formFields.value.forEach((field) => {
-    if (!(field.name in formData)) {
-      formData[field.name] = getDefaultValue(field);
+    const fieldName = field.field || field.name;
+    if (!(fieldName in formData)) {
+      formData[fieldName] = getDefaultValue(field);
     }
   });
 };
+
 // 获取字段默认值
 const getDefaultValue = (field) => {
   if (field.defaultValue !== undefined) {
@@ -278,14 +319,47 @@ watch(
 const getFieldRules = (field) => {
   const rules = [];
 
-  if (field.required) {
-    rules.push({
-      required: true,
-      message: `${field.label}不能为空`,
-      trigger: ['blur', 'change'],
-    });
+  // 支持新的验证结构
+  if (field.validate) {
+    const validate = field.validate;
+
+    // 必填验证
+    if (validate.required) {
+      rules.push({
+        required: true,
+        message: validate.message || `${field.label}不能为空`,
+        trigger: validate.trigger || ['blur', 'change'],
+      });
+    }
+
+    // 非空验证
+    if (validate.type === 'non-empty') {
+      rules.push({
+        required: true,
+        message: validate.message || `${field.label}不能为空`,
+        trigger: validate.trigger || ['blur', 'change'],
+      });
+    }
+
+    // 自定义验证器
+    if (validate.validator) {
+      rules.push({
+        validator: validate.validator,
+        trigger: validate.trigger || ['blur', 'change'],
+      });
+    }
+  } else {
+    // 兼容旧的验证方式
+    if (field.required) {
+      rules.push({
+        required: true,
+        message: `${field.label}不能为空`,
+        trigger: ['blur', 'change'],
+      });
+    }
   }
 
+  // 正则表达式验证
   if (field.pattern) {
     rules.push({
       pattern: new RegExp(field.pattern),
@@ -294,6 +368,7 @@ const getFieldRules = (field) => {
     });
   }
 
+  // 长度验证
   if (field.min !== undefined) {
     rules.push({
       min: field.min,
