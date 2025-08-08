@@ -192,7 +192,6 @@ const jobInfo = reactive({
 });
 
 onMounted(async () => {
-  console.log('组件挂载开始');
   console.log('当前路由参数:', route.query);
   console.log('jobId:', route.query.jobId);
 
@@ -248,18 +247,6 @@ const loadConnectors = async () => {
     sinkConnectors.value = sinks;
   } catch (error) {
     ElMessage.error('加载连接器失败');
-  }
-};
-
-const loadJobData = async (jobId) => {
-  try {
-    const jobData = await taskApi.getJobTaskInfo(jobId);
-    jobInfo.jobId = jobId;
-    jobInfo.jobName = jobData.jobName || `作业_${jobId}`;
-    if (jobData.plugins) tasks.value = jobData.plugins;
-    if (jobData.edges) edges.value = jobData.edges;
-  } catch (error) {
-    ElMessage.error('加载作业数据失败');
   }
 };
 
@@ -707,17 +694,6 @@ function renderGraphFromData() {
       },
     });
   });
-
-  console.log('DAG渲染完成');
-}
-
-function updateTaskConfig(config) {
-  if (selectedTask.value) {
-    Object.assign(selectedTask.value, config);
-    // 同步到 X6 节点
-    const node = graph.getCellById(selectedTask.value.taskId);
-    if (node) node.setData(selectedTask.value);
-  }
 }
 
 function saveJob() {

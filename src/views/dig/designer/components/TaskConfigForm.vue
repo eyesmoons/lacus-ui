@@ -245,6 +245,8 @@ const showFieldConfig = computed(() => {
 const loadTaskConfig = async () => {
   if (!formData.connectorName) return;
   try {
+    console.log('开始加载任务配置:', formData.connectorName);
+
     // 加载动态表单配置
     const formConfigResp = await connectorApi.getConnectorForm(formData.connectorType, formData.connectorName);
     let formConfig = formConfigResp?.data || formConfigResp;
@@ -256,21 +258,36 @@ const loadTaskConfig = async () => {
       }
     }
     dynamicFormConfig.value = formConfig.forms || formConfig.fields || (Array.isArray(formConfig) ? formConfig : []);
+
     // 加载数据源列表（使用datasourceApi.js的getDatasourceList）
     if (formData.connectorType === 'SOURCE' || formData.connectorType === 'SINK') {
-      const res = await getDsList();
+      console.log('加载数据源列表');
+      const res = await getDsList('', ''); // 传递空字符串作为参数
       const data = res?.data || res || [];
       if (formData.connectorType === 'SOURCE') {
         datasourceList.value = data;
+        console.log('SOURCE数据源列表:', datasourceList.value);
       } else {
         sinkDatasourceList.value = data;
+        console.log('SINK数据源列表:', sinkDatasourceList.value);
       }
     }
+
     // 如果已有数据源配置，加载相关数据
     if (formData.datasourceId) {
+      console.log('已有数据源ID，加载数据库列表:', formData.datasourceId);
       await onDatasourceChange(formData.datasourceId);
+    } else {
+      console.log('没有数据源ID，清空相关数据');
+      // 清空相关数据
+      databaseList.value = [];
+      tableList.value = [];
+      fieldList.value = [];
+      selectedTable.value = '';
+      outputFields.value = [];
     }
   } catch (error) {
+    console.error('加载任务配置失败:', error);
     ElMessage.error('加载任务配置失败');
   }
 };
