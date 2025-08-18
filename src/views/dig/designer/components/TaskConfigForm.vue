@@ -152,7 +152,7 @@
                   size="small"
                   max-height="100%"
                   style="width: 100%"
-                  @selection-change="(val) => (outputFields = val.map((f) => f.name))"
+                  @selection-change="(val) => (outputFields = val.map((f) => f.columnName))"
                 >
                   <el-table-column type="selection" width="30" />
                   <el-table-column type="index" label="#" width="50" align="center" />
@@ -273,10 +273,48 @@ const loadTaskConfig = async () => {
       }
     }
 
-    // 如果已有数据源配置，加载相关数据
+    // 如果已有数据源配置，按已保存的值级联加载，不要清空
     if (formData.datasourceId) {
-      console.log('已有数据源ID，加载数据库列表:', formData.datasourceId);
-      await onDatasourceChange(formData.datasourceId);
+      console.log('已有数据源ID，按已保存值级联加载:', formData.datasourceId);
+      // 1) 加载数据库列表
+      const dbRes = await getDbList(formData.datasourceId);
+      databaseList.value = Array.isArray(dbRes) ? dbRes : dbRes.data || [];
+
+      const savedDb = formData.datasourceConfig?.database;
+      const savedTables = formData.datasourceConfig?.tables || [];
+
+      if (savedDb) {
+        formData.datasourceConfig.database = savedDb;
+        // 2) 加载表列表
+        const tblRes = await listTable({ datasourceId: formData.datasourceId, dbName: savedDb });
+        tableList.value = Array.isArray(tblRes) ? tblRes : tblRes.data || [];
+
+        if (Array.isArray(savedTables) && savedTables.length > 0) {
+          formData.datasourceConfig.tables = savedTables;
+          // 只按首个表加载字段
+          selectedTable.value = savedTables[0];
+          const selectedTableObj = tableList.value.find((t) => t.tableName === selectedTable.value);
+          if (selectedTableObj) {
+            const colRes = await listColumn(selectedTableObj.tableId);
+            fieldList.value = Array.isArray(colRes) ? colRes : colRes.data || [];
+            // 默认全选
+            outputFields.value = fieldList.value.map((f) => f.columnName);
+          } else {
+            fieldList.value = [];
+            outputFields.value = [];
+          }
+        } else {
+          fieldList.value = [];
+          selectedTable.value = '';
+          outputFields.value = [];
+        }
+      } else {
+        // 没有保存的库表，清空下游
+        tableList.value = [];
+        fieldList.value = [];
+        selectedTable.value = '';
+        outputFields.value = [];
+      }
     } else {
       console.log('没有数据源ID，清空相关数据');
       // 清空相关数据
@@ -358,7 +396,7 @@ const onTableChange = async (tables) => {
     const res = await listColumn(selectedTableObj.tableId);
     fieldList.value = Array.isArray(res) ? res : res.data || [];
     // 默认全选
-    outputFields.value = fieldList.value.map((f) => f.name);
+    outputFields.value = fieldList.value.map((f) => f.columnName);
   } catch (error) {
     ElMessage.error('加载字段列表失败');
   }
@@ -374,7 +412,7 @@ const onOutputTableChange = async (tableName) => {
   }
   const res = await listColumn(selectedTableObj.tableId);
   fieldList.value = Array.isArray(res) ? res : res.data || [];
-  outputFields.value = fieldList.value.map((f) => f.name);
+  outputFields.value = fieldList.value.map((f) => f.columnName);
 };
 
 // 目标数据源变化
@@ -429,7 +467,7 @@ const saveConfig = async () => {
       if (selectedTable.value && fieldList.value.length > 0) {
         taskData.sourceFieldsConfig = {
           tableName: selectedTable.value,
-          tableFields: fieldList.value.filter((f) => outputFields.value.includes(f.name)),
+          tableFields: fieldList.value.filter((f) => outputFields.value.includes(f.columnName)),
         };
       }
     } else if (formData.connectorType === 'TRANSFORM') {
@@ -442,7 +480,7 @@ const saveConfig = async () => {
           {
             database: formData.datasourceConfig?.database || '',
             tableName: selectedTable.value,
-            fields: fieldList.value.filter((f) => outputFields.value.includes(f.name)),
+            fields: fieldList.value.filter((f) => outputFields.value.includes(f.columnName)),
           },
         ];
       }
@@ -452,22 +490,23 @@ const saveConfig = async () => {
     const response = await taskApi.createTask(taskData);
     ElMessage.success('任务配置保存成功');
 
-    // 更新任务ID
+    // 在覆盖 props.task.taskId 之前，先缓存旧ID
+    const oldTaskId = props.task.taskId;
     const newTaskId = response.data?.taskId || response.taskId;
     if (newTaskId) {
       // 更新当前节点的taskId
       props.task.taskId = newTaskId;
 
-      // 通知父组件更新节点数据并关闭弹框
+      // 通知父组件更新节点数据
       emit('update', {
         ...taskData,
         taskId: newTaskId,
       });
 
-      // 通知父组件更新相关边的ID
+      // 通知父组件更新相关边的ID（必须用旧ID映射到新ID）
       emit('updateTaskId', {
-        oldTaskId: props.task.taskId,
-        newTaskId: newTaskId,
+        oldTaskId,
+        newTaskId,
       });
 
       emit('close');

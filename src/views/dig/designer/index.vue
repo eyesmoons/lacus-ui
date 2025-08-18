@@ -857,6 +857,15 @@ const loadTaskConfig = async (taskId) => {
       selectedTask.value.datasourceConfig = taskData.datasourceConfig;
       selectedTask.value.outputModel = taskData.outputModel;
       selectedTask.value.transformConfig = taskData.transformConfig;
+      // 关键字段统一写回，保证表单可正确联动渲染
+      selectedTask.value.datasourceId = taskData.datasourceId;
+      selectedTask.value.taskName = taskData.taskName || selectedTask.value.taskName;
+      selectedTask.value.connectorType = taskData.connectorType || selectedTask.value.connectorType;
+      selectedTask.value.connectorName = taskData.connectorName || selectedTask.value.connectorName;
+      // Sink 相关（若后端返回则写回）
+      selectedTask.value.sinkDatasourceId = taskData.sinkDatasourceId ?? selectedTask.value.sinkDatasourceId;
+      selectedTask.value.sinkTable = taskData.sinkTable ?? selectedTask.value.sinkTable;
+      selectedTask.value.writeMode = taskData.writeMode ?? selectedTask.value.writeMode;
     }
   } catch (error) {
     ElMessage.error('加载任务配置失败');
@@ -870,7 +879,7 @@ const handleTaskConfigUpdate = (taskData) => {
     Object.assign(selectedTask.value, taskData);
 
     // 更新画布中的节点
-    const node = graph.getCellById(selectedTask.value.id);
+    const node = graph.getCellById(selectedTask.value.taskId);
     if (node) {
       node.setData(selectedTask.value);
     }
