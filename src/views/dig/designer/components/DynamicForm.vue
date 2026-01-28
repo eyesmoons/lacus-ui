@@ -157,13 +157,18 @@ const formRef = ref(null);
 const formData = reactive({});
 
 // 初始化表单数据
-const initFormData = () => {
-  formFields.value.forEach((field) => {
+const initFormData = async () => {
+  for (const field of formFields.value) {
     const fieldName = field.enName || field.fieldName || field.field || field.name;
     if (!(fieldName in formData)) {
+      // 如果是URL类型的字段，先加载选项
+      if (field.dictType === 'url' && field.dictUrl) {
+        await loadDynamicOptions(field);
+      }
+      
       formData[fieldName] = getDefaultValue(field);
     }
-  });
+  }
 };
 
 // 获取字段默认值
@@ -215,10 +220,29 @@ const getAllFieldOptions = (field) => {
 
   // 优先返回动态选项
   if (dynamicOptions[fieldName] && dynamicOptions[fieldName].length > 0) {
+    // 检查当前字段值是否在动态选项中，如果没有，但当前值是数据源相关的，可以尝试从formData中获取原始数据源信息
+    const currentValue = formData[fieldName];
+    const hasCurrentValue = dynamicOptions[fieldName].some(option => option.value == currentValue); // 使用宽松比较以处理数字和字符串
+    
+    // 如果当前值不在选项中，但这是一个数据源相关的字段，我们可以考虑添加一个临时选项
+    if (currentValue != null && !hasCurrentValue) {
+      // 检查是否是数据源ID字段
+      if ((fieldName === 'datasourceId' || fieldName === 'datasource_id') && currentValue) {
+        // 尝试查找对应的名称（仅在当前数据源列表中查找）
+        const savedValue = currentValue;
+        
+        // 如果有动态加载的数据源列表，尝试从中查找
+        const matchedOption = dynamicOptions[fieldName].find(option => option.value == savedValue);
+        if (!matchedOption) {
+          // 如果当前值不在动态选项中，但它是数据源ID，我们可以保留原选项数组
+          // 但确保el-select能正确显示
+          return [...dynamicOptions[fieldName]];
+        }
+      }
+    }
+    
     return dynamicOptions[fieldName];
   }
-
-
 
   // 返回静态选项
   return getFieldOptions(field);
@@ -237,7 +261,7 @@ const loadDynamicOptions = async (field) => {
 
   if (field.dictType === 'url' && field.dictUrl) {
     try {
-      console.log(`加载动态选项: ${fieldName} from ${field.dictUrl}`);
+
 
       // 处理URL中的参数替换
       let url = field.dictUrl;
@@ -295,7 +319,7 @@ const loadDynamicOptions = async (field) => {
       }
 
       dynamicOptions[fieldName] = options;
-      console.log(`${fieldName} 动态选项加载完成:`, options);
+
       return options;
     } catch (error) {
       console.error(`加载 ${fieldName} 动态选项失败:`, error);
@@ -411,8 +435,8 @@ const uploadHeaders = computed(() => ({
 // 监听配置变化
 watch(
   () => props.config,
-  (newConfig) => {
-    initFormData();
+  async (newConfig) => {
+    await initFormData();
   },
   { immediate: true, deep: true },
 );
@@ -422,18 +446,34 @@ watch(
   () => props.modelValue,
   async (newValue) => {
     try {
+      let newFormData = {};
+      
       if (typeof newValue === 'string') {
         if (newValue.trim() !== '') {
           try {
-            const parsed = JSON.parse(newValue);
-            Object.assign(formData, parsed);
+            newFormData = JSON.parse(newValue);
           } catch (e) {
             console.warn('Invalid JSON string:', newValue);
           }
         }
       } else if (newValue && typeof newValue === 'object') {
-        Object.assign(formData, newValue);
+        newFormData = { ...newValue };
       }
+      
+      // 在设置表单数据之前，先加载相关的动态选项
+      // 特别是当存在数据源ID等需要动态加载的字段时
+      for (const field of formFields.value) {
+        const fieldName = field.enName || field.fieldName || field.field || field.name;
+        const fieldValue = newFormData[fieldName];
+        
+        // 如果是URL类型的字段且有初始值，先加载选项
+        if (field.dictType === 'url' && field.dictUrl && fieldValue != null) {
+          await loadDynamicOptions(field);
+        }
+      }
+      
+      // 设置表单数据
+      Object.assign(formData, newFormData);
     } catch (error) {
       console.error('处理外部数据变化时发生错误:', error);
     }
@@ -524,6 +564,18 @@ const handleFieldFocus = async (field) => {
   }
 };
 
+// 在组件挂载后立即尝试加载所有URL类型的字段选项
+onMounted(async () => {
+  isComponentActive = true;
+  
+  // 尝试加载所有URL类型的字段选项，以确保初始数据显示正确
+  for (const field of formFields.value) {
+    if (field.dictType === 'url' && field.dictUrl) {
+      await loadDynamicOptions(field);
+    }
+  }
+});
+
 // 字段值变化处理
 const handleFieldChange = async (field = null) => {
   // 处理数据源联动逻辑
@@ -562,7 +614,7 @@ const handleFieldChange = async (field = null) => {
 
   // 获取所有字段的最新值
   const result = { ...formData };
-  console.log('表单数据变化:', result);
+
 
   // 在发出事件前确保组件仍然活跃
   if (isComponentActive) {
@@ -604,12 +656,9 @@ defineExpose({
   resetFields,
 });
 
-let isComponentActive = true;
+let isComponentActive = false;
 
-// 在组件挂载后立即尝试加载已有的数据源名称
-onMounted(() => {
-  isComponentActive = true;
-});
+
 
 // 在组件卸载时标记为非活跃状态
 onUnmounted(() => {
