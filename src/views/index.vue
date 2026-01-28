@@ -33,13 +33,8 @@ const features = ref([
     },
     {
         icon: 'Connection',
-        title: '数据采集',
+        title: '实时数据采集',
         description: '支持多种数据源实时数据采集',
-    },
-    {
-        icon: 'Share',
-        title: '数据挖掘',
-        description: '可视化任务设计平台，支持多子任务编排',
     },
     {
         icon: 'Menu',
@@ -61,6 +56,11 @@ const features = ref([
         title: '资源管理',
         description: '全面的Hdfs资源管理功能，优化资源配置',
     },
+    {
+            icon: 'Share',
+            title: '数据集成',
+            description: '正在努力开发中',
+        },
 ]);
 
 onMounted(() => {

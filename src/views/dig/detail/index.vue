@@ -272,7 +272,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import {
     Back, Edit, VideoPlay, VideoPause, Right,
-    Database, Operation, Upload
+    Folder, Operation, Upload
 } from '@element-plus/icons-vue';
 import * as taskApi from '@/api/dig/taskApi';
 import MonacoEditor from '@/components/MonacoEditor/index.vue';
@@ -442,11 +442,11 @@ const getStatusText = (status) => {
 // 获取节点图标
 const getNodeIcon = (type) => {
     const iconMap = {
-        'SOURCE': Database,
+        'SOURCE': Folder,
         'TRANSFORM': Operation,
         'SINK': Upload
     };
-    return iconMap[type] || Database;
+    return iconMap[type] || Folder;
 };
 
 // 获取节点样式类

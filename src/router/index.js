@@ -321,7 +321,7 @@ export const constantRoutes = [
         name: 'ApiDetail',
         meta: { title: 'Api详情', activeMenu: '/oneapi' },
         hidden: true,
-      }
+      },
     ],
   },
   {
@@ -334,43 +334,29 @@ export const constantRoutes = [
         path: 'job',
         component: () => import('@/views/dig/job/index'),
         name: 'DigJob',
-        meta: { title: '任务定义', icon: 'document' }
+        meta: { title: '任务定义', icon: 'document' },
       },
       {
         path: 'job/designer/',
         component: () => import('@/views/dig/designer/index'),
         name: 'DigJobDesigner',
         meta: { title: '任务设计器', activeMenu: '/dig/job' },
-        hidden: true
-      },
-      {
-        path: 'job/detail/:jobId',
-        component: () => import('@/views/dig/job/detail/index'),
-        name: 'DigJobDetail',
-        meta: { title: '任务详情', activeMenu: '/dig/job' },
-        hidden: true
+        hidden: true,
       },
       {
         path: 'instance',
         component: () => import('@/views/dig/instance/index'),
         name: 'DigInstance',
-        meta: { title: '任务实例', icon: 'monitor' }
+        meta: { title: '任务实例', icon: 'monitor' },
       },
-      {
-        path: 'instance/detail/:instanceId',
-        component: () => import('@/views/dig/instance/detail/index'),
-        name: 'DigInstanceDetail',
-        meta: { title: '实例详情', activeMenu: '/dig/instance' },
-        hidden: true
-      },
-      {
-        path: 'test',
-        component: () => import('@/views/dig/test'),
-        name: 'DigTest',
-        meta: { title: 'API测试', activeMenu: '/dig/job' },
-        hidden: true
-      }
-    ]
+      // {
+      //   path: 'instance/detail/:instanceId',
+      //   component: () => import('@/views/dig/instance/detail/index'),
+      //   name: 'DigInstanceDetail',
+      //   meta: { title: '实例详情', activeMenu: '/dig/instance' },
+      //   hidden: true,
+      // }
+    ],
   },
 ];
 

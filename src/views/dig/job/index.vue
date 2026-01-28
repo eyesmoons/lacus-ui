@@ -170,6 +170,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { parseTime } from '@/utils/dateUtil';
 import * as jobApi from '@/api/dig/jobApi';
 
 const router = useRouter();
@@ -178,6 +179,7 @@ const total = ref(0);
 const jobList = ref([]);
 const selectedJobs = ref([]);
 const dateRange = ref([]);
+const showSearch = ref(true);
 
 // 新建任务相关
 const createDialogVisible = ref(false);
@@ -260,6 +262,11 @@ const resetQuery = () => {
 
 // 刷新列表
 const refreshJobList = () => {
+  getJobList();
+};
+
+// 为RightToolbar组件提供的方法
+const getList = () => {
   getJobList();
 };
 

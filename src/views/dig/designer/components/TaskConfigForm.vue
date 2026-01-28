@@ -13,99 +13,28 @@
               <el-input v-model="formData.connectorName" disabled />
             </el-form-item>
           </div>
-          <!-- 数据源配置 -->
-          <div class="config-section" v-if="formData.connectorType === 'SOURCE'">
-            <div class="section-title">数据源配置</div>
-            <el-form-item label="数据源" prop="datasourceId">
-              <el-select
-                v-model="formData.datasourceId"
-                placeholder="请选择数据源"
-                @change="onDatasourceChange"
-                filterable
-              >
-                <el-option
-                  v-for="ds in datasourceList"
-                  :key="ds.datasourceId"
-                  :label="ds.datasourceName"
-                  :value="ds.datasourceId"
-                />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="数据库" prop="database" v-if="databaseList.length > 0">
-              <el-select
-                v-model="formData.datasourceConfig.database"
-                placeholder="请选择数据库"
-                @change="onDatabaseChange"
-                filterable
-              >
-                <el-option v-for="db in databaseList" :key="db.dbId" :label="db.dbName" :value="db.dbName" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="数据表" prop="tables" v-if="tableList.length > 0">
-              <el-select
-                v-model="formData.datasourceConfig.tables"
-                placeholder="请选择数据表"
-                multiple
-                filterable
-                @change="onTableChange"
-              >
-                <el-option
-                  v-for="table in tableList"
-                  :key="table.tableId"
-                  :label="table.tableName"
-                  :value="table.tableName"
-                />
-              </el-select>
-            </el-form-item>
+          <!-- 动态表单配置（SOURCE类型，包含数据源、数据库、表等所有字段） -->
+          <div
+            class="config-section"
+            v-if="formData.connectorType === 'SOURCE' && dynamicFormConfig && dynamicFormConfig.length > 0"
+          >
+            <dynamic-form :config="dynamicFormConfig" v-model="formData.taskConfig" @change="onConfigChange" />
           </div>
-          <!-- 动态表单配置，隐藏 database/table 字段 -->
-          <div class="config-section" v-if="dynamicFormConfig && dynamicFormConfig.length > 0">
-            <div class="section-title">连接器配置</div>
-            <dynamic-form
-              :config="
-                dynamicFormConfig.filter(
-                  (f) => !(f.field === 'database' || f.field === 'table' || f.field === 'table_list'),
-                )
-              "
-              v-model="formData.taskConfig"
-              @change="onConfigChange"
-            />
-          </div>
-          <!-- Transform 配置 -->
-          <div class="config-section" v-if="formData.connectorType === 'TRANSFORM'">
+          <!-- 动态表单配置（TRANSFORM类型） -->
+          <div
+            class="config-section"
+            v-if="formData.connectorType === 'TRANSFORM' && dynamicFormConfig && dynamicFormConfig.length > 0"
+          >
             <div class="section-title">转换配置</div>
-            <el-form-item label="转换规则">
-              <monaco-editor v-model="transformConfig" language="sql" :height="200" @change="onTransformConfigChange" />
-            </el-form-item>
+            <dynamic-form :config="dynamicFormConfig" v-model="formData.taskConfig" @change="onConfigChange" />
           </div>
-          <!-- Sink 配置 -->
-          <div class="config-section" v-if="formData.connectorType === 'SINK'">
+          <!-- 动态表单配置（SINK类型，包含目标数据源、目标表等所有字段） -->
+          <div
+            class="config-section"
+            v-if="formData.connectorType === 'SINK' && dynamicFormConfig && dynamicFormConfig.length > 0"
+          >
             <div class="section-title">输出配置</div>
-            <el-form-item label="目标数据源" prop="sinkDatasourceId">
-              <el-select
-                v-model="formData.sinkDatasourceId"
-                placeholder="请选择目标数据源"
-                @change="onSinkDatasourceChange"
-                filterable
-              >
-                <el-option
-                  v-for="ds in sinkDatasourceList"
-                  :key="ds.datasourceId"
-                  :label="ds.datasourceName"
-                  :value="ds.datasourceId"
-                />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="目标表" prop="sinkTable">
-              <el-input v-model="formData.sinkTable" placeholder="请输入目标表名" />
-            </el-form-item>
-            <el-form-item label="写入模式" prop="writeMode">
-              <el-select v-model="formData.writeMode" placeholder="请选择写入模式">
-                <el-option label="追加" value="append" />
-                <el-option label="覆盖" value="overwrite" />
-                <el-option label="更新插入" value="upsert" />
-              </el-select>
-            </el-form-item>
+            <dynamic-form :config="dynamicFormConfig" v-model="formData.taskConfig" @change="onConfigChange" />
           </div>
           <!-- 操作按钮 -->
           <div class="form-actions">
@@ -130,7 +59,7 @@
               <div class="table-options">
                 <ul class="table-list">
                   <li
-                    v-for="tableName in formData.datasourceConfig.tables"
+                    v-for="tableName in availableTables"
                     :key="tableName"
                     :class="{ active: selectedTable === tableName }"
                     @click="onOutputTableChange(tableName)"
@@ -179,13 +108,10 @@
 import { ref, reactive, watch, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import * as connectorApi from '@/api/dig/connectorApi';
-import { getDatasourceList as getDsList } from '@/api/metadata/datasourceApi';
-import { getDatasourceList as getDbList } from '@/api/metadata/dbApi';
-import { listTable } from '@/api/metadata/tableApi';
-import { listColumn } from '@/api/metadata/columnApi';
 import * as taskApi from '@/api/dig/taskApi';
+import * as tableApi from '@/api/metadata/tableApi';
+import * as columnApi from '@/api/metadata/columnApi';
 import DynamicForm from './DynamicForm.vue';
-import MonacoEditor from '@/components/MonacoEditor/index.vue';
 import { useRoute } from 'vue-router';
 
 const props = defineProps({
@@ -201,16 +127,10 @@ const route = useRoute();
 // 响应式数据
 const formRef = ref(null);
 const saving = ref(false);
-const testing = ref(false);
-const datasourceList = ref([]);
-const sinkDatasourceList = ref([]);
-const databaseList = ref([]); // 数据库列表
-const tableList = ref([]); // 表列表
-const fieldList = ref([]); // 字段列表
+const fieldList = ref([]); // 字段列表（用于输出模型）
 const selectedTable = ref(''); // 当前选中的表名
 const outputFields = ref([]); // 输出模型Tab选中的字段名
 const dynamicFormConfig = ref(null);
-const transformConfig = ref('');
 const activeTab = ref('props');
 
 // 表单数据
@@ -219,21 +139,17 @@ const formData = reactive({
   taskName: '',
   connectorType: '',
   connectorName: '',
-  datasourceId: null,
-  taskConfig: '',
+  taskConfig: '', // 动态表单的数据都存在这里
+  // 保留一些输出模型相关的字段
   datasourceConfig: {
     database: '',
     tables: [],
   },
-  sinkDatasourceId: null,
-  sinkTable: '',
-  writeMode: 'append',
 });
 
 // 表单验证规则
 const rules = {
   taskName: [{ required: true, message: '请输入任务名称', trigger: 'blur' }],
-  datasourceId: [{ required: true, message: '请选择数据源', trigger: 'change' }],
 };
 
 // 计算属性
@@ -241,193 +157,170 @@ const showFieldConfig = computed(() => {
   return formData.connectorType === 'SOURCE' && fieldList.value.length > 0;
 });
 
-// 加载任务配置
+// 从动态表单配置中获取可用的表名列表
+const availableTables = computed(() => {
+  // 如果用户在动态表单中选择了表，将其作为可用表
+  const selectedTableFromForm = formData.taskConfig?.tableName || formData.taskConfig?.table;
+
+  if (selectedTableFromForm) {
+    return [selectedTableFromForm];
+  }
+
+  // 如果没有选择表，返回空数组
+  return [];
+});
+
+// 加载任务配置（仅加载动态表单配置）
 const loadTaskConfig = async () => {
   if (!formData.connectorName) return;
   try {
     console.log('开始加载任务配置:', formData.connectorName);
 
-    // 加载动态表单配置
-    const formConfigResp = await connectorApi.getConnectorForm(formData.connectorType, formData.connectorName);
-    let formConfig = formConfigResp?.data || formConfigResp;
-    if (typeof formConfig === 'string') {
-      try {
-        formConfig = JSON.parse(formConfig);
-      } catch (e) {
-        formConfig = {};
-      }
-    }
-    dynamicFormConfig.value = formConfig.forms || formConfig.fields || (Array.isArray(formConfig) ? formConfig : []);
+    // 加载动态表单配置 - 适配新的后端接口
+    const formConfigArray = await connectorApi.getConnectorForm(formData.connectorType, formData.connectorName);
+    console.log('动态表单配置:', formConfigArray);
 
-    // 加载数据源列表（使用datasourceApi.js的getDatasourceList）
-    if (formData.connectorType === 'SOURCE' || formData.connectorType === 'SINK') {
-      console.log('加载数据源列表');
-      const res = await getDsList('', ''); // 传递空字符串作为参数
-      const data = res?.data || res || [];
-      if (formData.connectorType === 'SOURCE') {
-        datasourceList.value = data;
-        console.log('SOURCE数据源列表:', datasourceList.value);
-      } else {
-        sinkDatasourceList.value = data;
-        console.log('SINK数据源列表:', sinkDatasourceList.value);
-      }
-    }
+    // 后端现在直接返回数组，不再需要解析JSON字符串
+    dynamicFormConfig.value = Array.isArray(formConfigArray) ? formConfigArray : [];
 
-    // 如果已有数据源配置，按已保存的值级联加载，不要清空
-    if (formData.datasourceId) {
-      console.log('已有数据源ID，按已保存值级联加载:', formData.datasourceId);
-      // 1) 加载数据库列表
-      const dbRes = await getDbList(formData.datasourceId);
-      databaseList.value = Array.isArray(dbRes) ? dbRes : dbRes.data || [];
-
-      const savedDb = formData.datasourceConfig?.database;
-      const savedTables = formData.datasourceConfig?.tables || [];
-
-      if (savedDb) {
-        formData.datasourceConfig.database = savedDb;
-        // 2) 加载表列表
-        const tblRes = await listTable({ datasourceId: formData.datasourceId, dbName: savedDb });
-        tableList.value = Array.isArray(tblRes) ? tblRes : tblRes.data || [];
-
-        if (Array.isArray(savedTables) && savedTables.length > 0) {
-          formData.datasourceConfig.tables = savedTables;
-          // 只按首个表加载字段
-          selectedTable.value = savedTables[0];
-          const selectedTableObj = tableList.value.find((t) => t.tableName === selectedTable.value);
-          if (selectedTableObj) {
-            const colRes = await listColumn(selectedTableObj.tableId);
-            fieldList.value = Array.isArray(colRes) ? colRes : colRes.data || [];
-            // 默认全选
-            outputFields.value = fieldList.value.map((f) => f.columnName);
-          } else {
-            fieldList.value = [];
-            outputFields.value = [];
-          }
-        } else {
-          fieldList.value = [];
-          selectedTable.value = '';
-          outputFields.value = [];
-        }
-      } else {
-        // 没有保存的库表，清空下游
-        tableList.value = [];
-        fieldList.value = [];
-        selectedTable.value = '';
-        outputFields.value = [];
-      }
-    } else {
-      console.log('没有数据源ID，清空相关数据');
-      // 清空相关数据
-      databaseList.value = [];
-      tableList.value = [];
-      fieldList.value = [];
-      selectedTable.value = '';
-      outputFields.value = [];
-    }
+    // 加载其他配置
+    await loadOtherConfig();
   } catch (error) {
     console.error('加载任务配置失败:', error);
     ElMessage.error('加载任务配置失败');
   }
 };
 
-// 监听任务变化
+// 加载其他配置（简化版本）
+const loadOtherConfig = async () => {
+  try {
+    console.log('加载其他配置完成');
+    // 现在所有配置都从动态表单获取，不再需要专门的加载逻辑
+  } catch (error) {
+    console.error('加载其他配置失败:', error);
+    ElMessage.error('加载其他配置失败');
+  }
+};
+
+// 监听动态表单配置变化
+watch(
+  () => formData.taskConfig,
+  (newConfig) => {
+    if (newConfig && typeof newConfig === 'object') {
+      updateOutputModel();
+    }
+  },
+  { deep: true },
+);
 watch(
   () => props.task,
   (newTask, oldTask) => {
     if (newTask && (!oldTask || newTask.taskId !== oldTask.taskId)) {
       console.log('任务变化，重新加载配置:', newTask.taskId);
+
+      // 先赋值基本信息
       Object.assign(formData, newTask);
-      loadTaskConfig();
+
+      // 检查是否为新节点（以node_开头的是前端生成的临时ID）
+      const isNewNode = !newTask.taskId || newTask.taskId === 'null' || String(newTask.taskId).startsWith('node_');
+
+      if (isNewNode) {
+        console.log('新节点，优先使用预加载的动态表单配置');
+
+        // 如果任务已经包含动态表单配置，直接使用
+        if (newTask.dynamicFormConfig) {
+          console.log('使用预加载的动态表单配置:', newTask.dynamicFormConfig);
+          dynamicFormConfig.value = newTask.dynamicFormConfig;
+          // 加载其他相关数据（数据源等）
+          loadOtherConfig();
+        } else {
+          // 否则按原来的流程加载
+          console.log('没有预加载的配置，使用默认加载流程');
+          loadTaskConfig();
+        }
+      } else {
+        console.log('已保存的任务，使用预加载的配置或默认加载');
+
+        // 已保存的任务，如果有预加载的配置则使用，否则加载
+        if (newTask.dynamicFormConfig) {
+          console.log('使用预加载的动态表单配置:', newTask.dynamicFormConfig);
+          dynamicFormConfig.value = newTask.dynamicFormConfig;
+          loadOtherConfig();
+        } else {
+          loadTaskConfig();
+        }
+      }
     }
   },
-  { immediate: true, deep: false }, // 移除deep: true，避免深度监听导致无限循环
+  { immediate: true, deep: false },
 );
-
-// 数据源变化
-const onDatasourceChange = async (datasourceId) => {
-  if (!datasourceId) return;
-  try {
-    // 获取数据库列表
-    const res = await getDbList(datasourceId);
-    databaseList.value = Array.isArray(res) ? res : res.data || [];
-    formData.datasourceConfig.database = '';
-    tableList.value = [];
-    formData.datasourceConfig.tables = [];
-    fieldList.value = [];
-    selectedTable.value = '';
-    outputFields.value = [];
-  } catch (error) {
-    ElMessage.error('加载数据库列表失败');
-  }
-};
-// 数据库变化
-const onDatabaseChange = async (database) => {
-  if (!database || !formData.datasourceId) return;
-  try {
-    // 获取表列表
-    const res = await listTable({ datasourceId: formData.datasourceId, dbName: database });
-    tableList.value = Array.isArray(res) ? res : res.data || [];
-    formData.datasourceConfig.tables = [];
-    fieldList.value = [];
-    selectedTable.value = '';
-    outputFields.value = [];
-  } catch (error) {
-    ElMessage.error('加载表列表失败');
-  }
-};
-// 表变化
-const onTableChange = async (tables) => {
-  if (!tables || tables.length === 0) {
-    fieldList.value = [];
-    selectedTable.value = '';
-    outputFields.value = [];
-    return;
-  }
-  // 只支持单表输出模型
-  selectedTable.value = tables[0];
-  try {
-    // 根据 tableName 找到对应的 tableId
-    const selectedTableObj = tableList.value.find((t) => t.tableName === selectedTable.value);
-    if (!selectedTableObj) {
-      ElMessage.error('未找到对应的表信息');
-      return;
-    }
-    // 获取字段列表，传入 tableId
-    const res = await listColumn(selectedTableObj.tableId);
-    fieldList.value = Array.isArray(res) ? res : res.data || [];
-    // 默认全选
-    outputFields.value = fieldList.value.map((f) => f.columnName);
-  } catch (error) {
-    ElMessage.error('加载字段列表失败');
-  }
-};
-// 输出模型Tab切换表时
-const onOutputTableChange = async (tableName) => {
-  selectedTable.value = tableName;
-  const selectedTableObj = tableList.value.find((t) => t.tableName === tableName);
-  if (!selectedTableObj) {
-    fieldList.value = [];
-    outputFields.value = [];
-    return;
-  }
-  const res = await listColumn(selectedTableObj.tableId);
-  fieldList.value = Array.isArray(res) ? res : res.data || [];
-  outputFields.value = fieldList.value.map((f) => f.columnName);
-};
-
-// 目标数据源变化
-const onSinkDatasourceChange = (datasourceId) => {
-  // 处理目标数据源变化逻辑
-};
 
 // 配置变化
 const onConfigChange = (config) => {
   formData.taskConfig = config;
+  console.log('动态表单配置变化:', config);
+
+  // 当数据源配置变化时，更新输出模型
+  updateOutputModel();
 };
 
-// Transform 配置变化
-const onTransformConfigChange = (config) => {
-  formData.transformConfig = config;
+// 更新输出模型
+const updateOutputModel = () => {
+  // 检查是否选择了表
+  const selectedTableFromForm = formData.taskConfig?.tableName || formData.taskConfig?.table;
+
+  if (selectedTableFromForm) {
+    // 如果当前选中的表和表单中的表不同，自动切换
+    if (selectedTable.value !== selectedTableFromForm) {
+      selectedTable.value = selectedTableFromForm;
+      loadTableFields(selectedTableFromForm);
+    }
+  } else {
+    // 如果没有选择表，清空
+    selectedTable.value = '';
+    fieldList.value = [];
+    outputFields.value = [];
+  }
+};
+
+// 输出模型表变化处理
+const onOutputTableChange = async (tableName) => {
+  selectedTable.value = tableName;
+  await loadTableFields(tableName);
+};
+
+// 加载表字段信息
+const loadTableFields = async (tableName) => {
+  if (!tableName) return;
+
+  try {
+    const datasourceId = formData.taskConfig?.datasourceId || formData.taskConfig?.datasource_id;
+    const database = formData.taskConfig?.database || formData.taskConfig?.dbName;
+
+    if (!datasourceId || !database) {
+      console.warn('缺少数据源ID或数据库名称，无法加载表字段');
+      fieldList.value = [];
+      return;
+    }
+
+    console.log('加载表字段:', { datasourceId, database, tableName });
+
+    // 使用 columnApi.listColumnByName 获取字段信息
+    const response = await columnApi.listColumnByName(datasourceId, database, tableName);
+
+    // 根据API返回格式调整
+    const fields = Array.isArray(response) ? response : response?.data || [];
+    fieldList.value = fields;
+
+    // 清空之前的字段选择
+    outputFields.value = [];
+
+    console.log('表字段加载完成:', fieldList.value);
+  } catch (error) {
+    console.error('加载表字段失败:', error);
+    ElMessage.error('加载表字段失败');
+    fieldList.value = [];
+  }
 };
 
 // 保存配置
@@ -450,11 +343,14 @@ const saveConfig = async () => {
       jobId: parseInt(jobId),
       connectorType: formData.connectorType,
       connectorName: formData.connectorName,
-      datasourceId: formData.datasourceId || 0,
-      taskConfig: formData.taskConfig || '',
+      // 从动态表单中获取数据源配置
+      datasourceId: formData.taskConfig?.datasourceId || formData.taskConfig?.datasource_id || 0,
+      taskConfig:
+        typeof formData.taskConfig === 'object' ? JSON.stringify(formData.taskConfig) : formData.taskConfig || '',
       datasourceConfig: {
-        database: formData.datasourceConfig?.database || '',
-        tables: formData.datasourceConfig?.tables || [],
+        // 从动态表单中获取数据库和表信息
+        database: formData.taskConfig?.database || formData.taskConfig?.dbName || '',
+        tables: selectedTable.value ? [selectedTable.value] : [],
       },
       sourceFieldsConfig: null,
       transformConfig: null,
@@ -478,7 +374,7 @@ const saveConfig = async () => {
       if (selectedTable.value && fieldList.value.length > 0) {
         taskData.sinkFieldsConfig = [
           {
-            database: formData.datasourceConfig?.database || '',
+            database: formData.taskConfig?.database || formData.taskConfig?.dbName || '',
             tableName: selectedTable.value,
             fields: fieldList.value.filter((f) => outputFields.value.includes(f.columnName)),
           },
@@ -536,7 +432,6 @@ const resetConfig = () => {
 
 // 测试连接
 const testConnection = async () => {
-  testing.value = true;
   try {
     // 实现测试连接逻辑
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -544,8 +439,6 @@ const testConnection = async () => {
   } catch (error) {
     console.error('连接测试失败:', error);
     ElMessage.error('连接测试失败');
-  } finally {
-    testing.value = false;
   }
 };
 

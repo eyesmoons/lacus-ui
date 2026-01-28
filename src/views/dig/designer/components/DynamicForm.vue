@@ -1,229 +1,131 @@
 <template>
   <div class="dynamic-form">
     <el-form :model="formData" ref="formRef" size="small">
-      <template v-for="field in formFields" :key="field.field || field.name">
-        <!-- 文本输入框 -->
-        <el-form-item
-          v-if="field.type === 'input' || field.type === 'string' || field.type === 'text'"
-          :label="field.label"
-          :prop="field.field || field.name"
-          :rules="getFieldRules(field)"
-        >
-          <el-input
-            v-model="formData[field.field || field.name]"
-            :placeholder="field.placeholder || `请输入${field.label}`"
-            :disabled="field.disabled"
-            :clearable="field.clearable !== false"
-            :type="field.inputType || 'text'"
-            @change="handleFieldChange"
-            @blur="handleFieldChange"
-            @input="handleFieldChange"
-          />
-        </el-form-item>
+      <!-- 按照 tag 分组显示 -->
+      <template v-for="group in fieldGroups" :key="group.tagName">
+        <div class="field-group" v-if="group.fields.length > 0">
+          <div class="group-title">{{ group.tagName || '其他配置' }}</div>
 
-        <!-- 数字输入框 -->
-        <el-form-item
-          v-else-if="field.type === 'number' || field.type === 'integer'"
-          :label="field.label"
-          :prop="field.field || field.name"
-          :rules="getFieldRules(field)"
-        >
-          <el-input-number
-            v-model="formData[field.field || field.name]"
-            :min="field.min"
-            :max="field.max"
-            :step="field.step || 1"
-            :disabled="field.disabled"
-            @change="handleFieldChange"
-            style="width: 100%"
-          />
-        </el-form-item>
+          <template v-for="field in group.fields" :key="field.enName || field.fieldName || field.field || field.name">
+            <!-- 文本输入框 -->
+            <el-form-item
+              v-if="getFieldType(field) === 'text'"
+              :label="field.cnName || field.label"
+              :prop="field.enName || field.fieldName || field.field || field.name"
+              :rules="getFieldRules(field)"
+            >
+              <el-input
+                v-model="formData[field.enName || field.fieldName || field.field || field.name]"
+                :placeholder="field.placeHolder || field.placeholder || `请输入${field.cnName || field.label}`"
+                :disabled="field.disabled"
+                :clearable="field.clearable !== false"
+                @change="handleFieldChange"
+                @blur="handleFieldChange"
+                @input="handleFieldChange"
+              />
+            </el-form-item>
 
-        <!-- 布尔值选择 -->
-        <el-form-item
-          v-else-if="field.type === 'boolean'"
-          :label="field.label"
-          :prop="field.field || field.name"
-          :rules="getFieldRules(field)"
-        >
-          <el-switch
-            v-model="formData[field.field || field.name]"
-            :disabled="field.disabled"
-            @change="handleFieldChange"
-          />
-        </el-form-item>
+            <!-- 密码输入框 -->
+            <el-form-item
+              v-else-if="getFieldType(field) === 'password'"
+              :label="field.cnName || field.label"
+              :prop="field.enName || field.fieldName || field.field || field.name"
+              :rules="getFieldRules(field)"
+            >
+              <el-input
+                v-model="formData[field.enName || field.fieldName || field.field || field.name]"
+                type="password"
+                :placeholder="field.placeHolder || field.placeholder || `请输入${field.cnName || field.label}`"
+                :disabled="field.disabled"
+                :clearable="field.clearable !== false"
+                show-password
+                @change="handleFieldChange"
+                @blur="handleFieldChange"
+              />
+            </el-form-item>
 
-        <!-- 下拉选择 -->
-        <el-form-item
-          v-else-if="field.type === 'select' || field.type === 'enum'"
-          :label="field.label"
-          :prop="field.field || field.name"
-          :rules="getFieldRules(field)"
-        >
-          <el-select
-            v-model="formData[field.field || field.name]"
-            :placeholder="field.placeholder || `请选择${field.label}`"
-            :disabled="field.disabled"
-            :multiple="field.multiple"
-            :filterable="field.filterable"
-            :clearable="field.clearable !== false"
-            @change="handleFieldChange"
-            style="width: 100%"
-          >
-            <el-option
-              v-for="option in field.options"
-              :key="option.value"
-              :label="option.label"
-              :value="option.value"
-            />
-          </el-select>
-        </el-form-item>
+            <!-- 多行文本输入框 -->
+            <el-form-item
+              v-else-if="getFieldType(field) === 'text_area'"
+              :label="field.cnName || field.label"
+              :prop="field.enName || field.fieldName || field.field || field.name"
+              :rules="getFieldRules(field)"
+            >
+              <el-input
+                v-model="formData[field.enName || field.fieldName || field.field || field.name]"
+                type="textarea"
+                :rows="field.rows || 3"
+                :placeholder="field.placeHolder || field.placeholder || `请输入${field.cnName || field.label}`"
+                :disabled="field.disabled"
+                :clearable="field.clearable !== false"
+                @change="handleFieldChange"
+                @blur="handleFieldChange"
+              />
+            </el-form-item>
 
-        <!-- 多行文本 -->
-        <el-form-item
-          v-else-if="field.type === 'textarea'"
-          :label="field.label"
-          :prop="field.field || field.name"
-          :rules="getFieldRules(field)"
-        >
-          <el-input
-            v-model="formData[field.field || field.name]"
-            type="textarea"
-            :rows="field.rows || 3"
-            :placeholder="field.placeholder || `请输入${field.label}`"
-            :disabled="field.disabled"
-            :clearable="field.clearable !== false"
-            @change="handleFieldChange"
-            @blur="handleFieldChange"
-          />
-        </el-form-item>
+            <!-- 数字输入框 -->
+            <el-form-item
+              v-else-if="getFieldType(field) === 'positive_number' || getFieldType(field) === 'number'"
+              :label="field.cnName || field.label"
+              :prop="field.enName || field.fieldName || field.field || field.name"
+              :rules="getFieldRules(field)"
+            >
+              <el-input-number
+                v-model="formData[field.enName || field.fieldName || field.field || field.name]"
+                :min="field.min || (getFieldType(field) === 'positive_number' ? 0 : undefined)"
+                :max="field.max"
+                :step="field.step || 1"
+                :disabled="field.disabled"
+                @change="handleFieldChange"
+                style="width: 100%"
+              />
+            </el-form-item>
 
-        <!-- JSON 编辑器 -->
-        <el-form-item
-          v-else-if="field.type === 'json'"
-          :label="field.label"
-          :prop="field.field || field.name"
-          :rules="getFieldRules(field)"
-        >
-          <monaco-editor
-            v-model="formData[field.field || field.name]"
-            language="json"
-            :height="field.height || 200"
-            @change="handleFieldChange"
-          />
-        </el-form-item>
+            <!-- 单选下拉框 -->
+            <el-form-item
+              v-else-if="getFieldType(field) === 'single_select' || getFieldType(field) === 'SINGLE_SELECT'"
+              :label="field.cnName || field.label"
+              :prop="field.enName || field.fieldName || field.field || field.name"
+              :rules="getFieldRules(field)"
+            >
+              <el-select
+                v-model="formData[field.enName || field.fieldName || field.field || field.name]"
+                :placeholder="field.placeHolder || field.placeholder || `请选择${field.cnName || field.label}`"
+                :disabled="field.disabled"
+                :filterable="field.filterable !== false"
+                :clearable="field.clearable !== false"
+                @change="handleFieldChange(field)"
+                @focus="handleFieldFocus(field)"
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="option in getAllFieldOptions(field)"
+                  :key="option.value"
+                  :label="option.label"
+                  :value="option.value"
+                />
+              </el-select>
+            </el-form-item>
 
-        <!-- 密码输入框 -->
-        <el-form-item
-          v-else-if="field.type === 'password'"
-          :label="field.label"
-          :prop="field.field || field.name"
-          :rules="getFieldRules(field)"
-        >
-          <el-input
-            v-model="formData[field.field || field.name]"
-            type="password"
-            :placeholder="field.placeholder || `请输入${field.label}`"
-            :disabled="field.disabled"
-            :clearable="field.clearable !== false"
-            show-password
-            @change="handleFieldChange"
-            @blur="handleFieldChange"
-          />
-        </el-form-item>
-
-        <!-- 日期选择器 -->
-        <el-form-item
-          v-else-if="field.type === 'date' || field.type === 'datetime'"
-          :label="field.label"
-          :prop="field.field || field.name"
-          :rules="getFieldRules(field)"
-        >
-          <el-date-picker
-            v-model="formData[field.field || field.name]"
-            :type="field.type === 'datetime' ? 'datetime' : 'date'"
-            :placeholder="field.placeholder || `请选择${field.label}`"
-            :disabled="field.disabled"
-            :clearable="field.clearable !== false"
-            @change="handleFieldChange"
-            style="width: 100%"
-          />
-        </el-form-item>
-
-        <!-- 文件上传 -->
-        <el-form-item
-          v-else-if="field.type === 'file'"
-          :label="field.label"
-          :prop="field.field || field.name"
-          :rules="getFieldRules(field)"
-        >
-          <el-upload
-            :action="field.uploadUrl || '/api/upload'"
-            :headers="uploadHeaders"
-            :accept="field.accept"
-            :multiple="field.multiple"
-            :disabled="field.disabled"
-            @success="handleFileSuccess"
-            @error="handleFileError"
-          >
-            <el-button type="primary" size="small">
-              <el-icon><Upload /></el-icon>
-              选择文件
-            </el-button>
-            <template #tip>
-              <div class="el-upload__tip" v-if="field.tip">
-                {{ field.tip }}
-              </div>
-            </template>
-          </el-upload>
-        </el-form-item>
-
-        <!-- 键值对编辑器 -->
-        <el-form-item
-          v-else-if="field.type === 'keyvalue'"
-          :label="field.label"
-          :prop="field.field || field.name"
-          :rules="getFieldRules(field)"
-        >
-          <key-value-editor v-model="formData[field.field || field.name]" @change="handleFieldChange" />
-        </el-form-item>
-
-        <!-- 数组编辑器 -->
-        <el-form-item
-          v-else-if="field.type === 'array'"
-          :label="field.label"
-          :prop="field.field || field.name"
-          :rules="getFieldRules(field)"
-        >
-          <array-editor
-            v-model="formData[field.field || field.name]"
-            :item-type="field.itemType"
-            @change="handleFieldChange"
-          />
-        </el-form-item>
-
-        <!-- 分组字段 -->
-        <el-form-item v-else-if="field.type === 'group'" :label="field.label">
-          <el-card class="group-card" shadow="never">
-            <dynamic-form
-              :config="field.fields"
-              v-model="formData[field.field || field.name]"
-              @change="handleFieldChange"
-            />
-          </el-card>
-        </el-form-item>
-
-        <!-- 默认文本输入 -->
-        <el-form-item v-else :label="field.label" :prop="field.field || field.name" :rules="getFieldRules(field)">
-          <el-input
-            v-model="formData[field.field || field.name]"
-            :placeholder="field.placeholder || `请输入${field.label}`"
-            :disabled="field.disabled"
-            :clearable="field.clearable !== false"
-            @change="handleFieldChange"
-            @blur="handleFieldChange"
-          />
-        </el-form-item>
+            <!-- 兼容旧版本的其他字段类型 -->
+            <el-form-item
+              v-else
+              :label="field.cnName || field.label"
+              :prop="field.enName || field.fieldName || field.field || field.name"
+              :rules="getFieldRules(field)"
+            >
+              <!-- 默认使用文本输入框 -->
+              <el-input
+                v-model="formData[field.enName || field.fieldName || field.field || field.name]"
+                :placeholder="field.placeHolder || field.placeholder || `请输入${field.cnName || field.label}`"
+                :disabled="field.disabled"
+                :clearable="field.clearable !== false"
+                @change="handleFieldChange"
+                @blur="handleFieldChange"
+              />
+            </el-form-item>
+          </template>
+        </div>
       </template>
     </el-form>
   </div>
@@ -256,7 +158,7 @@ const formData = reactive({});
 // 初始化表单数据
 const initFormData = () => {
   formFields.value.forEach((field) => {
-    const fieldName = field.field || field.name;
+    const fieldName = field.enName || field.fieldName || field.field || field.name;
     if (!(fieldName in formData)) {
       formData[fieldName] = getDefaultValue(field);
     }
@@ -271,6 +173,133 @@ const getDefaultValue = (field) => {
   return undefined;
 };
 
+// 获取字段类型（适配后端 formType 字段）
+const getFieldType = (field) => {
+  // 优先使用 formType，然后是 type
+  return field.formType || field.type || 'text';
+};
+
+// 获取字段选项（适配后端 dictEnum 和 dictUrl 字段）
+const getFieldOptions = (field) => {
+  const fieldName = field.enName || field.fieldName || field.field || field.name;
+
+  // 按规范：当formType为SINGLE_SELECT时处理选项
+  if (getFieldType(field) === 'single_select' || getFieldType(field) === 'SINGLE_SELECT') {
+    // 按规范：若dictType为ENUM，则从dictEnum获取
+    if (field.dictType === 'enum' && field.dictEnum && Array.isArray(field.dictEnum)) {
+      return field.dictEnum.map((item) => ({
+        label: item,
+        value: item,
+      }));
+    }
+
+    // 按规范：若dictType为URL，则从dictUrl获取
+    if (field.dictType === 'url' && field.dictUrl) {
+      // 返回动态选项数据
+      return dynamicOptions[fieldName] || [];
+    }
+  }
+
+  // 兼容旧版本的 options
+  if (field.options && Array.isArray(field.options)) {
+    return field.options;
+  }
+
+  return [];
+};
+
+// 获取字段的所有选项（静态+动态）
+const getAllFieldOptions = (field) => {
+  const fieldName = field.enName || field.fieldName || field.field || field.name;
+
+  // 优先返回动态选项
+  if (dynamicOptions[fieldName] && dynamicOptions[fieldName].length > 0) {
+    return dynamicOptions[fieldName];
+  }
+
+  // 返回静态选项
+  return getFieldOptions(field);
+};
+
+// 动态选项存储
+const dynamicOptions = reactive({});
+
+// 加载动态选项（从URL获取）
+const loadDynamicOptions = async (field) => {
+  const fieldName = field.enName || field.fieldName || field.field || field.name;
+
+  if (field.dictType === 'url' && field.dictUrl) {
+    try {
+      console.log(`加载动态选项: ${fieldName} from ${field.dictUrl}`);
+
+      // 处理URL中的参数替换
+      let url = field.dictUrl;
+
+      // 替换URL中的{datasourceId}参数
+      if (url.includes('{datasourceId}')) {
+        const datasourceId = formData.datasourceId || formData.datasource_id;
+        if (datasourceId) {
+          url = url.replace('{datasourceId}', datasourceId);
+        } else {
+          console.warn(`字段 ${fieldName} 需要 datasourceId 参数，但未找到`);
+          dynamicOptions[fieldName] = [];
+          return [];
+        }
+      }
+
+      // 这里需要导入相应的API来获取数据
+      // 根据URL的路径调用不同的API
+      let options = [];
+
+      if (url.includes('/metadata/datasource/list')) {
+        // 获取数据源列表
+        const { getDatasourceList } = await import('@/api/metadata/datasourceApi');
+        const response = await getDatasourceList('', '');
+        const data = response?.data || response || [];
+        options = data.map((item) => ({
+          label: item.datasourceName || item.name,
+          value: item.datasourceId || item.id,
+        }));
+      } else if (url.includes('/metadata/db/list')) {
+        // 获取数据库列表
+        const datasourceId = formData.datasourceId || formData.datasource_id;
+        if (datasourceId) {
+          const { getDatasourceList: getDbList } = await import('@/api/metadata/dbApi');
+          const response = await getDbList(datasourceId);
+          const data = response?.data || response || [];
+          options = data.map((item) => ({
+            label: item.dbName || item.name,
+            value: item.dbName || item.name,
+          }));
+        }
+      } else if (url.includes('/metadata/table/listTable')) {
+        // 获取表列表
+        const datasourceId = formData.datasourceId || formData.datasource_id;
+        const database = formData.database || formData.dbName;
+        if (datasourceId && database) {
+          const { listTable } = await import('@/api/metadata/tableApi');
+          const response = await listTable({ datasourceId, dbName: database });
+          const data = response?.data || response || [];
+          options = data.map((item) => ({
+            label: item.tableName || item.name,
+            value: item.tableName || item.name,
+          }));
+        }
+      }
+
+      dynamicOptions[fieldName] = options;
+      console.log(`${fieldName} 动态选项加载完成:`, options);
+      return options;
+    } catch (error) {
+      console.error(`加载 ${fieldName} 动态选项失败:`, error);
+      dynamicOptions[fieldName] = [];
+      return [];
+    }
+  }
+
+  return [];
+};
+
 // 计算表单字段
 const formFields = computed(() => {
   if (Array.isArray(props.config)) {
@@ -279,6 +308,95 @@ const formFields = computed(() => {
     return props.config.fields;
   }
   return [];
+});
+
+// 按照 tag 分组字段
+const fieldGroups = computed(() => {
+  const fields = formFields.value;
+  const groups = new Map();
+
+  // 收集所有标签及其order信息
+  const tagOrderMap = new Map();
+
+  // 将字段分配到对应的组，并收集标签order信息
+  fields.forEach((field) => {
+    const tagName = field.tag || '其他配置';
+    const tagOrder =
+      field.tagOrder !== undefined
+        ? field.tagOrder
+        : field.tag_order !== undefined
+        ? field.tag_order
+        : field.tagOrderValue !== undefined
+        ? field.tagOrderValue
+        : 999; // 支持多种可能的字段名
+
+    // 记录每个标签的order（如果有多个字段属于同一标签，使用最小的order值）
+    if (!tagOrderMap.has(tagName) || tagOrder < tagOrderMap.get(tagName)) {
+      tagOrderMap.set(tagName, tagOrder);
+    }
+
+    if (!groups.has(tagName)) {
+      groups.set(tagName, {
+        tagName: tagName,
+        fields: [],
+        order: tagOrder,
+      });
+    }
+
+    groups.get(tagName).fields.push(field);
+  });
+
+  // 更新每个组的order为对应标签的order
+  groups.forEach((group, tagName) => {
+    group.order = tagOrderMap.get(tagName) || 999;
+  });
+
+  // 对每个组内的字段按照字段的order属性进行排序
+  groups.forEach((group) => {
+    group.fields.sort((a, b) => {
+      const aOrder =
+        a.order !== undefined
+          ? a.order
+          : a.fieldOrder !== undefined
+          ? a.fieldOrder
+          : a.sort !== undefined
+          ? a.sort
+          : 999;
+      const bOrder =
+        b.order !== undefined
+          ? b.order
+          : b.fieldOrder !== undefined
+          ? b.fieldOrder
+          : b.sort !== undefined
+          ? b.sort
+          : 999;
+
+      // 如果order相同，按照字段名排序保证稳定性
+      if (aOrder === bOrder) {
+        const aName = a.enName || a.fieldName || a.field || a.name || '';
+        const bName = b.enName || b.fieldName || b.field || b.name || '';
+        return aName.localeCompare(bName);
+      }
+
+      return aOrder - bOrder;
+    });
+  });
+
+  // 转换为数组并按标签order排列，过滤空组
+  const result = Array.from(groups.values())
+    .filter((group) => group.fields.length > 0)
+    .sort((a, b) => {
+      // 如果order相同，按照标签名排序保证稳定性
+      if (a.order === b.order) {
+        return a.tagName.localeCompare(b.tagName);
+      }
+      return a.order - b.order;
+    });
+
+  console.log('字段分组结果（按order排序）:', result);
+  console.log('标签order映射:', Object.fromEntries(tagOrderMap));
+
+  return result;
 });
 
 // 上传请求头
@@ -319,7 +437,16 @@ watch(
 const getFieldRules = (field) => {
   const rules = [];
 
-  // 支持新的验证结构
+  // 支持后端返回的 required 字段
+  if (field.required === true || field.required === 'true') {
+    rules.push({
+      required: true,
+      message: `${field.cnName || field.label}不能为空`,
+      trigger: ['blur', 'change'],
+    });
+  }
+
+  // 支持新的验证结构（适配后端接口）
   if (field.validate) {
     const validate = field.validate;
 
@@ -327,7 +454,7 @@ const getFieldRules = (field) => {
     if (validate.required) {
       rules.push({
         required: true,
-        message: validate.message || `${field.label}不能为空`,
+        message: validate.message || `${field.cnName || field.label}不能为空`,
         trigger: validate.trigger || ['blur', 'change'],
       });
     }
@@ -336,7 +463,7 @@ const getFieldRules = (field) => {
     if (validate.type === 'non-empty') {
       rules.push({
         required: true,
-        message: validate.message || `${field.label}不能为空`,
+        message: validate.message || `${field.cnName || field.label}不能为空`,
         trigger: validate.trigger || ['blur', 'change'],
       });
     }
@@ -348,22 +475,13 @@ const getFieldRules = (field) => {
         trigger: validate.trigger || ['blur', 'change'],
       });
     }
-  } else {
-    // 兼容旧的验证方式
-    if (field.required) {
-      rules.push({
-        required: true,
-        message: `${field.label}不能为空`,
-        trigger: ['blur', 'change'],
-      });
-    }
   }
 
   // 正则表达式验证
   if (field.pattern) {
     rules.push({
       pattern: new RegExp(field.pattern),
-      message: field.patternMessage || `${field.label}格式不正确`,
+      message: field.patternMessage || `${field.cnName || field.label}格式不正确`,
       trigger: 'blur',
     });
   }
@@ -372,7 +490,7 @@ const getFieldRules = (field) => {
   if (field.min !== undefined) {
     rules.push({
       min: field.min,
-      message: `${field.label}长度不能小于${field.min}`,
+      message: `${field.cnName || field.label}长度不能小于${field.min}`,
       trigger: 'blur',
     });
   }
@@ -380,7 +498,7 @@ const getFieldRules = (field) => {
   if (field.max !== undefined) {
     rules.push({
       max: field.max,
-      message: `${field.label}长度不能大于${field.max}`,
+      message: `${field.cnName || field.label}长度不能大于${field.max}`,
       trigger: 'blur',
     });
   }
@@ -388,9 +506,55 @@ const getFieldRules = (field) => {
   return rules;
 };
 
+// 字段获得焦点处理（用于动态加载选项）
+const handleFieldFocus = async (field) => {
+  const fieldName = field.enName || field.fieldName || field.field || field.name;
+
+  // 如果是URL类型的字段，动态加载选项
+  if (field.dictType === 'url' && field.dictUrl) {
+    await loadDynamicOptions(field);
+  }
+};
+
 // 字段值变化处理
-const handleFieldChange = () => {
+const handleFieldChange = async (field = null) => {
+  // 处理数据源联动逻辑
+  if (field && field.enName) {
+    const fieldName = field.enName;
+
+    // 数据源变化时，清空数据库和表的选择，并加载数据库列表
+    if (fieldName === 'datasourceId' || fieldName === 'datasource_id') {
+      formData.database = undefined;
+      formData.tableName = undefined;
+      formData.table = undefined;
+
+      // 查找数据库字段并加载选项
+      const dbField = formFields.value.find(
+        (f) => (f.enName === 'database' || f.enName === 'dbName') && f.dictType === 'url',
+      );
+      if (dbField) {
+        await loadDynamicOptions(dbField);
+      }
+    }
+
+    // 数据库变化时，清空表的选择，并加载表列表
+    else if (fieldName === 'database' || fieldName === 'dbName') {
+      formData.tableName = undefined;
+      formData.table = undefined;
+
+      // 查找表字段并加载选项
+      const tableField = formFields.value.find(
+        (f) => (f.enName === 'tableName' || f.enName === 'table') && f.dictType === 'url',
+      );
+      if (tableField) {
+        await loadDynamicOptions(tableField);
+      }
+    }
+  }
+
+  // 获取所有字段的最新值
   const result = { ...formData };
+  console.log('表单数据变化:', result);
   emit('update:modelValue', result);
   emit('change', result);
 };
@@ -425,16 +589,82 @@ defineExpose({
 
 <style scoped lang="scss">
 .dynamic-form {
-  .group-card {
-    margin-top: 8px;
+  .field-group {
+    margin-bottom: 20px;
 
-    :deep(.el-card__body) {
-      padding: 16px;
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .group-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #3a71a8;
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--el-border-color-lighter);
+      position: relative;
+
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: -1px;
+        width: 30px;
+        height: 2px;
+        background: linear-gradient(90deg, #409eff, #67c23a);
+        border-radius: 1px;
+      }
     }
   }
 
   .el-form-item {
     margin-bottom: 16px;
+
+    :deep(.el-form-item__label) {
+      font-weight: 500;
+      color: #606266;
+    }
+  }
+
+  // 美化输入框样式
+  :deep(.el-input) {
+    .el-input__wrapper {
+      border-radius: 6px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        box-shadow: 0 0 0 1px var(--el-color-primary) inset;
+      }
+    }
+  }
+
+  :deep(.el-select) {
+    .el-select__wrapper {
+      border-radius: 6px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        box-shadow: 0 0 0 1px var(--el-color-primary) inset;
+      }
+    }
+  }
+
+  :deep(.el-input-number) {
+    .el-input__wrapper {
+      border-radius: 6px;
+    }
+  }
+
+  :deep(.el-textarea) {
+    .el-textarea__inner {
+      border-radius: 6px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        border-color: var(--el-color-primary);
+      }
+    }
   }
 }
 </style>

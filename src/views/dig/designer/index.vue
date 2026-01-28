@@ -30,13 +30,13 @@
             <div class="component-list">
               <div
                 v-for="source in sourceConnectors"
-                :key="source.pluginIdentifier.pluginName"
+                :key="source.name || source.pluginIdentifier?.pluginName"
                 class="component-item"
                 draggable="true"
                 @dragstart="handleDragStart($event, 'SOURCE', source)"
               >
                 <el-icon><Folder /></el-icon>
-                <span>{{ source.pluginIdentifier.pluginName }}</span>
+                <span>{{ source.displayName || source.pluginIdentifier?.pluginName || source.name }}</span>
               </div>
             </div>
           </div>
@@ -49,13 +49,13 @@
             <div class="component-list">
               <div
                 v-for="transform in transformConnectors"
-                :key="transform.pluginIdentifier.pluginName"
+                :key="transform.name || transform.pluginIdentifier?.pluginName"
                 class="component-item"
                 draggable="true"
                 @dragstart="handleDragStart($event, 'TRANSFORM', transform)"
               >
                 <el-icon><Operation /></el-icon>
-                <span>{{ transform.pluginIdentifier.pluginName }}</span>
+                <span>{{ transform.displayName || transform.pluginIdentifier?.pluginName || transform.name }}</span>
               </div>
             </div>
           </div>
@@ -68,13 +68,13 @@
             <div class="component-list">
               <div
                 v-for="sink in sinkConnectors"
-                :key="sink.pluginIdentifier.pluginName"
+                :key="sink.name || sink.pluginIdentifier?.pluginName"
                 class="component-item"
                 draggable="true"
                 @dragstart="handleDragStart($event, 'SINK', sink)"
               >
                 <el-icon><Document /></el-icon>
-                <span>{{ sink.pluginIdentifier.pluginName }}</span>
+                <span>{{ sink.displayName || sink.pluginIdentifier?.pluginName || sink.name }}</span>
               </div>
             </div>
           </div>
@@ -200,13 +200,15 @@ onMounted(async () => {
   initGraph();
 
   // 只有在 onMounted 里绑定一次
-  graph.on('node:dblclick', ({ node }) => {
+  graph.on('node:dblclick', async ({ node }) => {
     const taskData = {
       ...node.getData(),
       taskId: node.id,
       position: { x: node.getPosition().x, y: node.getPosition().y },
     };
-    openTaskConfig(taskData);
+
+    // 使用新的异步方法打开任务配置
+    await openTaskConfig(taskData);
   });
 
   // 画布空白点击关闭弹框
@@ -237,16 +239,57 @@ onMounted(async () => {
 
 const loadConnectors = async () => {
   try {
-    const [sources, transforms, sinks] = await Promise.all([
+    console.log('开始加载连接器列表...');
+
+    // 使用Promise.allSettled替代Promise.all，确保即使部分接口失败也能继续
+    const [sourcesResult, transformsResult, sinksResult] = await Promise.allSettled([
       connectorApi.getSourceConnectors(),
       connectorApi.getTransformConnectors(),
       connectorApi.getSinkConnectors(),
     ]);
-    sourceConnectors.value = sources;
-    transformConnectors.value = transforms;
-    sinkConnectors.value = sinks;
+
+    // 处理sources结果
+    if (sourcesResult.status === 'fulfilled') {
+      sourceConnectors.value = sourcesResult.value || [];
+    } else {
+      console.error('Source连接器加载失败:', sourcesResult.reason);
+      sourceConnectors.value = [];
+    }
+
+    // 处理transforms结果
+    if (transformsResult.status === 'fulfilled') {
+      transformConnectors.value = transformsResult.value || [];
+    } else {
+      console.error('Transform连接器加载失败:', transformsResult.reason);
+      transformConnectors.value = [];
+    }
+
+    // 处理sinks结果
+    if (sinksResult.status === 'fulfilled') {
+      sinkConnectors.value = sinksResult.value || [];
+    } else {
+      console.error('Sink连接器加载失败:', sinksResult.reason);
+      sinkConnectors.value = [];
+    }
+
+    console.log('连接器加载完成:', {
+      sources: sourceConnectors.value.length,
+      transforms: transformConnectors.value.length,
+      sinks: sinkConnectors.value.length,
+    });
+
+    // 检查是否所有连接器都加载失败
+    const totalConnectors =
+      sourceConnectors.value.length + transformConnectors.value.length + sinkConnectors.value.length;
+    if (totalConnectors === 0) {
+      ElMessage.warning('所有连接器加载失败，请检查网络连接或联系管理员');
+    } else if (totalConnectors < 6) {
+      // 假设正常情况下应该有较多连接器
+      ElMessage.info('部分连接器加载失败，但基本功能可用');
+    }
   } catch (error) {
-    ElMessage.error('加载连接器失败');
+    console.error('加载连接器列表失败:', error);
+    ElMessage.error('连接器服务不可用，请稍后再试');
   }
 };
 
@@ -345,12 +388,20 @@ function handleDrop(event) {
   // 创建新节点
   const nodeData = {
     id: `node_${Date.now()}`,
-    label: `${draggedComponent.component.pluginIdentifier.pluginName}_${taskIdCounter++}`,
+    label: `${
+      draggedComponent.component.displayName ||
+      draggedComponent.component.pluginIdentifier?.pluginName ||
+      draggedComponent.component.name
+    }_${taskIdCounter++}`,
     data: {
       ...draggedComponent.component,
       connectorType: draggedComponent.type,
-      taskName: `${draggedComponent.component.pluginIdentifier.pluginName}_${taskIdCounter}`,
-      connectorName: draggedComponent.component.pluginIdentifier.pluginName,
+      taskName: `${
+        draggedComponent.component.displayName ||
+        draggedComponent.component.pluginIdentifier?.pluginName ||
+        draggedComponent.component.name
+      }_${taskIdCounter}`,
+      connectorName: draggedComponent.component.name || draggedComponent.component.pluginIdentifier?.pluginName,
       status: 'unconfigured',
     },
     x: x - 80,
@@ -367,7 +418,11 @@ function handleDrop(event) {
         strokeWidth: 2,
       },
       label: {
-        text: `${draggedComponent.component.pluginIdentifier.pluginName}_${taskIdCounter}`,
+        text: `${
+          draggedComponent.component.displayName ||
+          draggedComponent.component.pluginIdentifier?.pluginName ||
+          draggedComponent.component.name
+        }_${taskIdCounter}`,
         fill: '#222',
         fontSize: 14,
         fontWeight: 600,
@@ -761,11 +816,9 @@ function saveJob() {
       })
       .catch((error) => {
         console.error('保存作业失败:', error);
-        ElMessage.error('保存作业失败');
       });
   } catch (error) {
     console.error('保存作业时发生错误:', error);
-    ElMessage.error('保存作业失败');
   }
 }
 function validateConfig() {
@@ -836,20 +889,132 @@ function resetCanvas() {
 }
 
 // 打开属性配置弹框
-const openTaskConfig = (task) => {
-  selectedTask.value = task;
-  showPropertyDialog.value = true;
+// 双击节点处理函数
+const openTaskConfig = async (task) => {
+  try {
+    console.log('双击节点，开始加载任务配置:', task);
+    console.log('任务连接器信息:', {
+      connectorType: task.connectorType,
+      connectorName: task.connectorName,
+      taskId: task.taskId,
+    });
 
-  // 如果任务已有taskId，则加载已有配置
-  if (task.taskId) {
-    loadTaskConfig(task.taskId);
+    // 设置选中的任务
+    selectedTask.value = {
+      ...task,
+      // 确保必要属性存在
+      taskName: task.taskName || task.label || '未命名任务',
+      connectorType: task.connectorType || 'SOURCE',
+      connectorName: task.connectorName || task.name,
+      dynamicFormConfig: [], // 初始化为空数组
+    };
+
+    // 先显示弹框（显示加载状态）
+    showPropertyDialog.value = true;
+
+    // 判断是否为已保存的任务（后端真实的taskId通常是数字或者不以node_开头）
+    const isExistingTask = task.taskId && task.taskId !== 'null' && !String(task.taskId).startsWith('node_');
+
+    if (isExistingTask) {
+      console.log('加载已保存的任务配置:', task.taskId);
+      await loadTaskConfig(task.taskId);
+    } else {
+      console.log('新任务，开始加载动态表单配置');
+      // 新任务：先调用 /st/connector/form 接口获取动态表单配置
+      await loadDynamicFormConfig(selectedTask.value);
+    }
+
+    console.log('任务配置加载完成，当前 selectedTask:', selectedTask.value);
+  } catch (error) {
+    console.error('打开任务配置失败:', error);
+    ElMessage.error(`打开任务配置失败: ${error.message || '未知错误'}`);
+    showPropertyDialog.value = false;
+    selectedTask.value = null;
+  }
+};
+
+// 加载动态表单配置
+const loadDynamicFormConfig = async (task) => {
+  try {
+    const connectorType = task.connectorType;
+    const connectorName = task.connectorName;
+
+    console.log('调用动态表单接口:', { connectorType, connectorName });
+
+    // 调用后端接口获取动态表单配置
+    const formConfig = await connectorApi.getConnectorForm(connectorType, connectorName);
+
+    console.log('动态表单配置加载成功:', formConfig);
+    console.log('配置数据类型:', typeof formConfig, '是否为数组:', Array.isArray(formConfig));
+
+    // 验证配置数据的有效性
+    if (!formConfig || (Array.isArray(formConfig) && formConfig.length === 0)) {
+      console.warn('动态表单配置为空或无效');
+      ElMessage.warning('该连接器暂无可配置项');
+      return;
+    }
+
+    // 确保每个字段都有必要的属性
+    let processedConfig = formConfig;
+    if (Array.isArray(formConfig)) {
+      processedConfig = formConfig.map((field, index) => {
+        const processedField = {
+          ...field,
+          // 确保字段名存在
+          fieldName: field.fieldName || field.enName || field.field || field.name || `field_${index}`,
+          enName: field.enName || field.fieldName || field.field || field.name || `field_${index}`,
+          // 确保字段标签存在
+          cnName:
+            field.cnName || field.label || field.displayName || field.fieldName || field.enName || `字段${index + 1}`,
+          // 确保字段类型存在
+          formType: field.formType || field.type || 'text',
+          // 确保分组标签存在
+          tag: field.tag || '基本配置',
+          // 确保排序值存在
+          order:
+            field.order !== undefined
+              ? field.order
+              : field.fieldOrder !== undefined
+              ? field.fieldOrder
+              : field.sort !== undefined
+              ? field.sort
+              : index,
+        };
+
+        console.log(`处理字段 ${index}:`, processedField);
+        return processedField;
+      });
+    }
+
+    console.log('处理后的动态表单配置:', processedConfig);
+
+    // 将动态表单配置传递给TaskConfigForm组件
+    if (selectedTask.value) {
+      selectedTask.value.dynamicFormConfig = processedConfig;
+      console.log('设置任务的动态表单配置完成');
+    }
+  } catch (error) {
+    console.error('加载动态表单配置失败:', error);
+    console.error('错误详情:', error.response || error.message);
+    ElMessage.error(`加载动态表单配置失败: ${error.message || '未知错误'}`);
+    throw error;
   }
 };
 
 // 加载任务配置
 const loadTaskConfig = async (taskId) => {
   try {
+    console.log('开始加载已保存的任务配置:', taskId);
+
     const taskData = await taskApi.getTaskDetail(taskId);
+
+    // 检查返回的数据是否有效
+    if (!taskData) {
+      console.warn('任务不存在或返回null，切换到新任务模式');
+      // 如果任务不存在，则按新任务处理
+      await loadDynamicFormConfig(selectedTask.value);
+      return;
+    }
 
     // 更新选中任务的配置数据
     if (selectedTask.value) {
@@ -866,9 +1031,20 @@ const loadTaskConfig = async (taskId) => {
       selectedTask.value.sinkDatasourceId = taskData.sinkDatasourceId ?? selectedTask.value.sinkDatasourceId;
       selectedTask.value.sinkTable = taskData.sinkTable ?? selectedTask.value.sinkTable;
       selectedTask.value.writeMode = taskData.writeMode ?? selectedTask.value.writeMode;
+
+      // 为已保存的任务加载动态表单配置
+      await loadDynamicFormConfig(selectedTask.value);
     }
   } catch (error) {
-    ElMessage.error('加载任务配置失败');
+    console.error('加载任务配置失败:', error);
+
+    // 如果是404或任务不存在的错误，则按新任务处理
+    if (error.response?.status === 404 || error.message?.includes('not found')) {
+      console.log('任务不存在，按新任务处理');
+      await loadDynamicFormConfig(selectedTask.value);
+    } else {
+      ElMessage.error('加载任务配置失败');
+    }
   }
 };
 
