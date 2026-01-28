@@ -48,11 +48,9 @@ export function getConnectorForm(connectorType, connectorName) {
     const dataString = response.data || response;
     try {
       const formConfig = JSON.parse(dataString);
-      console.log('解析后的动态表单配置:', formConfig);
 
       // 处理新的数据格式：{fields: {...}, tags: {...}}
       if (formConfig.fields && formConfig.tags) {
-        console.log('检测到新格式的动态表单配置');
         return processNewFormatConfig(formConfig);
       }
 
@@ -64,7 +62,6 @@ export function getConnectorForm(connectorType, connectorName) {
           // 确保enName字段存在
           enName: formConfig[fieldName].enName || fieldName,
         }));
-        console.log('转换后的表单数组(旧格式):', formArray);
         return formArray;
       }
 
@@ -76,7 +73,6 @@ export function getConnectorForm(connectorType, connectorName) {
       // 兼容其他可能的格式
       return formConfig.formItems || formConfig.fields || [];
     } catch (error) {
-      console.warn('解析动态表单配置失败:', error, 'Raw data:', dataString);
       return [];
     }
   });
@@ -149,7 +145,6 @@ function processNewFormatConfig(config) {
     return a.order - b.order;
   });
 
-  console.log('处理后的新格式字段数组:', fieldArray);
   return fieldArray;
 }
 

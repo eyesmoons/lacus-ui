@@ -192,9 +192,6 @@ const jobInfo = reactive({
 });
 
 onMounted(async () => {
-  console.log('当前路由参数:', route.query);
-  console.log('jobId:', route.query.jobId);
-
   await loadConnectors();
   await nextTick();
   initGraph();
@@ -226,21 +223,15 @@ onMounted(async () => {
   // 如果有 jobId，先获取已保存的DAG信息
   const jobId = route.query.jobId;
   if (jobId) {
-    console.log('检测到jobId，开始加载DAG数据:', jobId);
     await loadJobDagData(jobId);
     // 添加延迟确保数据加载完成
     await nextTick();
-    console.log('开始渲染DAG数据');
     renderGraphFromData();
-  } else {
-    console.log('没有检测到jobId，跳过DAG数据加载');
   }
 });
 
 const loadConnectors = async () => {
   try {
-    console.log('开始加载连接器列表...');
-
     // 使用Promise.allSettled替代Promise.all，确保即使部分接口失败也能继续
     const [sourcesResult, transformsResult, sinksResult] = await Promise.allSettled([
       connectorApi.getSourceConnectors(),
@@ -252,7 +243,6 @@ const loadConnectors = async () => {
     if (sourcesResult.status === 'fulfilled') {
       sourceConnectors.value = sourcesResult.value || [];
     } else {
-      console.error('Source连接器加载失败:', sourcesResult.reason);
       sourceConnectors.value = [];
     }
 
@@ -260,7 +250,6 @@ const loadConnectors = async () => {
     if (transformsResult.status === 'fulfilled') {
       transformConnectors.value = transformsResult.value || [];
     } else {
-      console.error('Transform连接器加载失败:', transformsResult.reason);
       transformConnectors.value = [];
     }
 
@@ -268,16 +257,8 @@ const loadConnectors = async () => {
     if (sinksResult.status === 'fulfilled') {
       sinkConnectors.value = sinksResult.value || [];
     } else {
-      console.error('Sink连接器加载失败:', sinksResult.reason);
       sinkConnectors.value = [];
     }
-
-    console.log('连接器加载完成:', {
-      sources: sourceConnectors.value.length,
-      transforms: transformConnectors.value.length,
-      sinks: sinkConnectors.value.length,
-    });
-
     // 检查是否所有连接器都加载失败
     const totalConnectors =
       sourceConnectors.value.length + transformConnectors.value.length + sinkConnectors.value.length;
@@ -296,14 +277,10 @@ const loadConnectors = async () => {
 // 加载作业的DAG信息
 const loadJobDagData = async (jobId) => {
   try {
-    console.log('开始加载DAG数据，jobId:', jobId);
     const response = await taskApi.getJobDag(jobId);
-    console.log('API返回的完整响应:', response);
 
     // 处理可能的响应包装
     const dagData = response.data || response;
-    console.log('处理后的DAG数据:', dagData);
-
     // 更新作业信息
     jobInfo.jobId = jobId;
 
@@ -325,14 +302,24 @@ const loadJobDagData = async (jobId) => {
           newTaskId = String(task.taskId);
         }
 
+        // 解析 connectorConfig 字段
+        let parsedTaskConfig = {};
+        if (task.connectorConfig) {
+          try {
+            parsedTaskConfig = JSON.parse(task.connectorConfig);
+          } catch (error) {
+            console.warn('解析任务配置失败:', error, task.connectorConfig);
+            parsedTaskConfig = {};
+          }
+        }
+
         return {
           ...task,
           taskId: newTaskId,
+          taskConfig: parsedTaskConfig, // 将解析后的配置赋值给 taskConfig
           position: task.position || { x: 100 + index * 200, y: 100 },
         };
       });
-      console.log('处理后的任务数据:', tasks.value);
-      console.log('ID映射表:', idMapping);
     } else {
       console.log('没有找到任务数据或数据格式不正确');
       console.log('dagData.plugins:', dagData.plugins);
@@ -360,14 +347,11 @@ const loadJobDagData = async (jobId) => {
           sinkPosition: edge.sinkPosition || 'left',
         };
       });
-      console.log('处理后的边数据:', edges.value);
     } else {
       console.log('没有找到关系数据或数据格式不正确');
       console.log('dagData.edges:', dagData.edges);
     }
 
-    console.log('最终的任务数据:', tasks.value);
-    console.log('最终的边数据:', edges.value);
   } catch (error) {
     console.error('加载作业DAG数据失败:', error);
     console.error('错误详情:', error.response || error);
@@ -691,15 +675,10 @@ function renderGraphFromData() {
     return;
   }
 
-  console.log('开始渲染DAG数据');
-  console.log('当前任务数据:', tasks.value);
-  console.log('当前边数据:', edges.value);
-
   graph.clearCells();
 
   // 渲染节点
   tasks.value.forEach((task) => {
-    console.log('渲染节点:', task);
     graph.addNode({
       id: task.taskId,
       x: task.position.x,
@@ -729,7 +708,6 @@ function renderGraphFromData() {
 
   // 渲染边
   edges.value.forEach((edge) => {
-    console.log('渲染边:', edge);
     graph.addEdge({
       shape: 'edge',
       source: { cell: edge.sourceTaskId, port: edge.sourcePosition },
@@ -785,19 +763,16 @@ function saveJob() {
         })),
     };
 
-    console.log('当前所有边:', edges.value);
     console.log(
       '有效的边:',
       edges.value.filter((edge) => edge.sourceTaskId && edge.sinkTaskId),
     );
-    console.log('保存的DAG数据:', dagData);
 
     // 调用保存DAG API
     taskApi
       .saveDag(dagData)
       .then((response) => {
         ElMessage.success('作业保存成功');
-        console.log('保存的DAG数据:', dagData);
 
         // 如果API返回了边的ID信息，更新边的后端ID
         if (response.data && response.data.relations) {
@@ -856,7 +831,6 @@ function validateConfig() {
       .validateTaskConfig(validateData)
       .then((response) => {
         ElMessage.success('配置验证通过');
-        console.log('验证结果:', response);
       })
       .catch((error) => {
         console.error('配置验证失败:', error);
@@ -892,13 +866,6 @@ function resetCanvas() {
 // 双击节点处理函数
 const openTaskConfig = async (task) => {
   try {
-    console.log('双击节点，开始加载任务配置:', task);
-    console.log('任务连接器信息:', {
-      connectorType: task.connectorType,
-      connectorName: task.connectorName,
-      taskId: task.taskId,
-    });
-
     // 设置选中的任务
     selectedTask.value = {
       ...task,
@@ -916,15 +883,11 @@ const openTaskConfig = async (task) => {
     const isExistingTask = task.taskId && task.taskId !== 'null' && !String(task.taskId).startsWith('node_');
 
     if (isExistingTask) {
-      console.log('加载已保存的任务配置:', task.taskId);
       await loadTaskConfig(task.taskId);
     } else {
-      console.log('新任务，开始加载动态表单配置');
       // 新任务：先调用 /st/connector/form 接口获取动态表单配置
       await loadDynamicFormConfig(selectedTask.value);
     }
-
-    console.log('任务配置加载完成，当前 selectedTask:', selectedTask.value);
   } catch (error) {
     console.error('打开任务配置失败:', error);
     ElMessage.error(`打开任务配置失败: ${error.message || '未知错误'}`);
@@ -939,15 +902,9 @@ const loadDynamicFormConfig = async (task) => {
     const connectorType = task.connectorType;
     const connectorName = task.connectorName;
 
-    console.log('调用动态表单接口:', { connectorType, connectorName });
-
     // 调用后端接口获取动态表单配置
     const formConfig = await connectorApi.getConnectorForm(connectorType, connectorName);
 
-    console.log('动态表单配置加载成功:', formConfig);
-    console.log('配置数据类型:', typeof formConfig, '是否为数组:', Array.isArray(formConfig));
-
-    // 验证配置数据的有效性
     if (!formConfig || (Array.isArray(formConfig) && formConfig.length === 0)) {
       console.warn('动态表单配置为空或无效');
       ElMessage.warning('该连接器暂无可配置项');
@@ -981,17 +938,13 @@ const loadDynamicFormConfig = async (task) => {
               : index,
         };
 
-        console.log(`处理字段 ${index}:`, processedField);
         return processedField;
       });
     }
 
-    console.log('处理后的动态表单配置:', processedConfig);
-
     // 将动态表单配置传递给TaskConfigForm组件
     if (selectedTask.value) {
       selectedTask.value.dynamicFormConfig = processedConfig;
-      console.log('设置任务的动态表单配置完成');
     }
   } catch (error) {
     console.error('加载动态表单配置失败:', error);
@@ -1004,9 +957,21 @@ const loadDynamicFormConfig = async (task) => {
 // 加载任务配置
 const loadTaskConfig = async (taskId) => {
   try {
-    console.log('开始加载已保存的任务配置:', taskId);
+    // 先尝试通过API获取任务详情
+    let taskData = null;
+    try {
+      taskData = await taskApi.getTaskDetail(taskId);
+    } catch (error) {
+      console.warn('通过API获取任务详情失败，将尝试从作业DAG数据中查找:', error);
+    }
 
-    const taskData = await taskApi.getTaskDetail(taskId);
+    // 如果API获取失败或未找到任务，尝试从当前作业DAG数据中查找
+    if (!taskData) {
+      const taskInDag = tasks.value.find(t => t.taskId === taskId);
+      if (taskInDag) {
+        taskData = taskInDag;
+      }
+    }
 
     // 检查返回的数据是否有效
     if (!taskData) {
@@ -1018,7 +983,18 @@ const loadTaskConfig = async (taskId) => {
 
     // 更新选中任务的配置数据
     if (selectedTask.value) {
-      selectedTask.value.taskConfig = taskData.taskConfig;
+      // 如果 taskData 包含 connectorConfig 字段（从作业DAG数据中），需要解析
+      if (taskData.connectorConfig && typeof taskData.connectorConfig === 'string') {
+        try {
+          selectedTask.value.taskConfig = JSON.parse(taskData.connectorConfig);
+        } catch (error) {
+          console.warn('解析 connectorConfig 失败:', error, taskData.connectorConfig);
+          selectedTask.value.taskConfig = taskData.taskConfig || {};
+        }
+      } else {
+        selectedTask.value.taskConfig = taskData.taskConfig || {};
+      }
+
       selectedTask.value.datasourceConfig = taskData.datasourceConfig;
       selectedTask.value.outputModel = taskData.outputModel;
       selectedTask.value.transformConfig = taskData.transformConfig;
@@ -1050,14 +1026,18 @@ const loadTaskConfig = async (taskId) => {
 
 // 处理任务配置更新
 const handleTaskConfigUpdate = (taskData) => {
-  if (selectedTask.value) {
+  if (selectedTask.value && graph) {
     // 更新节点数据
     Object.assign(selectedTask.value, taskData);
 
     // 更新画布中的节点
-    const node = graph.getCellById(selectedTask.value.taskId);
-    if (node) {
-      node.setData(selectedTask.value);
+    try {
+      const node = graph.getCellById(selectedTask.value.taskId);
+      if (node && typeof node.setData === 'function') {
+        node.setData(selectedTask.value);
+      }
+    } catch (error) {
+      console.error('更新画布节点失败:', error);
     }
   }
 };
@@ -1079,8 +1059,6 @@ const handleTaskIdUpdate = ({ oldTaskId, newTaskId }) => {
       edge.sinkTaskId = newTaskId;
     }
   });
-
-  console.log('更新后的边数据:', edges.value);
 };
 </script>
 

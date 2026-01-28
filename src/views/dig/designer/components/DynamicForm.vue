@@ -132,12 +132,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, computed } from 'vue';
+import { ref, reactive, watch, computed, onMounted, onUnmounted } from 'vue';
 import { Upload } from '@element-plus/icons-vue';
 import { getToken } from '@/utils/token';
 import MonacoEditor from '@/components/MonacoEditor/index.vue';
 import KeyValueEditor from './KeyValueEditor.vue';
 import ArrayEditor from './ArrayEditor.vue';
+
 
 const props = defineProps({
   config: {
@@ -217,12 +218,18 @@ const getAllFieldOptions = (field) => {
     return dynamicOptions[fieldName];
   }
 
+
+
   // 返回静态选项
   return getFieldOptions(field);
 };
 
 // 动态选项存储
 const dynamicOptions = reactive({});
+
+
+
+
 
 // 加载动态选项（从URL获取）
 const loadDynamicOptions = async (field) => {
@@ -393,9 +400,6 @@ const fieldGroups = computed(() => {
       return a.order - b.order;
     });
 
-  console.log('字段分组结果（按order排序）:', result);
-  console.log('标签order映射:', Object.fromEntries(tagOrderMap));
-
   return result;
 });
 
@@ -416,18 +420,22 @@ watch(
 // 监听外部数据变化
 watch(
   () => props.modelValue,
-  (newValue) => {
-    if (typeof newValue === 'string') {
-      if (newValue.trim() !== '') {
-        try {
-          const parsed = JSON.parse(newValue);
-          Object.assign(formData, parsed);
-        } catch (e) {
-          console.warn('Invalid JSON string:', newValue);
+  async (newValue) => {
+    try {
+      if (typeof newValue === 'string') {
+        if (newValue.trim() !== '') {
+          try {
+            const parsed = JSON.parse(newValue);
+            Object.assign(formData, parsed);
+          } catch (e) {
+            console.warn('Invalid JSON string:', newValue);
+          }
         }
+      } else if (newValue && typeof newValue === 'object') {
+        Object.assign(formData, newValue);
       }
-    } else if (newValue && typeof newValue === 'object') {
-      Object.assign(formData, newValue);
+    } catch (error) {
+      console.error('处理外部数据变化时发生错误:', error);
     }
   },
   { immediate: true, deep: true },
@@ -555,8 +563,16 @@ const handleFieldChange = async (field = null) => {
   // 获取所有字段的最新值
   const result = { ...formData };
   console.log('表单数据变化:', result);
-  emit('update:modelValue', result);
-  emit('change', result);
+
+  // 在发出事件前确保组件仍然活跃
+  if (isComponentActive) {
+    try {
+      emit('update:modelValue', result);
+      emit('change', result);
+    } catch (error) {
+      console.error('发送表单变化事件失败:', error);
+    }
+  }
 };
 
 // 文件上传成功
@@ -580,10 +596,24 @@ const resetFields = () => {
   formRef.value?.resetFields();
 };
 
+
+
 // 暴露方法
 defineExpose({
   validate,
   resetFields,
+});
+
+let isComponentActive = true;
+
+// 在组件挂载后立即尝试加载已有的数据源名称
+onMounted(() => {
+  isComponentActive = true;
+});
+
+// 在组件卸载时标记为非活跃状态
+onUnmounted(() => {
+  isComponentActive = false;
 });
 </script>
 

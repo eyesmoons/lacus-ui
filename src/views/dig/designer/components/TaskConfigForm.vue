@@ -105,12 +105,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, computed, onMounted } from 'vue';
+import { ref, reactive, watch, computed, onMounted, onUnmounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import * as connectorApi from '@/api/dig/connectorApi';
 import * as taskApi from '@/api/dig/taskApi';
 import * as tableApi from '@/api/metadata/tableApi';
 import * as columnApi from '@/api/metadata/columnApi';
+import { getDatasource } from '@/api/metadata/datasourceApi';
 import DynamicForm from './DynamicForm.vue';
 import { useRoute } from 'vue-router';
 
@@ -132,6 +133,13 @@ const selectedTable = ref(''); // 当前选中的表名
 const outputFields = ref([]); // 输出模型Tab选中的字段名
 const dynamicFormConfig = ref(null);
 const activeTab = ref('props');
+
+let isComponentActive = true;
+
+// 在组件卸载时标记为非活跃状态
+onUnmounted(() => {
+  isComponentActive = false;
+});
 
 // 表单数据
 const formData = reactive({
@@ -174,31 +182,13 @@ const availableTables = computed(() => {
 const loadTaskConfig = async () => {
   if (!formData.connectorName) return;
   try {
-    console.log('开始加载任务配置:', formData.connectorName);
-
     // 加载动态表单配置 - 适配新的后端接口
     const formConfigArray = await connectorApi.getConnectorForm(formData.connectorType, formData.connectorName);
-    console.log('动态表单配置:', formConfigArray);
-
     // 后端现在直接返回数组，不再需要解析JSON字符串
     dynamicFormConfig.value = Array.isArray(formConfigArray) ? formConfigArray : [];
-
-    // 加载其他配置
-    await loadOtherConfig();
   } catch (error) {
     console.error('加载任务配置失败:', error);
     ElMessage.error('加载任务配置失败');
-  }
-};
-
-// 加载其他配置（简化版本）
-const loadOtherConfig = async () => {
-  try {
-    console.log('加载其他配置完成');
-    // 现在所有配置都从动态表单获取，不再需要专门的加载逻辑
-  } catch (error) {
-    console.error('加载其他配置失败:', error);
-    ElMessage.error('加载其他配置失败');
   }
 };
 
@@ -215,41 +205,44 @@ watch(
 watch(
   () => props.task,
   (newTask, oldTask) => {
-    if (newTask && (!oldTask || newTask.taskId !== oldTask.taskId)) {
-      console.log('任务变化，重新加载配置:', newTask.taskId);
+    try {
+      if (newTask && (!oldTask || newTask.taskId !== oldTask.taskId)) {
+        // 先赋值基本信息，但要特别处理 connectorConfig
+        Object.assign(formData, newTask);
 
-      // 先赋值基本信息
-      Object.assign(formData, newTask);
-
-      // 检查是否为新节点（以node_开头的是前端生成的临时ID）
-      const isNewNode = !newTask.taskId || newTask.taskId === 'null' || String(newTask.taskId).startsWith('node_');
-
-      if (isNewNode) {
-        console.log('新节点，优先使用预加载的动态表单配置');
-
-        // 如果任务已经包含动态表单配置，直接使用
-        if (newTask.dynamicFormConfig) {
-          console.log('使用预加载的动态表单配置:', newTask.dynamicFormConfig);
-          dynamicFormConfig.value = newTask.dynamicFormConfig;
-          // 加载其他相关数据（数据源等）
-          loadOtherConfig();
-        } else {
-          // 否则按原来的流程加载
-          console.log('没有预加载的配置，使用默认加载流程');
-          loadTaskConfig();
+        // 如果 newTask 包含 connectorConfig 字段（从作业DAG数据中），需要解析并覆盖 taskConfig
+        if (newTask.connectorConfig && typeof newTask.connectorConfig === 'string') {
+          try {
+            formData.taskConfig = JSON.parse(newTask.connectorConfig);
+          } catch (error) {
+            console.warn('解析 connectorConfig 失败:', error, newTask.connectorConfig);
+            // 保留原始的 taskConfig 或使用空对象
+            formData.taskConfig = newTask.taskConfig || {};
+          }
         }
-      } else {
-        console.log('已保存的任务，使用预加载的配置或默认加载');
 
-        // 已保存的任务，如果有预加载的配置则使用，否则加载
-        if (newTask.dynamicFormConfig) {
-          console.log('使用预加载的动态表单配置:', newTask.dynamicFormConfig);
-          dynamicFormConfig.value = newTask.dynamicFormConfig;
-          loadOtherConfig();
+        // 检查是否为新节点（以node_开头的是前端生成的临时ID）
+        const isNewNode = !newTask.taskId || newTask.taskId === 'null' || String(newTask.taskId).startsWith('node_');
+
+        if (isNewNode) {
+          // 如果任务已经包含动态表单配置，直接使用
+          if (newTask.dynamicFormConfig) {
+            dynamicFormConfig.value = newTask.dynamicFormConfig;
+          } else {
+            // 否则按原来的流程加载
+            loadTaskConfig();
+          }
         } else {
-          loadTaskConfig();
+          // 已保存的任务，如果有预加载的配置则使用，否则加载
+          if (newTask.dynamicFormConfig) {
+            dynamicFormConfig.value = newTask.dynamicFormConfig;
+          } else {
+            loadTaskConfig();
+          }
         }
       }
+    } catch (error) {
+      console.error('处理任务变化时发生错误:', error);
     }
   },
   { immediate: true, deep: false },
@@ -303,8 +296,6 @@ const loadTableFields = async (tableName) => {
       return;
     }
 
-    console.log('加载表字段:', { datasourceId, database, tableName });
-
     // 使用 columnApi.listColumnByName 获取字段信息
     const response = await columnApi.listColumnByName(datasourceId, database, tableName);
 
@@ -314,8 +305,6 @@ const loadTableFields = async (tableName) => {
 
     // 清空之前的字段选择
     outputFields.value = [];
-
-    console.log('表字段加载完成:', fieldList.value);
   } catch (error) {
     console.error('加载表字段失败:', error);
     ElMessage.error('加载表字段失败');
@@ -394,18 +383,24 @@ const saveConfig = async () => {
       props.task.taskId = newTaskId;
 
       // 通知父组件更新节点数据
-      emit('update', {
-        ...taskData,
-        taskId: newTaskId,
-      });
+      if (isComponentActive) {
+        try {
+          emit('update', {
+            ...taskData,
+            taskId: newTaskId,
+          });
 
-      // 通知父组件更新相关边的ID（必须用旧ID映射到新ID）
-      emit('updateTaskId', {
-        oldTaskId,
-        newTaskId,
-      });
+          // 通知父组件更新相关边的ID（必须用旧ID映射到新ID）
+          emit('updateTaskId', {
+            oldTaskId,
+            newTaskId,
+          });
 
-      emit('close');
+          emit('close');
+        } catch (error) {
+          console.error('发送组件更新事件失败:', error);
+        }
+      }
     }
   } catch (error) {
     console.error('保存配置失败:', error);
