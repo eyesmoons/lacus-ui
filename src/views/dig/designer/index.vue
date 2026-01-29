@@ -124,6 +124,7 @@
           <div class="dialog-body">
             <task-config-form
               :task="selectedTask"
+              :upstream-output-model="upstreamOutputModelForDrawer"
               @update="handleTaskConfigUpdate"
               @close="handleTaskConfigClose"
               @updateTaskId="handleTaskIdUpdate"
@@ -184,6 +185,8 @@ let draggedComponent = null;
 let taskIdCounter = 1;
 const selectedEdge = ref(null);
 const showPropertyDialog = ref(false);
+/** 当前打开配置的节点的上游 Source 的 outputModel（用于 Copy Transform 左侧输入字段） */
+const upstreamOutputModelForDrawer = ref(null);
 
 const jobInfo = reactive({
   jobId: null,
@@ -316,8 +319,9 @@ const loadJobDagData = async (jobId) => {
         return {
           ...task,
           taskId: newTaskId,
-          taskConfig: parsedTaskConfig, // 将解析后的配置赋值给 taskConfig
+          taskConfig: parsedTaskConfig, // 将解析后的配置赋值给 taskConfig（仅用于兼容）
           position: task.position || { x: 100 + index * 200, y: 100 },
+          // connectorConfig 保持接口原样（字符串），TaskConfigForm 从中解析 outputModel.fields 做输出模型回显
         };
       });
     } else {
@@ -325,33 +329,49 @@ const loadJobDagData = async (jobId) => {
       console.log('dagData.plugins:', dagData.plugins);
     }
 
-    // 更新边数据 - 使用edges字段，更新ID引用
-    if (dagData.edges && Array.isArray(dagData.edges)) {
-      edges.value = dagData.edges.map((edge) => {
-        // 更新sourceTaskId和sinkTaskId
-        let sourceTaskId = String(edge.sourceTaskId);
-        let sinkTaskId = String(edge.sinkTaskId);
+    // 更新边数据 - 支持 edges/relations/relationList 等字段，兼容多种边字段名及嵌套 job
+    const rawEdges =
+      dagData.edges ??
+      dagData.relations ??
+      dagData.relationList ??
+      dagData.edgeList ??
+      (dagData.job && (dagData.job.relations ?? dagData.job.edges));
+    if (rawEdges && Array.isArray(rawEdges)) {
+      // 对边进行去重，避免重复的sourceTaskId和sinkTaskId组合
+      const uniqueRawEdges = [];
+      const seenRawEdges = new Set();
 
-        // 如果ID在映射表中，使用新的ID
-        if (idMapping[sourceTaskId]) {
-          sourceTaskId = idMapping[sourceTaskId];
-        }
-        if (idMapping[sinkTaskId]) {
-          sinkTaskId = idMapping[sinkTaskId];
-        }
+      rawEdges.forEach((edge) => {
+        let sourceTaskId = String(edge.sourceTaskId ?? edge.sourceId ?? edge.source ?? '');
+        let sinkTaskId = String(edge.sinkTaskId ?? edge.sinkId ?? edge.sink ?? edge.target ?? '');
 
-        return {
-          sourceTaskId: sourceTaskId,
-          sinkTaskId: sinkTaskId,
-          sourcePosition: edge.sourcePosition || 'right',
-          sinkPosition: edge.sinkPosition || 'left',
-        };
+        const edgeKey = `${sourceTaskId}-${sinkTaskId}`;
+        if (!seenRawEdges.has(edgeKey)) {
+          seenRawEdges.add(edgeKey);
+          uniqueRawEdges.push(edge);
+        }
       });
+
+      edges.value = uniqueRawEdges
+        .map((edge) => {
+          let sourceTaskId = String(edge.sourceTaskId ?? edge.sourceId ?? edge.source ?? '');
+          let sinkTaskId = String(edge.sinkTaskId ?? edge.sinkId ?? edge.sink ?? edge.target ?? '');
+
+          if (idMapping[sourceTaskId]) sourceTaskId = idMapping[sourceTaskId];
+          if (idMapping[sinkTaskId]) sinkTaskId = idMapping[sinkTaskId];
+
+          return {
+            sourceTaskId,
+            sinkTaskId,
+            sourcePosition: edge.sourcePosition ?? edge.sourcePort ?? 'right',
+            sinkPosition: edge.sinkPosition ?? edge.sinkPort ?? edge.targetPort ?? 'left',
+          };
+        })
+        .filter((e) => e.sourceTaskId && e.sinkTaskId);
     } else {
       console.log('没有找到关系数据或数据格式不正确');
-      console.log('dagData.edges:', dagData.edges);
+      console.log('dagData.edges/relations:', rawEdges);
     }
-
   } catch (error) {
     console.error('加载作业DAG数据失败:', error);
     console.error('错误详情:', error.response || error);
@@ -613,15 +633,7 @@ function initGraph() {
     // 同步 edges.value
     const source = edge.getSource();
     const target = edge.getTarget();
-    edges.value = edges.value.filter(
-      (e) =>
-        !(
-          e.sourceTaskId === source.cell &&
-          e.sinkTaskId === target.cell &&
-          e.sourcePosition === source.port &&
-          e.sinkPosition === target.port
-        ),
-    );
+    edges.value = edges.value.filter((e) => !(e.sourceTaskId === source.cell && e.sinkTaskId === target.cell));
     selectedEdge.value = null;
   });
 
@@ -630,13 +642,22 @@ function initGraph() {
     const source = edge.getSource();
     const target = edge.getTarget();
 
-    // 添加到edges.value
-    edges.value.push({
-      sourceTaskId: source.cell,
-      sinkTaskId: target.cell,
-      sourcePosition: source.port,
-      sinkPosition: target.port,
-    });
+    // 检查是否已经存在相同的边，避免重复添加
+    const sourceTaskId = source.cell;
+    const sinkTaskId = target.cell;
+    const existingEdgeIndex = edges.value.findIndex(
+      (e) => e.sourceTaskId === sourceTaskId && e.sinkTaskId === sinkTaskId,
+    );
+
+    if (existingEdgeIndex === -1) {
+      // 添加到edges.value
+      edges.value.push({
+        sourceTaskId: sourceTaskId,
+        sinkTaskId: sinkTaskId,
+        sourcePosition: source.port,
+        sinkPosition: target.port,
+      });
+    }
   });
 
   // 键盘删除
@@ -677,10 +698,11 @@ function renderGraphFromData() {
 
   graph.clearCells();
 
-  // 渲染节点
+  // 渲染节点（id 统一为字符串，与边的 sourceTaskId/sinkTaskId 一致）
   tasks.value.forEach((task) => {
+    const nodeId = String(task.taskId ?? '');
     graph.addNode({
-      id: task.taskId,
+      id: nodeId,
       x: task.position.x,
       y: task.position.y,
       width: 160,
@@ -706,12 +728,16 @@ function renderGraphFromData() {
     });
   });
 
-  // 渲染边
-  edges.value.forEach((edge) => {
+  // 渲染边（cell 与节点 id 一致为字符串）
+  edges.value.forEach((edge, idx) => {
+    const sourceId = String(edge.sourceTaskId ?? '');
+    const targetId = String(edge.sinkTaskId ?? '');
+    if (!sourceId || !targetId) return;
     graph.addEdge({
+      id: `edge_${sourceId}_${targetId}_${idx}`,
       shape: 'edge',
-      source: { cell: edge.sourceTaskId, port: edge.sourcePosition },
-      target: { cell: edge.sinkTaskId, port: edge.sinkPosition },
+      source: { cell: sourceId, port: edge.sourcePosition },
+      target: { cell: targetId, port: edge.sinkPosition },
       attrs: {
         line: {
           stroke: '#409EFF',
@@ -753,14 +779,26 @@ function saveJob() {
     }
 
     // 组装DAG数据（节点和边的关系）
+    // 对边进行去重，避免重复的sourceTaskId和sinkTaskId组合
+    const uniqueEdges = [];
+    const seenEdges = new Set();
+
+    edges.value
+      .filter((edge) => edge.sourceTaskId && edge.sinkTaskId) // 只保存有效的边
+      .forEach((edge) => {
+        const edgeKey = `${edge.sourceTaskId}-${edge.sinkTaskId}`;
+        if (!seenEdges.has(edgeKey)) {
+          seenEdges.add(edgeKey);
+          uniqueEdges.push({
+            sourceTaskId: edge.sourceTaskId,
+            sinkTaskId: edge.sinkTaskId,
+          });
+        }
+      });
+
     const dagData = {
       jobId: parseInt(jobId),
-      relations: edges.value
-        .filter((edge) => edge.sourceTaskId && edge.sinkTaskId) // 只保存有效的边
-        .map((edge) => ({
-          sourceTaskId: edge.sourceTaskId,
-          sinkTaskId: edge.sinkTaskId,
-        })),
+      relations: uniqueEdges,
     };
 
     console.log(
@@ -772,11 +810,13 @@ function saveJob() {
     taskApi
       .saveDag(dagData)
       .then((response) => {
+        if (!response) return;
         ElMessage.success('作业保存成功');
 
         // 如果API返回了边的ID信息，更新边的后端ID
-        if (response.data && response.data.relations) {
-          response.data.relations.forEach((relation, index) => {
+        const data = response.data ?? response;
+        if (data && Array.isArray(data.relations)) {
+          data.relations.forEach((relation) => {
             const edge = edges.value.find(
               (e) => e.sourceTaskId === relation.sourceTaskId && e.sinkTaskId === relation.sinkTaskId,
             );
@@ -862,37 +902,58 @@ function resetCanvas() {
   if (graph) graph.zoomTo(1);
 }
 
+// 根据连线计算当前节点的上游 Source 的 outputModel（用于 Copy Transform 左侧输入字段）
+// 直接使用后端 DAG 接口（st/job/task/dag）返回的 tasks/edges 数据，无需再点开 Source 选表
+function computeUpstreamOutputModel(currentTaskId) {
+  if (!currentTaskId) return null;
+  const incoming = edges.value.filter((e) => e.sinkTaskId === currentTaskId);
+  if (incoming.length === 0) return null;
+  const sourceTaskId = incoming[0].sourceTaskId;
+  const sourceTask = tasks.value.find((t) => t.taskId === sourceTaskId);
+  if (!sourceTask?.connectorConfig) return null;
+  try {
+    const parsed =
+      typeof sourceTask.connectorConfig === 'string'
+        ? JSON.parse(sourceTask.connectorConfig)
+        : sourceTask.connectorConfig;
+    return parsed?.outputModel ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // 打开属性配置弹框
-// 双击节点处理函数
+// 双击节点处理函数：已存在任务先拉取详情并更新 connectorConfig，再打开弹框，避免第一次打开时输出模型「正在加载字段...」
 const openTaskConfig = async (task) => {
   try {
     // 设置选中的任务
     selectedTask.value = {
       ...task,
-      // 确保必要属性存在
       taskName: task.taskName || task.label || '未命名任务',
       connectorType: task.connectorType || 'SOURCE',
       connectorName: task.connectorName || task.name,
       dynamicFormConfig: [], // 初始化为空数组
     };
 
-    // 先显示弹框（显示加载状态）
-    showPropertyDialog.value = true;
+    // Copy Transform 等需要上游输出：根据连线取上游 Source 的 outputModel，供字段映射左侧列表使用
+    upstreamOutputModelForDrawer.value = computeUpstreamOutputModel(task.taskId);
 
-    // 判断是否为已保存的任务（后端真实的taskId通常是数字或者不以node_开头）
     const isExistingTask = task.taskId && task.taskId !== 'null' && !String(task.taskId).startsWith('node_');
 
     if (isExistingTask) {
+      // 已存在任务：先拉取任务配置并写入 selectedTask.connectorConfig，再打开弹框，保证 TaskConfigForm 首次即拿到完整数据
       await loadTaskConfig(task.taskId);
     } else {
-      // 新任务：先调用 /st/connector/form 接口获取动态表单配置
       await loadDynamicFormConfig(selectedTask.value);
     }
+
+    showPropertyDialog.value = true;
   } catch (error) {
     console.error('打开任务配置失败:', error);
     ElMessage.error(`打开任务配置失败: ${error.message || '未知错误'}`);
     showPropertyDialog.value = false;
     selectedTask.value = null;
+    upstreamOutputModelForDrawer.value = null;
   }
 };
 
@@ -967,7 +1028,7 @@ const loadTaskConfig = async (taskId) => {
 
     // 如果API获取失败或未找到任务，尝试从当前作业DAG数据中查找
     if (!taskData) {
-      const taskInDag = tasks.value.find(t => t.taskId === taskId);
+      const taskInDag = tasks.value.find((t) => t.taskId === taskId);
       if (taskInDag) {
         taskData = taskInDag;
       }
@@ -981,34 +1042,21 @@ const loadTaskConfig = async (taskId) => {
       return;
     }
 
-    // 更新选中任务的配置数据
+    // 更新选中任务的配置数据：用新对象替换 selectedTask，保证 TaskConfigForm 的 watch 能检测到变化并一次渲染正确
     if (selectedTask.value) {
-      // 如果 taskData 包含 connectorConfig 字段（从作业DAG数据中），需要解析
-      if (taskData.connectorConfig && typeof taskData.connectorConfig === 'string') {
-        try {
-          selectedTask.value.taskConfig = JSON.parse(taskData.connectorConfig);
-        } catch (error) {
-          console.warn('解析 connectorConfig 失败:', error, taskData.connectorConfig);
-          selectedTask.value.taskConfig = taskData.taskConfig || {};
-        }
-      } else {
-        selectedTask.value.taskConfig = taskData.taskConfig || {};
-      }
+      const connectorConfigStr =
+        typeof taskData.connectorConfig === 'string'
+          ? taskData.connectorConfig
+          : JSON.stringify(taskData.connectorConfig ?? {});
 
-      selectedTask.value.datasourceConfig = taskData.datasourceConfig;
-      selectedTask.value.outputModel = taskData.outputModel;
-      selectedTask.value.transformConfig = taskData.transformConfig;
-      // 关键字段统一写回，保证表单可正确联动渲染
-      selectedTask.value.datasourceId = taskData.datasourceId;
-      selectedTask.value.taskName = taskData.taskName || selectedTask.value.taskName;
-      selectedTask.value.connectorType = taskData.connectorType || selectedTask.value.connectorType;
-      selectedTask.value.connectorName = taskData.connectorName || selectedTask.value.connectorName;
-      // Sink 相关（若后端返回则写回）
-      selectedTask.value.sinkDatasourceId = taskData.sinkDatasourceId ?? selectedTask.value.sinkDatasourceId;
-      selectedTask.value.sinkTable = taskData.sinkTable ?? selectedTask.value.sinkTable;
-      selectedTask.value.writeMode = taskData.writeMode ?? selectedTask.value.writeMode;
+      selectedTask.value = {
+        ...selectedTask.value,
+        connectorConfig: connectorConfigStr,
+        taskName: taskData.taskName ?? selectedTask.value.taskName,
+        connectorType: taskData.connectorType ?? selectedTask.value.connectorType,
+        connectorName: taskData.connectorName ?? selectedTask.value.connectorName,
+      };
 
-      // 为已保存的任务加载动态表单配置
       await loadDynamicFormConfig(selectedTask.value);
     }
   } catch (error) {
@@ -1030,6 +1078,12 @@ const handleTaskConfigUpdate = (taskData) => {
     // 更新节点数据
     Object.assign(selectedTask.value, taskData);
 
+    // 同步到 tasks（后端 DAG 数据源），保证 Copy Transform 打开时能直接读到上游 Source 的 outputModel
+    const idx = tasks.value.findIndex((t) => t.taskId === selectedTask.value.taskId);
+    if (idx >= 0) {
+      tasks.value[idx] = { ...tasks.value[idx], ...taskData };
+    }
+
     // 更新画布中的节点
     try {
       const node = graph.getCellById(selectedTask.value.taskId);
@@ -1046,6 +1100,7 @@ const handleTaskConfigUpdate = (taskData) => {
 const handleTaskConfigClose = () => {
   showPropertyDialog.value = false;
   selectedTask.value = null;
+  upstreamOutputModelForDrawer.value = null;
 };
 
 // 处理任务ID更新
