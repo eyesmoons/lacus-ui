@@ -902,24 +902,69 @@ function resetCanvas() {
   if (graph) graph.zoomTo(1);
 }
 
-// 根据连线计算当前节点的上游 Source 的 outputModel（用于 Copy Transform 左侧输入字段）
-// 直接使用后端 DAG 接口（st/job/task/dag）返回的 tasks/edges 数据，无需再点开 Source 选表
+// 根据连线计算当前节点的上游节点的 outputModel（用于 Copy Transform 和 SINK 组件左侧输入字段）
+// 支持多级连接：如果上游是 Transform，则继续向上追溯；否则直接使用 Source 的 outputModel
 function computeUpstreamOutputModel(currentTaskId) {
   if (!currentTaskId) return null;
-  const incoming = edges.value.filter((e) => e.sinkTaskId === currentTaskId);
-  if (incoming.length === 0) return null;
-  const sourceTaskId = incoming[0].sourceTaskId;
-  const sourceTask = tasks.value.find((t) => t.taskId === sourceTaskId);
-  if (!sourceTask?.connectorConfig) return null;
-  try {
-    const parsed =
-      typeof sourceTask.connectorConfig === 'string'
-        ? JSON.parse(sourceTask.connectorConfig)
-        : sourceTask.connectorConfig;
-    return parsed?.outputModel ?? null;
-  } catch {
-    return null;
+
+  // 递归查找上游输出模型
+  function findUpstreamOutput(taskId, visited = []) {
+    // 防止循环引用
+    if (visited.includes(taskId)) return null;
+    visited.push(taskId);
+
+    const incoming = edges.value.filter((e) => e.sinkTaskId === taskId);
+    if (incoming.length === 0) return null;
+
+    // 查找第一个上游任务
+    const upstreamTaskId = incoming[0].sourceTaskId;
+    const upstreamTask = tasks.value.find((t) => t.taskId === upstreamTaskId);
+
+    if (!upstreamTask?.connectorConfig) return null;
+
+    try {
+      const parsed =
+        typeof upstreamTask.connectorConfig === 'string'
+          ? JSON.parse(upstreamTask.connectorConfig)
+          : upstreamTask.connectorConfig;
+
+      // 如果上游是 Transform 类型，继续向上查找
+      if (upstreamTask.connectorType === 'TRANSFORM') {
+        // 如果 Transform 有自己的 outputModel，优先使用
+        if (parsed?.outputModel) {
+          // 检查 outputModel 是否是新格式（包含 fields 数组和 relation 映射）
+          if (typeof parsed.outputModel === 'object' && !Array.isArray(parsed.outputModel)) {
+            // 如果包含 fields 数组，认为是新格式
+            if (Array.isArray(parsed.outputModel.fields)) {
+              return parsed.outputModel;
+            }
+            // 如果包含 tableName 或 table 字段，认为是标准格式
+            else if (parsed.outputModel.tableName || parsed.outputModel.table) {
+              return parsed.outputModel;
+            } else {
+              // 否则是字段映射格式，提取字段名作为输出字段，并保留原始映射关系
+              const fields = Object.keys(parsed.outputModel);
+              return {
+                tableName: '',
+                fields: fields,
+                relation: parsed.outputModel, // 保留原始的字段映射关系
+              };
+            }
+          }
+        }
+        // 否则继续向上追溯
+        return findUpstreamOutput(upstreamTaskId, visited);
+      } else {
+        // 如果是 Source 或其他类型，直接返回其 outputModel
+        return parsed?.outputModel ?? null;
+      }
+    } catch (error) {
+      console.error('解析上游任务配置失败:', error);
+      return null;
+    }
   }
+
+  return findUpstreamOutput(currentTaskId);
 }
 
 // 打开属性配置弹框

@@ -71,7 +71,7 @@
               :rules="getFieldRules(field)"
             >
               <el-input-number
-                v-model="formData[field.enName || field.fieldName || field.field || field.name]"
+                v-model.number="formData[field.enName || field.fieldName || field.field || field.name]"
                 :min="field.min || (getFieldType(field) === 'positive_number' ? 0 : undefined)"
                 :max="field.max"
                 :step="field.step || 1"
@@ -139,7 +139,6 @@ import MonacoEditor from '@/components/MonacoEditor/index.vue';
 import KeyValueEditor from './KeyValueEditor.vue';
 import ArrayEditor from './ArrayEditor.vue';
 
-
 const props = defineProps({
   config: {
     type: [Array, Object],
@@ -165,7 +164,7 @@ const initFormData = async () => {
       if (field.dictType === 'url' && field.dictUrl) {
         await loadDynamicOptions(field);
       }
-      
+
       formData[fieldName] = getDefaultValue(field);
     }
   }
@@ -222,17 +221,17 @@ const getAllFieldOptions = (field) => {
   if (dynamicOptions[fieldName] && dynamicOptions[fieldName].length > 0) {
     // 检查当前字段值是否在动态选项中，如果没有，但当前值是数据源相关的，可以尝试从formData中获取原始数据源信息
     const currentValue = formData[fieldName];
-    const hasCurrentValue = dynamicOptions[fieldName].some(option => option.value == currentValue); // 使用宽松比较以处理数字和字符串
-    
+    const hasCurrentValue = dynamicOptions[fieldName].some((option) => option.value == currentValue); // 使用宽松比较以处理数字和字符串
+
     // 如果当前值不在选项中，但这是一个数据源相关的字段，我们可以考虑添加一个临时选项
     if (currentValue != null && !hasCurrentValue) {
       // 检查是否是数据源ID字段
       if ((fieldName === 'datasourceId' || fieldName === 'datasource_id') && currentValue) {
         // 尝试查找对应的名称（仅在当前数据源列表中查找）
         const savedValue = currentValue;
-        
+
         // 如果有动态加载的数据源列表，尝试从中查找
-        const matchedOption = dynamicOptions[fieldName].find(option => option.value == savedValue);
+        const matchedOption = dynamicOptions[fieldName].find((option) => option.value == savedValue);
         if (!matchedOption) {
           // 如果当前值不在动态选项中，但它是数据源ID，我们可以保留原选项数组
           // 但确保el-select能正确显示
@@ -240,7 +239,7 @@ const getAllFieldOptions = (field) => {
         }
       }
     }
-    
+
     return dynamicOptions[fieldName];
   }
 
@@ -251,18 +250,12 @@ const getAllFieldOptions = (field) => {
 // 动态选项存储
 const dynamicOptions = reactive({});
 
-
-
-
-
 // 加载动态选项（从URL获取）
 const loadDynamicOptions = async (field) => {
   const fieldName = field.enName || field.fieldName || field.field || field.name;
 
   if (field.dictType === 'url' && field.dictUrl) {
     try {
-
-
       // 处理URL中的参数替换
       let url = field.dictUrl;
 
@@ -275,6 +268,24 @@ const loadDynamicOptions = async (field) => {
           console.warn(`字段 ${fieldName} 需要 datasourceId 参数，但未找到`);
           dynamicOptions[fieldName] = [];
           return [];
+        }
+      }
+
+      // 替换URL中的其他可能参数
+      if (url.includes('{database}') || url.includes('{dbName}')) {
+        const database = formData.database || formData.dbName;
+        if (database) {
+          url = url.replace('{database}', database).replace('{dbName}', database);
+        } else {
+          // 如果是获取表列表的请求，但数据库未选择，不报错，只是返回空列表
+          if (url.includes('/metadata/table/listTable')) {
+            dynamicOptions[fieldName] = [];
+            return [];
+          } else {
+            console.warn(`字段 ${fieldName} 需要 database 参数，但未找到`);
+            dynamicOptions[fieldName] = [];
+            return [];
+          }
         }
       }
 
@@ -295,8 +306,8 @@ const loadDynamicOptions = async (field) => {
         // 获取数据库列表
         const datasourceId = formData.datasourceId || formData.datasource_id;
         if (datasourceId) {
-          const { getDatasourceList: getDbList } = await import('@/api/metadata/dbApi');
-          const response = await getDbList(datasourceId);
+          const { getDatasourceList } = await import('@/api/metadata/dbApi');
+          const response = await getDatasourceList(datasourceId);
           const data = response?.data || response || [];
           options = data.map((item) => ({
             label: item.dbName || item.name,
@@ -447,7 +458,7 @@ watch(
   async (newValue) => {
     try {
       let newFormData = {};
-      
+
       if (typeof newValue === 'string') {
         if (newValue.trim() !== '') {
           try {
@@ -459,19 +470,19 @@ watch(
       } else if (newValue && typeof newValue === 'object') {
         newFormData = { ...newValue };
       }
-      
+
       // 在设置表单数据之前，先加载相关的动态选项
       // 特别是当存在数据源ID等需要动态加载的字段时
       for (const field of formFields.value) {
         const fieldName = field.enName || field.fieldName || field.field || field.name;
         const fieldValue = newFormData[fieldName];
-        
+
         // 如果是URL类型的字段且有初始值，先加载选项
         if (field.dictType === 'url' && field.dictUrl && fieldValue != null) {
           await loadDynamicOptions(field);
         }
       }
-      
+
       // 设置表单数据
       Object.assign(formData, newFormData);
     } catch (error) {
@@ -567,7 +578,7 @@ const handleFieldFocus = async (field) => {
 // 在组件挂载后立即尝试加载所有URL类型的字段选项
 onMounted(async () => {
   isComponentActive = true;
-  
+
   // 尝试加载所有URL类型的字段选项，以确保初始数据显示正确
   for (const field of formFields.value) {
     if (field.dictType === 'url' && field.dictUrl) {
@@ -615,7 +626,6 @@ const handleFieldChange = async (field = null) => {
   // 获取所有字段的最新值
   const result = { ...formData };
 
-
   // 在发出事件前确保组件仍然活跃
   if (isComponentActive) {
     try {
@@ -648,8 +658,6 @@ const resetFields = () => {
   formRef.value?.resetFields();
 };
 
-
-
 // 暴露方法
 defineExpose({
   validate,
@@ -657,8 +665,6 @@ defineExpose({
 });
 
 let isComponentActive = false;
-
-
 
 // 在组件卸载时标记为非活跃状态
 onUnmounted(() => {

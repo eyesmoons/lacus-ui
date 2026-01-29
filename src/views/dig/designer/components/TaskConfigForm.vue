@@ -16,14 +16,20 @@
           <!-- 动态表单配置（SOURCE类型）：不含输出模型字段，输出模型在右侧 Tab 配置 -->
           <div
             class="config-section"
-            v-if="formData.connectorType === 'SOURCE' && dynamicFormConfigFiltered && dynamicFormConfigFiltered.length > 0"
+            v-if="
+              formData.connectorType === 'SOURCE' && dynamicFormConfigFiltered && dynamicFormConfigFiltered.length > 0
+            "
           >
             <dynamic-form :config="dynamicFormConfigFiltered" v-model="formData.taskConfig" @change="onConfigChange" />
           </div>
           <!-- 动态表单配置（TRANSFORM类型） -->
           <div
             class="config-section"
-            v-if="formData.connectorType === 'TRANSFORM' && dynamicFormConfigFiltered && dynamicFormConfigFiltered.length > 0"
+            v-if="
+              formData.connectorType === 'TRANSFORM' &&
+              dynamicFormConfigFiltered &&
+              dynamicFormConfigFiltered.length > 0
+            "
           >
             <div class="section-title">转换配置</div>
             <dynamic-form :config="dynamicFormConfigFiltered" v-model="formData.taskConfig" @change="onConfigChange" />
@@ -31,7 +37,9 @@
           <!-- 动态表单配置（SINK类型）：不含输出模型字段 -->
           <div
             class="config-section"
-            v-if="formData.connectorType === 'SINK' && dynamicFormConfigFiltered && dynamicFormConfigFiltered.length > 0"
+            v-if="
+              formData.connectorType === 'SINK' && dynamicFormConfigFiltered && dynamicFormConfigFiltered.length > 0
+            "
           >
             <div class="section-title">输出配置</div>
             <dynamic-form :config="dynamicFormConfigFiltered" v-model="formData.taskConfig" @change="onConfigChange" />
@@ -108,7 +116,7 @@
         </div>
       </el-tab-pane>
       <!-- Copy 类 Transform：输入/输出合并为字段映射（左表 + 复制 → 右表） -->
-      <el-tab-pane v-if="isCopyTransform" label="字段映射" name="copyMap">
+      <el-tab-pane v-if="isCopyTransform" label="模型配置" name="copyMap">
         <div class="output-model-section">
           <div class="copy-transform-header">
             <div class="table-select-panel">
@@ -127,13 +135,10 @@
               </div>
             </div>
           </div>
-          <CopyTransformFieldMap
-            :input-field-list="inputFieldList"
-            v-model="copyOutputFields"
-          />
+          <CopyTransformFieldMap :input-field-list="inputFieldList" v-model="copyOutputFields" />
         </div>
       </el-tab-pane>
-      <el-tab-pane v-if="!isCopyTransform" label="输出模型" name="output">
+      <el-tab-pane v-if="!isCopyTransform && formData.connectorType !== 'SINK'" label="输出模型" name="output">
         <div class="output-model-section">
           <div class="output-model-container">
             <div class="table-select-panel">
@@ -205,6 +210,88 @@
           </div>
         </div>
       </el-tab-pane>
+      <!-- SINK 组件：字段映射（左表+映射→右表） -->
+      <el-tab-pane v-if="formData.connectorType === 'SINK'" label="字段映射" name="sinkMap">
+        <div class="output-model-section">
+          <div class="copy-transform-header">
+            <div class="table-select-panel">
+              <div class="section-title">目标表名</div>
+              <div class="table-options">
+                <ul class="table-list">
+                  <li
+                    v-for="tableName in availableTables"
+                    :key="tableName"
+                    :class="{ active: selectedTable === tableName }"
+                    @click="onOutputTableChange(tableName)"
+                  >
+                    {{ tableName }}
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="field-mapping-container">
+            <div class="mapping-header">
+              <div class="panel-label">上游输出字段</div>
+              <div class="panel-label center-label">字段映射关系</div>
+              <div class="panel-label">目标表字段</div>
+            </div>
+            <div class="mapping-body">
+              <!-- 左侧面板：上游输出字段列表 -->
+              <div class="panel left-panel">
+                <div class="section-title">上游输出字段</div>
+                <div v-if="!inputFieldList.length" class="empty-tip">请先建立与上游节点的连接以获取输出字段</div>
+                <el-table v-else :data="inputFieldList" size="small" max-height="400" class="field-table">
+                  <el-table-column type="index" label="#" width="40" align="center" />
+                  <el-table-column prop="columnName" label="字段名" min-width="100" show-overflow-tooltip>
+                    <template #default="scope">
+                      {{ getRowColumnName(scope.row) || '-' }}
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="columnType" label="类型" width="90" show-overflow-tooltip />
+                </el-table>
+              </div>
+              <!-- 中间：连接线示意 -->
+              <div class="panel center-panel">
+                <div class="connection-lines">
+                  <div v-if="!fieldList.length" class="no-connections">等待选择目标表</div>
+                </div>
+              </div>
+              <!-- 右侧面板：目标表字段列表，用于映射 -->
+              <div class="panel right-panel">
+                <div class="section-title">目标表字段</div>
+                <div v-if="!fieldList.length" class="empty-tip">请先选择目标表</div>
+                <el-table v-else :data="fieldList" size="small" max-height="400" class="field-table">
+                  <el-table-column type="index" label="#" width="40" align="center" />
+                  <el-table-column label="目标字段" min-width="100">
+                    <template #default="scope">
+                      <span class="target-name">{{ getRowColumnName(scope.row) }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="映射来源" min-width="140">
+                    <template #default="scope">
+                      <el-select
+                        v-model="mappingFields[getRowColumnName(scope.row)]"
+                        size="small"
+                        placeholder="选择映射字段"
+                        clearable
+                        @change="onFieldMappingChange"
+                      >
+                        <el-option
+                          v-for="inputField in inputFieldList"
+                          :key="getRowColumnName(inputField)"
+                          :label="getRowColumnName(inputField)"
+                          :value="getRowColumnName(inputField)"
+                        />
+                      </el-select>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </el-tab-pane>
     </el-tabs>
   </div>
 </template>
@@ -235,6 +322,36 @@ const props = defineProps({
 const emit = defineEmits(['update', 'close', 'updateTaskId']);
 const route = useRoute();
 
+// 转换表单数据中的数值字段为适当类型
+const convertFormValuesToCorrectTypes = (formData, formConfig) => {
+  if (!formData || !formConfig || !Array.isArray(formConfig)) {
+    return formData;
+  }
+
+  const convertedData = { ...formData };
+
+  formConfig.forEach((field) => {
+    const fieldName = field.enName || field.fieldName || field.field || field.name;
+    const fieldValue = convertedData[fieldName];
+
+    // 如果字段值存在且是字符串类型
+    if (fieldValue !== undefined && typeof fieldValue === 'string') {
+      // 检查字段类型是否为数字类型
+      const fieldType = field.formType || field.type || 'text';
+
+      if (fieldType === 'number' || fieldType === 'positive_number') {
+        // 尝试转换为数字
+        const numValue = Number(fieldValue);
+        if (!isNaN(numValue)) {
+          convertedData[fieldName] = numValue;
+        }
+      }
+    }
+  });
+
+  return convertedData;
+};
+
 // 响应式数据
 const formRef = ref(null);
 const outputTableRef = ref(null);
@@ -248,6 +365,7 @@ const copyOutputFields = ref([]); // Copy 类 Transform：右侧映射列表 [{ 
 const inputFieldList = ref([]); // 输入表字段列表（仅 Transform）
 const selectedInputTable = ref(''); // 输入模型：当前选中的表名（仅 Transform）
 const inputFields = ref([]); // 输入模型：选中的字段名（仅 Transform）
+const mappingFields = ref({}); // SINK 组件字段映射关系：目标字段 -> 源字段
 const dynamicFormConfig = ref(null);
 const activeTab = ref('props');
 // 正在从 connectorConfig 回显 outputModel/inputModel 时置为 true，避免 updateOutputModel 覆盖勾选
@@ -298,7 +416,9 @@ const dynamicFormConfigFiltered = computed(() => {
     const name = (f.enName || f.fieldName || f.field || f.name || '').toLowerCase();
     const cn = (f.cnName || f.label || f.displayName || '').toString();
     const tag = (f.tag || '').toString();
-    return outputModelKeys.some((k) => name.includes(k.toLowerCase()) || cn.includes('输出模型') || tag.includes('输出模型'));
+    return outputModelKeys.some(
+      (k) => name.includes(k.toLowerCase()) || cn.includes('输出模型') || tag.includes('输出模型'),
+    );
   };
   return config.filter((f) => !isOutputModelField(f));
 });
@@ -313,8 +433,8 @@ const availableTables = computed(() => {
 });
 
 // 输出模型：已选字段名集合（小写，用于受控勾选判断）
-const outputFieldsSetLower = computed(() =>
-  new Set(outputFields.value.map((f) => String(f).trim().toLowerCase()).filter(Boolean)),
+const outputFieldsSetLower = computed(
+  () => new Set(outputFields.value.map((f) => String(f).trim().toLowerCase()).filter(Boolean)),
 );
 const isOutputFieldSelected = (row) => outputFieldsSetLower.value.has(getRowColumnName(row).toLowerCase());
 const isAllOutputFieldsSelected = computed(() => {
@@ -344,8 +464,8 @@ const setOutputFieldSelected = (row, selected) => {
 };
 
 // 输入模型：已选字段名集合（小写，用于受控勾选判断）
-const inputFieldsSetLower = computed(() =>
-  new Set(inputFields.value.map((f) => String(f).trim().toLowerCase()).filter(Boolean)),
+const inputFieldsSetLower = computed(
+  () => new Set(inputFields.value.map((f) => String(f).trim().toLowerCase()).filter(Boolean)),
 );
 const isInputFieldSelected = (row) => inputFieldsSetLower.value.has(getRowColumnName(row).toLowerCase());
 const isAllInputFieldsSelected = computed(() => {
@@ -374,14 +494,32 @@ const setInputFieldSelected = (row, selected) => {
   }
 };
 
+// SINK 组件字段映射处理函数
+const onFieldMappingChange = () => {
+  // 当字段映射发生变化时触发
+  console.log('字段映射发生变化:', mappingFields.value);
+};
+
 // 输入模型（仅 Transform）：从动态表单或已回显的 inputModel 获取可用的输入表名（Copy 时优先显示 selectedInputTable）
 const availableInputTables = computed(() => {
-  const fromForm = formData.taskConfig?.inputTable || formData.taskConfig?.inputTableName || formData.taskConfig?.tableName || formData.taskConfig?.table;
+  const fromForm =
+    formData.taskConfig?.inputTable ||
+    formData.taskConfig?.inputTableName ||
+    formData.taskConfig?.tableName ||
+    formData.taskConfig?.table;
   if (isCopyTransform.value && selectedInputTable.value) {
     return Array.from(new Set([selectedInputTable.value, fromForm].filter(Boolean)));
   }
   if (fromForm) return [fromForm];
   return [];
+});
+
+// SINK 组件：上游输出模型（从连接的上游节点获取）
+const sinkInputModel = computed(() => {
+  if (formData.connectorType === 'SINK' && props.upstreamOutputModel?.fields?.length) {
+    return props.upstreamOutputModel;
+  }
+  return null;
 });
 
 /**
@@ -464,17 +602,36 @@ const loadTaskConfig = async () => {
 
 // 输出/输入模型依赖的 taskConfig 键，过滤后必须保留
 const OUTPUT_MODEL_KEYS = ['tableName', 'table', 'datasourceId', 'datasource_id', 'database', 'dbName'];
-const INPUT_MODEL_KEYS = ['inputTableName', 'inputTable', 'inputDatasourceId', 'inputDatabase', 'inputDatabaseName', 'datasourceId', 'datasource_id', 'database', 'dbName'];
+const INPUT_MODEL_KEYS = [
+  'inputTableName',
+  'inputTable',
+  'inputDatasourceId',
+  'inputDatabase',
+  'inputDatabaseName',
+  'datasourceId',
+  'datasource_id',
+  'database',
+  'dbName',
+];
 
 // 当 dynamicFormConfig 就绪后，将 taskConfig 过滤为仅包含表单字段，但保留输出模型所需键
 // 过滤时临时置 restoringFromConnectorConfig，避免触发 updateOutputModel 把已回显的 outputFields 清空
 watch(
   dynamicFormConfig,
   (newConfig) => {
-    if (newConfig && Array.isArray(newConfig) && newConfig.length > 0 && formData.taskConfig && typeof formData.taskConfig === 'object' && !Array.isArray(formData.taskConfig)) {
+    if (
+      newConfig &&
+      Array.isArray(newConfig) &&
+      newConfig.length > 0 &&
+      formData.taskConfig &&
+      typeof formData.taskConfig === 'object' &&
+      !Array.isArray(formData.taskConfig)
+    ) {
       restoringFromConnectorConfig.value = true;
       const prev = formData.taskConfig;
-      const filtered = pickFormFieldsOnly(prev, newConfig);
+      let filtered = pickFormFieldsOnly(prev, newConfig);
+      // 转换数值字段类型以避免ElInputNumber类型错误
+      filtered = convertFormValuesToCorrectTypes(filtered, newConfig);
       const preserved = {};
       [...OUTPUT_MODEL_KEYS, ...INPUT_MODEL_KEYS].forEach((k) => {
         if (prev[k] !== undefined) preserved[k] = prev[k];
@@ -531,12 +688,14 @@ const loadTableFields = async (tableName, configOverride, connectorConfigAtStart
     const database = cfg?.database ?? cfg?.dbName;
     if (!datasourceId || !database) {
       console.warn('缺少数据源ID或数据库名称，无法加载表字段');
-      if (configSnapshot == null || String(props.task?.connectorConfig) === String(configSnapshot)) fieldList.value = [];
+      if (configSnapshot == null || String(props.task?.connectorConfig) === String(configSnapshot))
+        fieldList.value = [];
       return;
     }
     const response = await columnApi.listColumnByName(datasourceId, database, tableName);
     const fields = Array.isArray(response) ? response : response?.data || [];
-    if (configSnapshot == null || String(props.task?.connectorConfig) === String(configSnapshot)) fieldList.value = fields;
+    if (configSnapshot == null || String(props.task?.connectorConfig) === String(configSnapshot))
+      fieldList.value = fields;
   } catch (error) {
     console.error('加载表字段失败:', error);
     ElMessage.error('加载表字段失败');
@@ -552,13 +711,23 @@ watch(
     const isCopy =
       (props.task.connectorType || '') === 'TRANSFORM' &&
       (props.task.connectorName || '').toString().toLowerCase().includes('copy');
-    if (!isCopy || !props.upstreamOutputModel?.fields?.length) return;
-    selectedInputTable.value = props.upstreamOutputModel.tableName ?? '';
-    inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
-      typeof f === 'string'
-        ? { columnName: f, columnType: '-' }
-        : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-    );
+    const isSink = props.task.connectorType === 'SINK';
+
+    if (isCopy && props.upstreamOutputModel?.fields?.length) {
+      selectedInputTable.value = props.upstreamOutputModel.tableName ?? '';
+      inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
+        typeof f === 'string'
+          ? { columnName: f, columnType: '-' }
+          : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
+      );
+    } else if (isSink && props.upstreamOutputModel?.fields?.length) {
+      // SINK 组件：使用上游输出模型作为输入字段列表
+      inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
+        typeof f === 'string'
+          ? { columnName: f, columnType: '-' }
+          : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
+      );
+    }
   },
   { immediate: true, deep: true },
 );
@@ -571,21 +740,34 @@ watch(
     try {
       restoringFromConnectorConfig.value = true;
       const parsed = parseConnectorConfigSafe(connectorConfig);
-      const taskConfigObj = props.task.taskConfig && typeof props.task.taskConfig === 'object' ? props.task.taskConfig : {};
+      const taskConfigObj =
+        props.task.taskConfig && typeof props.task.taskConfig === 'object' ? props.task.taskConfig : {};
       const mergedParsed = { ...taskConfigObj, ...parsed };
       const outModel = mergedParsed.outputModel ?? props.task.outputModel ?? taskConfigObj.outputModel;
       const inModel = mergedParsed.inputModel ?? props.task.inputModel ?? taskConfigObj.inputModel;
-      const isCopy = (mergedParsed.connectorType ?? props.task?.connectorType ?? '') === 'TRANSFORM' && ((mergedParsed.connectorName ?? props.task?.connectorName ?? '').toString().toLowerCase().includes('copy'));
+      const isCopy =
+        (mergedParsed.connectorType ?? props.task?.connectorType ?? '') === 'TRANSFORM' &&
+        (mergedParsed.connectorName ?? props.task?.connectorName ?? '').toString().toLowerCase().includes('copy');
       if (outModel && typeof outModel === 'object' && !Array.isArray(outModel)) {
         const tableName = outModel.tableName ?? outModel.table;
-        const savedFields = Array.isArray(outModel.fields) ? [...outModel.fields] : [];
+        // 检查是否是新格式（包含fields数组和relation映射）
+        let savedFields = [];
+        if (Array.isArray(outModel.fields)) {
+          // 新格式：{ fields: [...], relation: {...} }
+          savedFields = [...outModel.fields];
+        } else {
+          // 旧格式：{ fieldName: mapping, ... } 或标准格式
+          savedFields = Array.isArray(outModel.fields) ? [...outModel.fields] : [];
+        }
         if (isCopy) {
           copyOutputFields.value = parseCopyOutputModel(outModel);
           if (tableName) selectedInputTable.value = tableName;
           const savedInputFields = Array.isArray(inModel?.fields) ? inModel.fields : [];
           if (savedInputFields.length > 0) {
             inputFieldList.value = savedInputFields.map((f) =>
-              typeof f === 'string' ? { columnName: f, columnType: '-' } : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
+              typeof f === 'string'
+                ? { columnName: f, columnType: '-' }
+                : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
             );
           } else if (props.upstreamOutputModel?.fields?.length) {
             inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
@@ -610,7 +792,9 @@ watch(
         if (isCopy) {
           if (savedInputFields.length > 0) {
             inputFieldList.value = savedInputFields.map((f) =>
-              typeof f === 'string' ? { columnName: f, columnType: '-' } : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
+              typeof f === 'string'
+                ? { columnName: f, columnType: '-' }
+                : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
             );
           } else if (inputTableName) {
             await loadInputTableFields(inputTableName, mergedParsed);
@@ -636,7 +820,9 @@ watch(
       // taskId 变化、connectorConfig 变化、或 task 引用变化（父组件用新对象替换 selectedTask）都需重新跑回显
       const taskChanged = !oldTask || newTask?.taskId !== oldTask?.taskId;
       const connectorConfigUpdated =
-        newTask?.connectorConfig && typeof newTask.connectorConfig === 'string' && newTask.connectorConfig !== oldTask?.connectorConfig;
+        newTask?.connectorConfig &&
+        typeof newTask.connectorConfig === 'string' &&
+        newTask.connectorConfig !== oldTask?.connectorConfig;
       const taskRefReplaced = oldTask && newTask && newTask !== oldTask;
       if (newTask && (taskChanged || connectorConfigUpdated || taskRefReplaced)) {
         // 只赋值与接口一致的基本信息，不整体 assign 避免带入多余字段
@@ -654,7 +840,9 @@ watch(
         // 回显期间不触发 updateOutputModel，避免覆盖 outputModel 勾选
         restoringFromConnectorConfig.value = true;
         // 有表单配置时只保留表单字段给 taskConfig，但必须保留输出/输入模型所需键
-        const filtered = fieldNames.length > 0 ? pickFormFieldsOnly(mergedParsed, formConfigRef) : mergedParsed;
+        let filtered = fieldNames.length > 0 ? pickFormFieldsOnly(mergedParsed, formConfigRef) : mergedParsed;
+        // 转换数值字段类型以避免ElInputNumber类型错误
+        filtered = convertFormValuesToCorrectTypes(filtered, formConfigRef);
         const preserved = {};
         [...OUTPUT_MODEL_KEYS, ...INPUT_MODEL_KEYS].forEach((k) => {
           if (mergedParsed[k] !== undefined) preserved[k] = mergedParsed[k];
@@ -664,10 +852,21 @@ watch(
         // 回显 outputModel / inputModel：Copy Transform 用 outputModel 键值对 + inputModel.tableName/fields
         const outModel = mergedParsed.outputModel ?? newTask.outputModel ?? taskConfigObj.outputModel;
         const inModel = mergedParsed.inputModel ?? newTask.inputModel ?? taskConfigObj.inputModel;
-        const isCopy = (formData.connectorType || '') === 'TRANSFORM' && ((formData.connectorName || '').toString().toLowerCase().includes('copy'));
+        const isCopy =
+          (formData.connectorType || '') === 'TRANSFORM' &&
+          (formData.connectorName || '').toString().toLowerCase().includes('copy');
+        const isSink = formData.connectorType === 'SINK';
         if (outModel && typeof outModel === 'object' && !Array.isArray(outModel)) {
           const tableName = outModel.tableName ?? outModel.table;
-          const savedFields = Array.isArray(outModel.fields) ? [...outModel.fields] : [];
+          // 检查是否是新格式（包含fields数组和relation映射）
+          let savedFields = [];
+          if (Array.isArray(outModel.fields)) {
+            // 新格式：{ fields: [...], relation: {...} }
+            savedFields = [...outModel.fields];
+          } else {
+            // 旧格式：{ fieldName: mapping, ... } 或标准格式
+            savedFields = Array.isArray(outModel.fields) ? [...outModel.fields] : [];
+          }
           if (isCopy) {
             copyOutputFields.value = parseCopyOutputModel(outModel);
             const inputTableName = inModel?.tableName ?? inModel?.table ?? tableName;
@@ -681,7 +880,9 @@ watch(
               );
             } else if (savedInputFields.length > 0) {
               inputFieldList.value = savedInputFields.map((f) =>
-                typeof f === 'string' ? { columnName: f, columnType: '-' } : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
+                typeof f === 'string'
+                  ? { columnName: f, columnType: '-' }
+                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
               );
             } else if (inputTableName) {
               await loadInputTableFields(inputTableName, mergedParsed);
@@ -690,6 +891,14 @@ watch(
               selectedInputTable.value = '';
               inputFieldList.value = [];
             }
+          } else if (isSink && tableName) {
+            // SINK 组件：回显字段映射
+            outputTableFromConfig.value = tableName;
+            selectedTable.value = tableName;
+            if (outModel.fieldMapping && typeof outModel.fieldMapping === 'object') {
+              mappingFields.value = { ...outModel.fieldMapping };
+            }
+            await loadTableFields(tableName, mergedParsed, newTask?.connectorConfig);
           } else if (tableName) {
             outputTableFromConfig.value = tableName;
             selectedTable.value = tableName;
@@ -721,6 +930,22 @@ watch(
             } else {
               inputFields.value = savedInputFields;
               await loadInputTableFields(inputTableName, mergedParsed);
+            }
+          } else if (formData.connectorType === 'SINK') {
+            // SINK 组件：始终使用上游输出模型作为输入字段列表，以反映最新的上游字段
+            if (props.upstreamOutputModel?.fields?.length > 0) {
+              inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
+                typeof f === 'string'
+                  ? { columnName: f, columnType: '-' }
+                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
+              );
+            } else if (savedInputFields.length > 0) {
+              // 如果没有上游输出模型但有保存的输入字段，则使用保存的字段
+              inputFieldList.value = savedInputFields.map((f) =>
+                typeof f === 'string'
+                  ? { columnName: f, columnType: '-' }
+                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
+              );
             }
           }
         } else if (!isCopy) {
@@ -782,7 +1007,11 @@ const updateOutputModel = () => {
 
   // Transform：输入表仍可由属性配置驱动（若有 inputTable 等字段）
   if (formData.connectorType === 'TRANSFORM') {
-    const inputTableFromForm = formData.taskConfig?.inputTable || formData.taskConfig?.inputTableName || formData.taskConfig?.tableName || formData.taskConfig?.table;
+    const inputTableFromForm =
+      formData.taskConfig?.inputTable ||
+      formData.taskConfig?.inputTableName ||
+      formData.taskConfig?.tableName ||
+      formData.taskConfig?.table;
     if (inputTableFromForm) {
       if (selectedInputTable.value !== inputTableFromForm) {
         selectedInputTable.value = inputTableFromForm;
@@ -831,10 +1060,14 @@ const saveConfig = async () => {
     const rawTaskConfig =
       typeof formData.taskConfig === 'string'
         ? parseConnectorConfigSafe(formData.taskConfig)
-        : (formData.taskConfig && typeof formData.taskConfig === 'object' ? formData.taskConfig : {});
+        : formData.taskConfig && typeof formData.taskConfig === 'object'
+        ? formData.taskConfig
+        : {};
 
     // 仅保留左侧表单字段（不含 outputModel/inputModel），再合并 outputModel、inputModel 到 connectorConfig
-    const connectorConfigObj = pickFormFieldsOnly(rawTaskConfig, dynamicFormConfigFiltered.value);
+    let connectorConfigObj = pickFormFieldsOnly(rawTaskConfig, dynamicFormConfigFiltered.value);
+    // 转换数值字段类型以避免ElInputNumber类型错误
+    connectorConfigObj = convertFormValuesToCorrectTypes(connectorConfigObj, dynamicFormConfigFiltered.value);
 
     // outputModel 合并进 connectorConfig：Copy 类 Transform 格式为 { "目标字段名": "来源字段名", ... }，并合并到 connectorConfig
     if (isCopyTransform.value) {
@@ -845,19 +1078,44 @@ const saveConfig = async () => {
           const source = (m.sourceColumn ?? '').toString().trim();
           if (target) outputModelMapping[target] = source;
         });
-        connectorConfigObj.outputModel = outputModelMapping;
+        // 将输出模型改为新结构：包含 fields 数组和 relation 映射
+        const outputFields = Object.keys(outputModelMapping);
+        connectorConfigObj.outputModel = {
+          fields: outputFields,
+          relation: outputModelMapping,
+        };
         if (selectedInputTable.value) {
           const inputFieldNames = inputFieldList.value.map((row) => getRowColumnName(row)).filter(Boolean);
           connectorConfigObj.inputModel = { tableName: selectedInputTable.value, fields: inputFieldNames };
         }
       }
+    } else if (formData.connectorType === 'SINK' && selectedTable.value) {
+      // SINK 组件：保存字段映射关系
+      const fieldMapping = {};
+      Object.entries(mappingFields.value).forEach(([targetField, sourceField]) => {
+        if (targetField && sourceField) {
+          fieldMapping[targetField] = sourceField;
+        }
+      });
+      connectorConfigObj.outputModel = { tableName: selectedTable.value, fieldMapping };
     } else if (selectedTable.value && Array.isArray(outputFields.value)) {
       connectorConfigObj.outputModel = { tableName: selectedTable.value, fields: [...outputFields.value] };
     }
 
     // inputModel 合并进 connectorConfig：仅 Transform（非 copy 时用勾选字段；copy 时上面已写 inputModel）
-    if (formData.connectorType === 'TRANSFORM' && !isCopyTransform.value && selectedInputTable.value && Array.isArray(inputFields.value)) {
+    if (
+      formData.connectorType === 'TRANSFORM' &&
+      !isCopyTransform.value &&
+      selectedInputTable.value &&
+      Array.isArray(inputFields.value)
+    ) {
       connectorConfigObj.inputModel = { tableName: selectedInputTable.value, fields: [...inputFields.value] };
+    }
+
+    // SINK 组件：保存输入模型（来自上游的字段列表）
+    if (formData.connectorType === 'SINK' && inputFieldList.value.length > 0) {
+      const inputFieldNames = inputFieldList.value.map((row) => getRowColumnName(row)).filter(Boolean);
+      connectorConfigObj.inputModel = { fields: inputFieldNames };
     }
 
     // 请求体：taskId、jobId、connectorConfig、connectorName、connectorType、taskName
@@ -921,6 +1179,7 @@ const resetConfig = () => {
   inputFieldList.value = [];
   inputFields.value = [];
   copyOutputFields.value = [];
+  mappingFields.value = {};
 };
 
 // 测试连接
@@ -1055,5 +1314,101 @@ onMounted(() => {
     color: #909399;
     padding: 10px 0;
   }
+}
+
+.field-mapping-container {
+  padding: 8px 0;
+  /* 与 el-table size="small" 行高一致，便于中间连接线与左右表格行对齐 */
+  --copy-map-row-height: 32px;
+  --copy-map-header-offset: 72px;
+}
+.mapping-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px 8px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  .panel-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--el-text-color-secondary);
+    flex: 1;
+    &.center-label {
+      text-align: center;
+      flex: 0 0 120px;
+    }
+  }
+}
+.mapping-body {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+  min-height: 320px;
+}
+.panel {
+  flex: 1;
+  min-width: 0;
+  .section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #3a71a8;
+    margin-bottom: 8px;
+  }
+  .empty-tip {
+    color: var(--el-text-color-placeholder);
+    font-size: 12px;
+    padding: 16px;
+    text-align: center;
+  }
+  .field-table {
+    width: 100%;
+  }
+}
+.center-panel {
+  flex: 0 0 100px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  /* 与左右表格对齐：预留与 section-title + 表头 等高的空间，使第一条线对齐第一行数据 */
+  padding-top: var(--copy-map-header-offset);
+  .connection-lines {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+  .connection-item {
+    height: var(--copy-map-row-height);
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .connector-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--el-color-primary);
+    flex-shrink: 0;
+    &.right-dot {
+      background: var(--el-color-success);
+    }
+  }
+  .connector-line {
+    width: 24px;
+    height: 2px;
+    background: linear-gradient(to right, var(--el-color-primary), var(--el-color-success));
+    flex-shrink: 0;
+  }
+  .no-connections {
+    font-size: 11px;
+    color: var(--el-text-color-placeholder);
+    text-align: center;
+    padding: 8px;
+  }
+}
+.target-name {
+  color: var(--el-text-color-regular);
+  font-size: 12px;
 }
 </style>
