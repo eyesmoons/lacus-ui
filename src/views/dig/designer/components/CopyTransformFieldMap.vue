@@ -1,14 +1,13 @@
 <template>
   <div class="copy-transform-field-map">
     <div class="map-header">
-      <span class="panel-label">输入（来自上游 Source 输出）</span>
-      <span class="panel-label center-label">复制关系</span>
-      <span class="panel-label">输出（默认同左，复制为新增）</span>
+<!--      <span class="panel-label">输入模型（来自上游 Source 输出）</span>-->
+<!--      <span class="panel-label">输出模型（默认同左，复制为新增）</span>-->
     </div>
     <div class="map-body">
       <!-- 左侧：上游字段列表，每行带复制按钮 -->
       <div class="panel left-panel">
-        <div class="section-title">输入字段</div>
+        <div class="section-title">输入模型</div>
         <div v-if="!inputFieldList.length" class="empty-tip">请先在属性配置中选择输入表</div>
         <el-table v-else :data="inputFieldList" size="small" max-height="400" class="field-table">
           <el-table-column type="index" label="#" width="40" align="center" />
@@ -43,10 +42,10 @@
           <div v-if="!rightList.length" class="no-connections">左侧即默认输出，点击「复制」可新增一行</div>
         </div>
       </div>
-      <!-- 右侧：输出字段列表，目标字段名可编辑 -->
+      <!-- 右侧：输出模型列表，目标字段名可编辑 -->
       <div class="panel right-panel">
-        <div class="section-title">输出字段</div>
-        <div v-if="!rightList.length" class="empty-tip">暂无输出字段</div>
+        <div class="section-title">输出模型</div>
+        <div v-if="!rightList.length" class="empty-tip">暂无输出模型</div>
         <el-table v-else :data="rightList" size="small" max-height="400" class="field-table">
           <el-table-column type="index" label="#" width="40" align="center" />
           <el-table-column label="来源字段" min-width="100">
@@ -79,7 +78,7 @@
 import { ref, watch, computed } from 'vue';
 
 const props = defineProps({
-  /** 左侧输入字段列表（来自上游 Source 输出模型） */
+  /** 左侧输入模型列表（来自上游 Source 输出模型） */
   inputFieldList: {
     type: Array,
     default: () => [],
@@ -156,7 +155,7 @@ watch(
 
 <style scoped lang="scss">
 .copy-transform-field-map {
-  padding: 8px 0;
+  padding: 0;
   /* 与 el-table size="small" 行高一致，便于中间连接线与左右表格行对齐 */
   --copy-map-row-height: 32px;
   --copy-map-header-offset: 72px;
@@ -192,6 +191,7 @@ watch(
     font-weight: 600;
     color: #3a71a8;
     margin-bottom: 8px;
+    margin-top: 8px;
   }
   .empty-tip {
     color: var(--el-text-color-placeholder);

@@ -122,13 +122,11 @@
             <div class="table-select-panel">
               <div class="section-title">输入表名</div>
               <div class="table-options">
-                <ul class="table-list">
+                <ul class="table-list" style="margin-top: 5px;margin-left: 0">
                   <li
                     v-for="t in availableInputTables"
                     :key="t"
-                    :class="{ active: selectedInputTable === t }"
-                    @click="onInputTableChange(t)"
-                  >
+                    :class="{ active: selectedInputTable === t }">
                     {{ t }}
                   </li>
                 </ul>
@@ -138,7 +136,7 @@
           <CopyTransformFieldMap :input-field-list="inputFieldList" v-model="copyOutputFields" />
         </div>
       </el-tab-pane>
-      <el-tab-pane v-if="!isCopyTransform && formData.connectorType !== 'SINK'" label="输出模型" name="output">
+      <el-tab-pane v-if="!isCopyTransform && formData.connectorType !== 'SINK'" label="模型配置" name="output">
         <div class="output-model-section">
           <div class="output-model-container">
             <div class="table-select-panel">
@@ -165,7 +163,7 @@
               </div>
             </div>
             <div class="field-table-panel">
-              <div class="section-title">输出表结构</div>
+              <div class="section-title">输出模型</div>
               <div v-if="!selectedTable" class="no-table-selected">请先选择左侧的表</div>
               <div v-else-if="fieldList.length === 0" class="loading-fields">正在加载字段...</div>
               <div v-else>
@@ -211,7 +209,7 @@
         </div>
       </el-tab-pane>
       <!-- SINK 组件：字段映射（左表+映射→右表） -->
-      <el-tab-pane v-if="formData.connectorType === 'SINK'" label="字段映射" name="sinkMap">
+      <el-tab-pane v-if="formData.connectorType === 'SINK'" label="模型配置" name="sinkMap">
         <div class="output-model-section">
           <div class="copy-transform-header">
             <div class="table-select-panel">
@@ -232,14 +230,13 @@
           </div>
           <div class="field-mapping-container">
             <div class="mapping-header">
-              <div class="panel-label">上游输出字段</div>
-              <div class="panel-label center-label">字段映射关系</div>
-              <div class="panel-label">目标表字段</div>
+<!--              <div class="panel-label">输入模型</div>-->
+<!--              <div class="panel-label">输出模型</div>-->
             </div>
             <div class="mapping-body">
               <!-- 左侧面板：上游输出字段列表 -->
               <div class="panel left-panel">
-                <div class="section-title">上游输出字段</div>
+                <div class="section-title">输入模型</div>
                 <div v-if="!inputFieldList.length" class="empty-tip">请先建立与上游节点的连接以获取输出字段</div>
                 <el-table v-else :data="inputFieldList" size="small" max-height="400" class="field-table">
                   <el-table-column type="index" label="#" width="40" align="center" />
@@ -259,7 +256,7 @@
               </div>
               <!-- 右侧面板：目标表字段列表，用于映射 -->
               <div class="panel right-panel">
-                <div class="section-title">目标表字段</div>
+                <div class="section-title">输出模型</div>
                 <div v-if="!fieldList.length" class="empty-tip">请先选择目标表</div>
                 <el-table v-else :data="fieldList" size="small" max-height="400" class="field-table">
                   <el-table-column type="index" label="#" width="40" align="center" />
@@ -1130,7 +1127,7 @@ const saveConfig = async () => {
     };
 
     const response = await taskApi.createTask(taskData);
-    ElMessage.success('任务配置保存成功');
+    ElMessage.success('节点配置保存成功');
 
     const oldTaskId = props.task.taskId;
     const newTaskId = response.data?.taskId ?? response.taskId;
@@ -1317,7 +1314,7 @@ onMounted(() => {
 }
 
 .field-mapping-container {
-  padding: 8px 0;
+  padding: 0;
   /* 与 el-table size="small" 行高一致，便于中间连接线与左右表格行对齐 */
   --copy-map-row-height: 32px;
   --copy-map-header-offset: 72px;

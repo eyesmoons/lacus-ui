@@ -60,7 +60,7 @@
         <template #default="scope">
           <el-button-group>
             <el-tooltip content="设计任务" placement="top">
-              <el-button type="primary" icon="Refresh" @click="designJob(scope.row)" />
+              <el-button type="primary" icon="Tools" @click="designJob(scope.row)" />
             </el-tooltip>
             <el-tooltip content="编辑任务" placement="top">
               <el-button type="warning" icon="Edit" @click="editJob(scope.row)" />

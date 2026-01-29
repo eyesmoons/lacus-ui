@@ -1,5 +1,12 @@
 import request from '@/utils/request';
 
+export async function publishJob(jobId) {
+    return request({
+        url: `/st/job/publish/${jobId}`,
+        method: 'post'
+    });
+}
+
 /**
  * 获取作业列表
  * @param {Object} params - 查询参数

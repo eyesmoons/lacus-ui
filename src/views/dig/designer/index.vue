@@ -9,7 +9,6 @@
       </div>
       <div class="toolbar-right">
         <el-button icon="View" @click="previewConfig">预览配置</el-button>
-        <el-button icon="Check" @click="validateConfig">验证配置</el-button>
         <el-button type="primary" icon="Document" @click="saveJob">保存</el-button>
       </div>
     </div>
@@ -209,6 +208,18 @@ onMounted(async () => {
 
     // 使用新的异步方法打开任务配置
     await openTaskConfig(taskData);
+  });
+
+  // 监听节点移动事件，实时更新节点位置
+  graph.on('node:moved', ({ node }) => {
+    const taskId = node.id;
+    const position = { x: node.getPosition().x, y: node.getPosition().y };
+
+    // 更新tasks数组中对应节点的位置信息
+    const taskIndex = tasks.value.findIndex((t) => t.taskId === taskId);
+    if (taskIndex !== -1) {
+      tasks.value[taskIndex].position = position;
+    }
   });
 
   // 画布空白点击关闭弹框
@@ -796,9 +807,16 @@ function saveJob() {
         }
       });
 
+    // 获取节点的位置信息
+    const nodePositions = tasks.value.map((task) => ({
+      taskId: task.taskId,
+      position: task.position || { x: 100, y: 100 }, // 默认位置
+    }));
+
     const dagData = {
       jobId: parseInt(jobId),
       relations: uniqueEdges,
+      plugins: nodePositions, // 保存节点的位置信息
     };
 
     console.log(
@@ -810,8 +828,7 @@ function saveJob() {
     taskApi
       .saveDag(dagData)
       .then((response) => {
-        if (!response) return;
-        ElMessage.success('作业保存成功');
+        ElMessage.success('DAG保存成功');
 
         // 如果API返回了边的ID信息，更新边的后端ID
         const data = response.data ?? response;
