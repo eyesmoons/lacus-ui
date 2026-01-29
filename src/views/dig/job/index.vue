@@ -56,14 +56,14 @@
           <span>{{ parseTime(scope.row.updateTime) }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="250" align="center" fixed="right">
+      <el-table-column label="操作" width="260" align="center" fixed="right">
         <template #default="scope">
           <el-button-group>
             <el-tooltip content="设计任务" placement="top">
-              <el-button type="primary" icon="Tools" @click="designJob(scope.row)" />
+              <el-button type="primary" icon="Tools" @click="designJob(scope.row)" :disabled="scope.row.status === 1" />
             </el-tooltip>
             <el-tooltip content="编辑任务" placement="top">
-              <el-button type="warning" icon="Edit" @click="editJob(scope.row)" />
+              <el-button type="warning" icon="Edit" @click="editJob(scope.row)" :disabled="scope.row.status === 1" />
             </el-tooltip>
             <el-tooltip content="发布任务" placement="top">
               <el-button
@@ -73,8 +73,16 @@
                 :disabled="scope.row.status === 1"
               />
             </el-tooltip>
+            <el-tooltip content="取消发布" placement="top">
+              <el-button
+                type="primary"
+                icon="Download"
+                @click="unpublishJob(scope.row)"
+                :disabled="scope.row.status !== 1"
+              />
+            </el-tooltip>
             <el-tooltip content="删除任务" placement="top">
-              <el-button type="danger" icon="Delete" @click="deleteJob(scope.row)" />
+              <el-button type="danger" icon="Delete" @click="deleteJob(scope.row)" :disabled="scope.row.status === 1" />
             </el-tooltip>
           </el-button-group>
         </template>
@@ -359,7 +367,7 @@ const deleteJob = async (row) => {
 
     await jobApi.deleteJob(row.jobId);
     ElMessage.success('删除成功');
-    getJobList();
+    await getJobList();
   } catch (error) {
     if (error !== 'cancel') {
       console.error('删除任务失败:', error);
@@ -384,6 +392,26 @@ const publishJob = async (row) => {
     if (error !== 'cancel') {
       console.error('发布任务失败:', error);
       ElMessage.error('发布任务失败');
+    }
+  }
+};
+
+// 取消发布任务
+const unpublishJob = async (row) => {
+  try {
+    await ElMessageBox.confirm('确定要取消发布该任务吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    });
+
+    await jobApi.unpublishJob(row.jobId);
+    ElMessage.success('任务取消发布成功');
+    await getJobList();
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('取消发布任务失败:', error);
+      ElMessage.error('取消发布任务失败');
     }
   }
 };
