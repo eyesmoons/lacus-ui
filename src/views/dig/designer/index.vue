@@ -958,30 +958,38 @@ function computeUpstreamOutputModel(currentTaskId) {
 
       // 如果上游是 Transform 类型，继续向上查找
       if (upstreamTask.connectorType === 'TRANSFORM') {
-        // 如果 Transform 有自己的 outputModel，优先使用
-        if (parsed?.outputModel) {
-          // 检查 outputModel 是否是新格式（包含 fields 数组和 relation 映射）
-          if (typeof parsed.outputModel === 'object' && !Array.isArray(parsed.outputModel)) {
-            // 如果包含 fields 数组，认为是新格式
-            if (Array.isArray(parsed.outputModel.fields)) {
-              return parsed.outputModel;
-            }
-            // 如果包含 tableName 或 table 字段，认为是标准格式
-            else if (parsed.outputModel.tableName || parsed.outputModel.table) {
-              return parsed.outputModel;
-            } else {
-              // 否则是字段映射格式，提取字段名作为输出字段，并保留原始映射关系
-              const fields = Object.keys(parsed.outputModel);
-              return {
-                tableName: '',
-                fields: fields,
-                relation: parsed.outputModel, // 保留原始的字段映射关系
-              };
+        // 对于 Replace Transform，应该直接使用其上游的输出模型，而不是它本身的outputModel
+        const isReplaceTransform = (upstreamTask.connectorName || '').toLowerCase().includes('replace');
+
+        if (isReplaceTransform) {
+          // Replace Transform：直接使用上游节点的输出模型
+          return findUpstreamOutput(upstreamTaskId, visited);
+        } else {
+          // 其他 Transform：如果 Transform 有自己的 outputModel，优先使用
+          if (parsed?.outputModel) {
+            // 检查 outputModel 是否是新格式（包含 fields 数组和 relation 映射）
+            if (typeof parsed.outputModel === 'object' && !Array.isArray(parsed.outputModel)) {
+              // 如果包含 fields 数组，认为是新格式
+              if (Array.isArray(parsed.outputModel.fields)) {
+                return parsed.outputModel;
+              }
+              // 如果包含 tableName 或 table 字段，认为是标准格式
+              else if (parsed.outputModel.tableName || parsed.outputModel.table) {
+                return parsed.outputModel;
+              } else {
+                // 否则是字段映射格式，提取字段名作为输出字段，并保留原始映射关系
+                const fields = Object.keys(parsed.outputModel);
+                return {
+                  tableName: '',
+                  fields: fields,
+                  relation: parsed.outputModel, // 保留原始的字段映射关系
+                };
+              }
             }
           }
+          // 否则继续向上追溯
+          return findUpstreamOutput(upstreamTaskId, visited);
         }
-        // 否则继续向上追溯
-        return findUpstreamOutput(upstreamTaskId, visited);
       } else {
         // 如果是 Source 或其他类型，直接返回其 outputModel
         return parsed?.outputModel ?? null;

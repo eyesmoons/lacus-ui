@@ -46,74 +46,9 @@
           </div>
           <!-- 操作按钮 -->
           <div class="form-actions">
-            <el-button size="medium" type="primary" @click="saveConfig" :loading="saving">保存配置</el-button>
+            <el-button size="default" type="primary" @click="saveConfig" :loading="saving">保存配置</el-button>
           </div>
         </el-form>
-      </el-tab-pane>
-      <!-- Transform 非 copy：输入模型 Tab -->
-      <el-tab-pane v-if="formData.connectorType === 'TRANSFORM' && !isCopyTransform" label="输入模型" name="input">
-        <div class="output-model-section">
-          <div class="output-model-container">
-            <div class="table-select-panel">
-              <div class="section-title">输入表名</div>
-              <div class="table-options">
-                <ul class="table-list">
-                  <li
-                    v-for="t in availableInputTables"
-                    :key="t"
-                    :class="{ active: selectedInputTable === t }"
-                    @click="onInputTableChange(t)"
-                  >
-                    {{ t }}
-                  </li>
-                </ul>
-              </div>
-            </div>
-            <div class="field-table-panel">
-              <div class="section-title">输入表结构</div>
-              <div v-if="!selectedInputTable" class="no-table-selected">请先在属性配置中选择输入表</div>
-              <div v-else-if="inputFieldList.length === 0" class="loading-fields">正在加载字段...</div>
-              <div v-else>
-                <el-table
-                  ref="inputTableRef"
-                  :data="inputFieldList"
-                  :row-key="(row, index) => getRowColumnName(row) || String(index)"
-                  size="small"
-                  max-height="100%"
-                  style="width: 100%"
-                >
-                  <el-table-column width="40" align="center">
-                    <template #header>
-                      <el-checkbox
-                        :model-value="isAllInputFieldsSelected"
-                        :indeterminate="isSomeInputFieldsSelected"
-                        @update:model-value="toggleAllInputFields"
-                        @click.stop
-                      />
-                    </template>
-                    <template #default="scope">
-                      <el-checkbox
-                        :model-value="isInputFieldSelected(scope.row)"
-                        @update:model-value="(v) => setInputFieldSelected(scope.row, v)"
-                        @click.stop
-                      />
-                    </template>
-                  </el-table-column>
-                  <el-table-column type="index" label="#" width="50" align="center" />
-                  <el-table-column prop="columnName" label="字段名称" min-width="100" show-overflow-tooltip />
-                  <el-table-column prop="columnType" label="字段类型" min-width="100" show-overflow-tooltip />
-                  <el-table-column prop="isNullable" label="非空" width="60" align="center" />
-                  <el-table-column prop="comment" label="注释" min-width="120" show-overflow-tooltip>
-                    <template #default="scope">
-                      <span v-if="scope.row.comment">{{ scope.row.comment }}</span>
-                      <span v-else style="color: #c0c4cc">-</span>
-                    </template>
-                  </el-table-column>
-                </el-table>
-              </div>
-            </div>
-          </div>
-        </div>
       </el-tab-pane>
       <!-- Copy 类 Transform：输入/输出合并为字段映射（左表 + 复制 → 右表） -->
       <el-tab-pane v-if="isCopyTransform" label="模型配置" name="copyMap">
@@ -122,11 +57,8 @@
             <div class="table-select-panel">
               <div class="section-title">输入表名</div>
               <div class="table-options">
-                <ul class="table-list" style="margin-top: 5px;margin-left: 0">
-                  <li
-                    v-for="t in availableInputTables"
-                    :key="t"
-                    :class="{ active: selectedInputTable === t }">
+                <ul class="table-list" style="margin-top: 5px; margin-left: 0">
+                  <li v-for="t in availableInputTables" :key="t" :class="{ active: selectedInputTable === t }">
                     {{ t }}
                   </li>
                 </ul>
@@ -136,7 +68,41 @@
           <CopyTransformFieldMap :input-field-list="inputFieldList" v-model="copyOutputFields" />
         </div>
       </el-tab-pane>
-      <el-tab-pane v-if="!isCopyTransform && formData.connectorType !== 'SINK'" label="模型配置" name="output">
+      <!-- Replace 类 Transform：直接显示上游输出模型 -->
+      <el-tab-pane v-if="isReplaceTransform" label="模型配置" name="replaceModel">
+        <div class="output-model-section">
+          <div class="replace-model-container">
+            <div v-if="!inputFieldList.length" class="empty-tip">
+              <div>
+                {{ hasUpstreamConnection }}, upstreamOutputModel: {{ upstreamOutputModel }}
+              </div>
+              {{
+                hasUpstreamConnection ? '上游节点暂无输出模型，请先配置上游节点' : '暂无上游节点连接，请连接上游节点'
+              }}
+            </div>
+            <div v-else>
+              <!-- 显示上游输出模型的表名 -->
+              <div class="table-info" v-if="upstreamOutputTableName">
+                <div class="section-title">表名：{{ upstreamOutputTableName }}</div>
+              </div>
+              <el-table :data="inputFieldList" size="small" max-height="400" class="field-table">
+                <el-table-column type="index" label="#" width="40" align="center" />
+                <el-table-column prop="columnName" label="字段名" min-width="100" show-overflow-tooltip>
+                  <template #default="scope">
+                    {{ getRowColumnName(scope.row) || '-' }}
+                  </template>
+                </el-table-column>
+                <el-table-column prop="columnType" label="类型" width="90" show-overflow-tooltip />
+              </el-table>
+            </div>
+          </div>
+        </div>
+      </el-tab-pane>
+      <el-tab-pane
+        v-if="!isCopyTransform && !isReplaceTransform && formData.connectorType !== 'SINK'"
+        label="模型配置"
+        name="output"
+      >
         <div class="output-model-section">
           <div class="output-model-container">
             <div class="table-select-panel">
@@ -230,8 +196,8 @@
           </div>
           <div class="field-mapping-container">
             <div class="mapping-header">
-<!--              <div class="panel-label">输入模型</div>-->
-<!--              <div class="panel-label">输出模型</div>-->
+              <!--              <div class="panel-label">输入模型</div>-->
+              <!--              <div class="panel-label">输出模型</div>-->
             </div>
             <div class="mapping-body">
               <!-- 左侧面板：上游输出字段列表 -->
@@ -404,6 +370,11 @@ const isCopyTransform = computed(() => {
   return formData.connectorType === 'TRANSFORM' && (formData.connectorName || '').toLowerCase().includes('copy');
 });
 
+/** Replace 类 Transform：连接器名包含 replace 时直接使用上游输出模型 */
+const isReplaceTransform = computed(() => {
+  return formData.connectorType === 'TRANSFORM' && (formData.connectorName || '').toLowerCase().includes('replace');
+});
+
 // 左侧属性配置：过滤掉「输出模型」相关字段，输出模型仅在右侧 Tab 配置
 const dynamicFormConfigFiltered = computed(() => {
   const config = dynamicFormConfig.value;
@@ -509,6 +480,25 @@ const availableInputTables = computed(() => {
   }
   if (fromForm) return [fromForm];
   return [];
+});
+
+// 检查是否有上游节点连接
+const hasUpstreamConnection = computed(() => {
+  // 检查是否有上游输出模型
+  const result = props.upstreamOutputModel?.fields?.length > 0;
+  console.log(
+    'DEBUG: hasUpstreamConnection computed - upstreamOutputModel:',
+    props.upstreamOutputModel,
+    'result:',
+    result,
+  );
+  return result;
+});
+
+// 获取上游输出模型的表名
+const upstreamOutputTableName = computed(() => {
+  // 从上游输出模型中获取表名
+  return props.upstreamOutputModel?.tableName || props.upstreamOutputModel?.table || '';
 });
 
 // SINK 组件：上游输出模型（从连接的上游节点获取）
@@ -646,9 +636,24 @@ watch(
 watch(
   () => formData.taskConfig,
   (newConfig) => {
+    console.log(
+      'DEBUG: formData.taskConfig changed, restoringFromConnectorConfig:',
+      restoringFromConnectorConfig.value,
+      'newConfig:',
+      newConfig,
+    );
     if (restoringFromConnectorConfig.value) return;
     if (newConfig && typeof newConfig === 'object') {
-      updateOutputModel();
+      // 对于 Replace Transform，避免在回显后触发 updateOutputModel 导致 inputFieldList 被重置
+      const isReplaceTransform =
+        formData.connectorType === 'TRANSFORM' && (formData.connectorName || '').toLowerCase().includes('replace');
+      console.log('DEBUG: isReplaceTransform:', isReplaceTransform);
+      if (!isReplaceTransform) {
+        console.log('DEBUG: Calling updateOutputModel for non-Replace Transform');
+        updateOutputModel();
+      } else {
+        console.log('DEBUG: Skipping updateOutputModel for Replace Transform');
+      }
     }
   },
   { deep: true },
@@ -704,11 +709,21 @@ const loadTableFields = async (tableName, configOverride, connectorConfigAtStart
 watch(
   () => [props.task, props.upstreamOutputModel],
   () => {
+    console.log(
+      'DEBUG: Watch [props.task, props.upstreamOutputModel] triggered, task:',
+      props.task,
+      'upstreamOutputModel:',
+      props.upstreamOutputModel,
+    );
     if (!props.task) return;
     const isCopy =
       (props.task.connectorType || '') === 'TRANSFORM' &&
       (props.task.connectorName || '').toString().toLowerCase().includes('copy');
     const isSink = props.task.connectorType === 'SINK';
+    const isReplace =
+      props.task.connectorType === 'TRANSFORM' && (props.task.connectorName || '').toLowerCase().includes('replace');
+
+    console.log('DEBUG: isCopy:', isCopy, 'isSink:', isSink, 'isReplace:', isReplace);
 
     if (isCopy && props.upstreamOutputModel?.fields?.length) {
       selectedInputTable.value = props.upstreamOutputModel.tableName ?? '';
@@ -717,6 +732,7 @@ watch(
           ? { columnName: f, columnType: '-' }
           : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
       );
+      console.log('DEBUG: Updated inputFieldList for Copy Transform, length:', inputFieldList.value.length);
     } else if (isSink && props.upstreamOutputModel?.fields?.length) {
       // SINK 组件：使用上游输出模型作为输入字段列表
       inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
@@ -724,6 +740,15 @@ watch(
           ? { columnName: f, columnType: '-' }
           : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
       );
+      console.log('DEBUG: Updated inputFieldList for SINK Transform, length:', inputFieldList.value.length);
+    } else if (isReplace && props.upstreamOutputModel?.fields?.length) {
+      // Replace Transform：使用上游输出模型作为输入字段列表
+      inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
+        typeof f === 'string'
+          ? { columnName: f, columnType: '-' }
+          : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
+      );
+      console.log('DEBUG: Updated inputFieldList for Replace Transform, length:', inputFieldList.value.length);
     }
   },
   { immediate: true, deep: true },
@@ -813,6 +838,7 @@ watch(
 watch(
   () => props.task,
   async (newTask, oldTask) => {
+    console.log('DEBUG: Watch task triggered, newTask:', newTask);
     try {
       // taskId 变化、connectorConfig 变化、或 task 引用变化（父组件用新对象替换 selectedTask）都需重新跑回显
       const taskChanged = !oldTask || newTask?.taskId !== oldTask?.taskId;
@@ -852,6 +878,9 @@ watch(
         const isCopy =
           (formData.connectorType || '') === 'TRANSFORM' &&
           (formData.connectorName || '').toString().toLowerCase().includes('copy');
+        const isReplace =
+          (formData.connectorType || '') === 'TRANSFORM' &&
+          (formData.connectorName || '').toString().toLowerCase().includes('replace');
         const isSink = formData.connectorType === 'SINK';
         if (outModel && typeof outModel === 'object' && !Array.isArray(outModel)) {
           const tableName = outModel.tableName ?? outModel.table;
@@ -896,6 +925,37 @@ watch(
               mappingFields.value = { ...outModel.fieldMapping };
             }
             await loadTableFields(tableName, mergedParsed, newTask?.connectorConfig);
+          } else if (isReplace) {
+            console.log('DEBUG: Processing Replace Transform, props.upstreamOutputModel:', props.upstreamOutputModel);
+            // Replace Transform：使用上游输出模型作为自己的输出模型
+
+            if (props.upstreamOutputModel?.fields?.length > 0) {
+              console.log(
+                'DEBUG: Setting inputFieldList from upstreamOutputModel with',
+                props.upstreamOutputModel.fields.length,
+                'fields',
+              );
+              // 使用上游输出模型的字段作为输出字段
+              outputFields.value = (props.upstreamOutputModel.fields || []).map((f) =>
+                typeof f === 'string' ? f : f.columnName ?? f.name ?? f,
+              );
+              // 同时将上游输出模型的字段设置为输入字段列表，用于显示
+              inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
+                typeof f === 'string'
+                  ? { columnName: f, columnType: '-' }
+                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
+              );
+              console.log('DEBUG: inputFieldList after setting from upstream:', inputFieldList.value);
+            } else if (Array.isArray(outModel.fields)) {
+              console.log('DEBUG: Setting inputFieldList from saved outModel with', outModel.fields.length, 'fields');
+              // 如果没有上游输出模型但有保存的输出模型，则使用保存的字段
+              outputFields.value = [...outModel.fields];
+              // 同时将保存的输出模型字段设置为输入字段列表，用于显示
+              inputFieldList.value = [...outModel.fields].map((f) => ({ columnName: f, columnType: '-' }));
+              console.log('DEBUG: inputFieldList after setting from saved model:', inputFieldList.value);
+            } else {
+              console.log('DEBUG: Neither upstream nor saved output model has fields');
+            }
           } else if (tableName) {
             outputTableFromConfig.value = tableName;
             selectedTable.value = tableName;
@@ -944,11 +1004,36 @@ watch(
                   : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
               );
             }
+          } else if (
+            formData.connectorType === 'TRANSFORM' &&
+            (formData.connectorName || '').toLowerCase().includes('replace')
+          ) {
+            // Replace Transform：始终使用上游输出模型作为输入/输出字段列表
+            if (props.upstreamOutputModel?.fields?.length > 0) {
+              inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
+                typeof f === 'string'
+                  ? { columnName: f, columnType: '-' }
+                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
+              );
+            } else if (savedInputFields.length > 0) {
+              // 如果没有上游输出模型但有保存的输入字段，则使用保存的字段
+              inputFieldList.value = savedInputFields.map((f) =>
+                typeof f === 'string'
+                  ? { columnName: f, columnType: '-' }
+                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
+              );
+            }
           }
         } else if (!isCopy) {
-          selectedInputTable.value = '';
-          inputFields.value = [];
-          inputFieldList.value = [];
+          // 特别处理 Replace Transform：即使没有 inputModel，也要保持上游输出模型作为 inputFieldList
+          const isReplaceTransform =
+            formData.connectorType === 'TRANSFORM' && (formData.connectorName || '').toLowerCase().includes('replace');
+          const hasUpstreamForSink = formData.connectorType === 'SINK' && props.upstreamOutputModel?.fields?.length > 0;
+          if (!isReplaceTransform && !hasUpstreamForSink) {
+            selectedInputTable.value = '';
+            inputFields.value = [];
+            inputFieldList.value = [];
+          }
         }
 
         // 检查是否为新节点（以node_开头的是前端生成的临时ID）
@@ -1015,9 +1100,23 @@ const updateOutputModel = () => {
         loadInputTableFields(inputTableFromForm);
       }
     } else {
-      selectedInputTable.value = '';
-      inputFieldList.value = [];
-      inputFields.value = [];
+      // 对于 Replace Transform，不要重置 inputFieldList，因为它使用上游输出模型
+      const isReplaceTransform =
+        formData.connectorType === 'TRANSFORM' && (formData.connectorName || '').toLowerCase().includes('replace');
+      console.log(
+        'DEBUG: In updateOutputModel else branch, isReplaceTransform:',
+        isReplaceTransform,
+        'inputFieldList before:',
+        inputFieldList.value,
+      );
+      if (!isReplaceTransform) {
+        selectedInputTable.value = '';
+        inputFieldList.value = [];
+        inputFields.value = [];
+        console.log('DEBUG: Reset inputFieldList to empty array');
+      } else {
+        console.log('DEBUG: Keeping inputFieldList for Replace Transform, length:', inputFieldList.value.length);
+      }
     }
   }
 };
@@ -1081,6 +1180,20 @@ const saveConfig = async () => {
           fields: outputFields,
           relation: outputModelMapping,
         };
+        if (selectedInputTable.value) {
+          const inputFieldNames = inputFieldList.value.map((row) => getRowColumnName(row)).filter(Boolean);
+          connectorConfigObj.inputModel = { tableName: selectedInputTable.value, fields: inputFieldNames };
+        }
+      }
+    } else if (isReplaceTransform.value) {
+      // Replace 类 Transform：直接使用上游输出模型作为自己的输出模型
+      if (inputFieldList.value && inputFieldList.value.length > 0) {
+        const outputFields = inputFieldList.value.map((row) => getRowColumnName(row)).filter(Boolean);
+        connectorConfigObj.outputModel = {
+          fields: outputFields,
+          relation: {}, // Replace组件没有字段映射，relation为空对象
+        };
+        // 同时保存输入模型
         if (selectedInputTable.value) {
           const inputFieldNames = inputFieldList.value.map((row) => getRowColumnName(row)).filter(Boolean);
           connectorConfigObj.inputModel = { tableName: selectedInputTable.value, fields: inputFieldNames };
@@ -1407,5 +1520,24 @@ onMounted(() => {
 .target-name {
   color: var(--el-text-color-regular);
   font-size: 12px;
+}
+
+.replace-model-container {
+  padding: 8px 0;
+  .section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #3a71a8;
+    margin-bottom: 8px;
+  }
+  .empty-tip {
+    color: var(--el-text-color-placeholder);
+    font-size: 12px;
+    padding: 16px;
+    text-align: center;
+  }
+  .field-table {
+    width: 100%;
+  }
 }
 </style>
