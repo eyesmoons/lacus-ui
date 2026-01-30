@@ -648,6 +648,16 @@ function initGraph() {
     selectedEdge.value = null;
   });
 
+  // 监听节点删除事件，同步更新 tasks.value
+  graph.on('node:removed', ({ node }) => {
+    const nodeId = node.id;
+    // 从 tasks.value 中移除对应的节点
+    const taskIndex = tasks.value.findIndex((t) => t.taskId === nodeId);
+    if (taskIndex !== -1) {
+      tasks.value.splice(taskIndex, 1);
+    }
+  });
+
   // 处理边创建事件
   graph.on('edge:connected', ({ edge }) => {
     const source = edge.getSource();
@@ -807,10 +817,11 @@ function saveJob() {
         }
       });
 
-    // 获取节点的位置信息
-    const nodePositions = tasks.value.map((task) => ({
-      taskId: task.taskId,
-      position: task.position || { x: 100, y: 100 }, // 默认位置
+    // 获取当前画布中存在的节点的位置信息（而不是tasks.value中的全部节点）
+    const currentNodes = graph.getNodes();
+    const nodePositions = currentNodes.map((node) => ({
+      taskId: node.id,
+      position: { x: node.getPosition().x, y: node.getPosition().y },
     }));
 
     const dagData = {
