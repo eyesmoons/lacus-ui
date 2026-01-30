@@ -107,6 +107,87 @@
               </el-select>
             </el-form-item>
 
+            <!-- 单选按钮组(Radio) -->
+            <el-form-item
+              v-else-if="getFieldType(field) === 'radio' || getFieldType(field) === 'RADIO'"
+              :label="field.cnName || field.label"
+              :prop="field.enName || field.fieldName || field.field || field.name"
+              :rules="getFieldRules(field)"
+            >
+              <el-radio-group
+                v-model="formData[field.enName || field.fieldName || field.field || field.name]"
+                :disabled="field.disabled"
+                @change="handleFieldChange"
+              >
+                <el-radio v-for="option in getAllFieldOptions(field)" :key="option.value" :label="option.value">
+                  {{ option.label }}
+                </el-radio>
+              </el-radio-group>
+            </el-form-item>
+
+            <!-- 多选按钮组(Checkbox) -->
+            <el-form-item
+              v-else-if="getFieldType(field) === 'checkbox' || getFieldType(field) === 'CHECKBOX'"
+              :label="field.cnName || field.label"
+              :prop="field.enName || field.fieldName || field.field || field.name"
+              :rules="getFieldRules(field)"
+            >
+              <el-checkbox-group
+                v-model="formData[field.enName || field.fieldName || field.field || field.name]"
+                :disabled="field.disabled"
+                @change="handleFieldChange"
+              >
+                <el-checkbox v-for="option in getAllFieldOptions(field)" :key="option.value" :label="option.value">
+                  {{ option.label }}
+                </el-checkbox>
+              </el-checkbox-group>
+            </el-form-item>
+
+            <!-- 日期选择器 -->
+            <el-form-item
+              v-else-if="getFieldType(field) === 'date' || getFieldType(field) === 'DATE'"
+              :label="field.cnName || field.label"
+              :prop="field.enName || field.fieldName || field.field || field.name"
+              :rules="getFieldRules(field)"
+            >
+              <el-date-picker
+                v-model="formData[field.enName || field.fieldName || field.field || field.name]"
+                type="date"
+                :placeholder="field.placeHolder || field.placeholder || `请选择${field.cnName || field.label}`"
+                :disabled="field.disabled"
+                :clearable="field.clearable !== false"
+                @change="handleFieldChange"
+                style="width: 100%"
+              />
+            </el-form-item>
+
+            <!-- 多选下拉框 -->
+            <el-form-item
+              v-else-if="getFieldType(field) === 'multi_select' || getFieldType(field) === 'MULTI_SELECT'"
+              :label="field.cnName || field.label"
+              :prop="field.enName || field.fieldName || field.field || field.name"
+              :rules="getFieldRules(field)"
+            >
+              <el-select
+                v-model="formData[field.enName || field.fieldName || field.field || field.name]"
+                multiple
+                :placeholder="field.placeHolder || field.placeholder || `请选择${field.cnName || field.label}`"
+                :disabled="field.disabled"
+                :filterable="field.filterable !== false"
+                :clearable="field.clearable !== false"
+                @change="handleFieldChange(field)"
+                @focus="handleFieldFocus(field)"
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="option in getAllFieldOptions(field)"
+                  :key="option.value"
+                  :label="option.label"
+                  :value="option.value"
+                />
+              </el-select>
+            </el-form-item>
+
             <!-- 兼容旧版本的其他字段类型 -->
             <el-form-item
               v-else
@@ -188,8 +269,17 @@ const getFieldType = (field) => {
 const getFieldOptions = (field) => {
   const fieldName = field.enName || field.fieldName || field.field || field.name;
 
-  // 按规范：当formType为SINGLE_SELECT时处理选项
-  if (getFieldType(field) === 'single_select' || getFieldType(field) === 'SINGLE_SELECT') {
+  // 按规范：当formType为SINGLE_SELECT/RADIO/CHECKBOX/MULTI_SELECT时处理选项
+  if (
+    getFieldType(field) === 'single_select' ||
+    getFieldType(field) === 'SINGLE_SELECT' ||
+    getFieldType(field) === 'radio' ||
+    getFieldType(field) === 'RADIO' ||
+    getFieldType(field) === 'checkbox' ||
+    getFieldType(field) === 'CHECKBOX' ||
+    getFieldType(field) === 'multi_select' ||
+    getFieldType(field) === 'MULTI_SELECT'
+  ) {
     // 按规范：若dictType为ENUM，则从dictEnum获取
     if (field.dictType === 'enum' && field.dictEnum && Array.isArray(field.dictEnum)) {
       return field.dictEnum.map((item) => ({
