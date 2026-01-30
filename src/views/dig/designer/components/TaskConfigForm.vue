@@ -69,7 +69,7 @@
         </div>
       </el-tab-pane>
       <!-- Replace 类 Transform：直接显示上游输出模型 -->
-      <el-tab-pane v-if="isReplaceTransform" label="模型配置" name="replaceModel">
+      <el-tab-pane v-if="isReplaceTransform || isSqlTransform" label="模型配置" name="replaceModel">
         <div class="output-model-section">
           <div class="replace-model-container">
             <div v-if="!inputFieldList.length" class="empty-tip">
@@ -132,16 +132,124 @@
             </div>
           </div>
         </div>
-        <el-dialog v-model="renameDialogVisible" title="重命名字段" width="400px">
-          <div>
-            <div style="margin-bottom:8px">原字段名：<code>{{ renameTargetField }}</code></div>
-            <el-input v-model="renameNewName" placeholder="请输入新的字段名" />
+      </el-tab-pane>
+
+      <!-- Field Mapper 类 Transform：选择/排序/重命名输出字段 -->
+
+      <!-- 通用重命名对话框：Field Rename 与 Field Mapper 共用 -->
+      <el-dialog v-model="renameDialogVisible" title="重命名字段" width="400px">
+        <div>
+          <div style="margin-bottom:8px">原字段名：<code>{{ renameTargetField }}</code></div>
+          <el-input v-model="renameNewName" placeholder="请输入新的字段名" />
+        </div>
+        <template #footer>
+          <el-button @click="renameDialogVisible=false">取消</el-button>
+          <el-button type="primary" @click="confirmRename">确定</el-button>
+        </template>
+      </el-dialog>
+      <el-tab-pane v-if="isFieldMapperTransform" label="模型配置" name="mapperModel">
+        <div class="output-model-section">
+          <div class="replace-model-container">
+            <div v-if="!inputFieldList.length">
+              <div class="empty-tip">
+                {{ hasUpstreamConnection ? '上游节点暂无输出模型，请先配置上游节点' : '暂无上游节点连接，请连接上游节点' }}
+              </div>
+              <div class="section-title" style="margin-top:8px">手动添加输出字段</div>
+              <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px">
+                <el-input v-model="mapperAddName" placeholder="请输入字段名" style="max-width:240px" />
+                <el-button type="primary" @click="addCustomMapperField">添加到输出</el-button>
+              </div>
+              <div class="section-title">输出字段（按顺序）</div>
+              <div style="overflow:auto">
+                <el-table :data="mapperOrder.map(n => ({ name: n }))" size="small" max-height="480" class="field-table" table-layout="auto" style="min-width: 900px">
+                  <el-table-column type="index" label="#" width="60" align="center" />
+                  <el-table-column prop="name" label="字段名" min-width="180" show-overflow-tooltip />
+                  <el-table-column label="输出名" min-width="220" show-overflow-tooltip>
+                    <template #default="scope">
+                      <span>{{ renameMappings[scope.row.name] || scope.row.name }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="操作" width="200" align="center" fixed="right">
+                    <template #default="scope">
+                      <div style="display:flex; gap:6px; justify-content:center">
+                        <el-tooltip content="重命名" placement="top">
+                          <el-button circle size="small" @click="openRenameDialog({ columnName: scope.row.name })" icon="Edit" />
+                        </el-tooltip>
+                        <el-tooltip content="上移" placement="top">
+                          <el-button circle size="small" @click="moveMapperRowUp(scope.row.name)" icon="Top" />
+                        </el-tooltip>
+                        <el-tooltip content="下移" placement="top">
+                          <el-button circle size="small" @click="moveMapperRowDown(scope.row.name)" icon="Bottom" />
+                        </el-tooltip>
+                        <el-tooltip content="删除" placement="top">
+                          <el-button circle size="small" type="danger" @click="removeMapperField(scope.row.name)" icon="Delete" />
+                        </el-tooltip>
+                      </div>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </div>
+            </div>
+            <div v-else>
+              <div class="table-info" v-if="upstreamOutputTableName">
+                <div class="section-title">表名：{{ upstreamOutputTableName }}</div>
+              </div>
+              <div style="display:flex; gap:6px; align-items: stretch; margin-top:12px">
+                <!-- 左侧：可用字段列表 -->
+                <div style="flex:1">
+                  <div class="section-title">输入模型</div>
+                  <el-table :data="inputFieldList" size="small" max-height="480" class="field-table">
+                    <el-table-column type="index" label="#" width="40" align="center" />
+                    <el-table-column prop="columnName" label="字段名" show-overflow-tooltip>
+                      <template #default="scope">
+                        {{ getRowColumnName(scope.row) || '-' }}
+                      </template>
+                    </el-table-column>
+                    <el-table-column prop="columnType" label="类型" show-overflow-tooltip />
+                    <el-table-column label="操作" width="100" align="center" fixed="right">
+                      <template #default="scope">
+                          <el-tooltip content="添加" placement="top">
+                              <el-button circle size="small" type="primary" :disabled="mapperOrder.includes(getRowColumnName(scope.row))" @click="addMapperField(getRowColumnName(scope.row))" icon="Right"/>
+                          </el-tooltip>
+                      </template>
+                    </el-table-column>
+                  </el-table>
+                </div>
+                <!-- 右侧：输出字段（按顺序） -->
+                <div style="flex:1.2; overflow:auto">
+                  <div class="section-title">输出模型</div>
+                  <el-table :data="mapperOrder.map(n => ({ name: n }))" size="small" max-height="480" class="field-table" table-layout="auto" style="min-width: 400px">
+                    <el-table-column type="index" label="#" width="60" align="center" />
+                    <el-table-column prop="name" label="字段名" show-overflow-tooltip />
+                    <el-table-column label="输出名" show-overflow-tooltip>
+                      <template #default="scope">
+                        <span>{{ renameMappings[scope.row.name] || scope.row.name }}</span>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="操作" width="200" align="center" fixed="right">
+                      <template #default="scope">
+                        <div style="display:flex; gap:6px; justify-content:center">
+                          <el-tooltip content="重命名" placement="top">
+                            <el-button circle size="small" @click="openRenameDialog({ columnName: scope.row.name })" icon="Edit" />
+                          </el-tooltip>
+                          <el-tooltip content="上移" placement="top">
+                            <el-button circle size="small" @click="moveMapperRowUp(scope.row.name)" icon="Top" />
+                          </el-tooltip>
+                          <el-tooltip content="下移" placement="top">
+                            <el-button circle size="small" @click="moveMapperRowDown(scope.row.name)" icon="Bottom" />
+                          </el-tooltip>
+                          <el-tooltip content="删除" placement="top">
+                            <el-button circle size="small" type="danger" @click="removeMapperField(scope.row.name)" icon="Delete" />
+                          </el-tooltip>
+                        </div>
+                      </template>
+                    </el-table-column>
+                  </el-table>
+                </div>
+              </div>
+            </div>
           </div>
-          <template #footer>
-            <el-button @click="renameDialogVisible=false">取消</el-button>
-            <el-button type="primary" @click="confirmRename">确定</el-button>
-          </template>
-        </el-dialog>
+        </div>
       </el-tab-pane>
 
       <!-- Split 类 Transform：一次仅支持一个字段拆分，无分隔符配置 -->
@@ -306,7 +414,7 @@
       </el-tab-pane>
       <el-tab-pane
         v-if="!isCopyTransform && !isReplaceTransform && !isMetadataTransform
-        && !isFieldRenameTransform && !isSplitTransform
+        && !isFieldRenameTransform && !isFieldMapperTransform && !isSplitTransform && !isSqlTransform
         && formData.connectorType !== 'SINK'"
         label="模型配置"
         name="output"
@@ -569,6 +677,11 @@ const renameDialogVisible = ref(false);
 const renameTargetField = ref('');
 const renameNewName = ref('');
 
+// Field Mapper Transform：选择、排序与重命名（输入名 -> 输出名）
+const mapperSelected = ref({}); // { inputFieldName: true/false }
+const mapperOrder = ref([]); // [ inputFieldName, ... ] 按输出顺序排列
+const mapperAddName = ref(''); // 手动添加输出字段名（无上游字段时）
+
 // Split Transform：一次仅支持一个字段拆分
 const splitDialogVisible = ref(false);
 const splitSourceField = ref(''); // 源字段名
@@ -614,6 +727,11 @@ const rules = {
   taskName: [{ required: true, message: '请输入任务名称', trigger: 'blur' }],
 };
 
+// 从行数据中取字段名（兼容 columnName / column_name / name / field / fieldName），统一 trim 便于匹配
+function getRowColumnName(row) {
+  return (row?.columnName ?? row?.column_name ?? row?.name ?? row?.field ?? row?.fieldName ?? '').toString().trim();
+}
+
 // 计算属性
 const showFieldConfig = computed(() => {
   return formData.connectorType === 'SOURCE' && fieldList.value.length > 0;
@@ -629,6 +747,12 @@ const isReplaceTransform = computed(() => {
   return formData.connectorType === 'TRANSFORM' && (formData.connectorName || '').toLowerCase().includes('replace');
 });
 
+/** SQL 类 Transform：连接器名包含 sql/sql_transform 时直接使用上游输出模型 */
+const isSqlTransform = computed(() => {
+  const name = (formData.connectorName || '').toLowerCase();
+  return formData.connectorType === 'TRANSFORM' && (name.includes('sql_transform') || name.includes('sql'));
+});
+
 /** Metadata 类 Transform：连接器名包含 metadata 时添加元数据字段 */
 const isMetadataTransform = computed(() => {
   return formData.connectorType === 'TRANSFORM' && (formData.connectorName || '').toLowerCase().includes('metadata');
@@ -637,6 +761,12 @@ const isMetadataTransform = computed(() => {
 /** Field Rename 类 Transform：连接器名包含 field_rename 时进行字段重命名 */
 const isFieldRenameTransform = computed(() => {
   return formData.connectorType === 'TRANSFORM' && (formData.connectorName || '').toLowerCase().includes('field_rename');
+});
+
+/** Field Mapper 类 Transform：连接器名包含 field_mapper/fieldmapper 时进行字段映射（选择/排序/重命名） */
+const isFieldMapperTransform = computed(() => {
+  const name = (formData.connectorName || '').toLowerCase();
+  return formData.connectorType === 'TRANSFORM' && (name.includes('field_mapper') || name.includes('fieldmapper'));
 });
 
 /** Split 类 Transform：连接器名包含 split/field_split 时进行字段拆分（一次仅一个字段） */
@@ -934,19 +1064,42 @@ watch(
     );
     if (restoringFromConnectorConfig.value) return;
     if (newConfig && typeof newConfig === 'object') {
-      // 对于 Replace Transform，避免在回显后触发 updateOutputModel 导致 inputFieldList 被重置
+      // 对于 Replace/SQL Transform，避免在回显后触发 updateOutputModel 导致 inputFieldList 被重置
       const isReplaceTransform =
         formData.connectorType === 'TRANSFORM' && (formData.connectorName || '').toLowerCase().includes('replace');
-      console.log('DEBUG: isReplaceTransform:', isReplaceTransform);
-      if (!isReplaceTransform) {
-        console.log('DEBUG: Calling updateOutputModel for non-Replace Transform');
+      const isSqlTransform =
+        formData.connectorType === 'TRANSFORM' && ((formData.connectorName || '').toLowerCase().includes('sql_transform') || (formData.connectorName || '').toLowerCase().includes('sql'));
+      console.log('DEBUG: isReplaceTransform:', isReplaceTransform, 'isSqlTransform:', isSqlTransform);
+      if (!isReplaceTransform && !isSqlTransform) {
+        console.log('DEBUG: Calling updateOutputModel for non-Replace/SQL Transform');
         updateOutputModel();
       } else {
-        console.log('DEBUG: Skipping updateOutputModel for Replace Transform');
+        console.log('DEBUG: Skipping updateOutputModel for Replace/SQL Transform');
       }
     }
   },
   { deep: true },
+);
+
+// Field Mapper：当进入该组件或上游字段加载完毕时，初始化选择与顺序
+watch(
+  () => [isFieldMapperTransform.value, inputFieldList.value.length],
+  () => {
+    if (isFieldMapperTransform.value && inputFieldList.value && inputFieldList.value.length > 0) {
+      const names = inputFieldList.value.map((row) => getRowColumnName(row)).filter(Boolean);
+      // Only initialize when empty to avoid overwriting existing choices
+      if (!Array.isArray(mapperOrder.value) || mapperOrder.value.length === 0) {
+        const sel = {};
+        names.forEach((n) => (sel[n] = false));
+        mapperSelected.value = sel;
+        mapperOrder.value = [];
+        console.log('DEBUG: Initialized Field Mapper (no auto-select). Available:', names);
+      } else {
+        console.log('DEBUG: Skip init; mapperOrder already has items:', mapperOrder.value);
+      }
+    }
+  },
+  { deep: true, immediate: true },
 );
 
 // 加载输入表字段（仅 Transform）。configOverride 回显时传入，避免依赖 formData.taskConfig 未同步
@@ -1041,6 +1194,18 @@ watch(
       console.log('DEBUG: Updated inputFieldList for Replace Transform, length:', inputFieldList.value.length);
     } else if (
       props.task.connectorType === 'TRANSFORM' &&
+      ((props.task.connectorName || '').toLowerCase().includes('sql_transform') || (props.task.connectorName || '').toLowerCase().includes('sql')) &&
+      props.upstreamOutputModel?.fields?.length
+    ) {
+      // SQL Transform：保持与上游输出模型一致，初始化输入字段列表
+      inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
+        typeof f === 'string'
+          ? { columnName: f, columnType: '-' }
+          : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
+      );
+      console.log('DEBUG: Updated inputFieldList for SQL Transform, length:', inputFieldList.value.length);
+    } else if (
+      props.task.connectorType === 'TRANSFORM' &&
       ((props.task.connectorName || '').toLowerCase().includes('split') || (props.task.connectorName || '').toLowerCase().includes('field_split')) &&
       props.upstreamOutputModel?.fields?.length
     ) {
@@ -1051,6 +1216,23 @@ watch(
           : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
       );
       console.log('DEBUG: Updated inputFieldList for Split Transform, length:', inputFieldList.value.length);
+    } else if (
+      props.task.connectorType === 'TRANSFORM' &&
+      (props.task.connectorName || '').toLowerCase().includes('field_mapper') &&
+      props.upstreamOutputModel?.fields?.length
+    ) {
+      // Field Mapper Transform：使用上游输出模型作为输入字段列表，并初始化选择与顺序
+      inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
+        typeof f === 'string'
+          ? { columnName: f, columnType: '-' }
+          : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
+      );
+      const names = inputFieldList.value.map((row) => getRowColumnName(row)).filter(Boolean);
+      const sel = {};
+      names.forEach((n) => (sel[n] = true));
+      mapperSelected.value = sel;
+      mapperOrder.value = names.slice();
+      console.log('DEBUG: Updated inputFieldList for Field Mapper Transform, length:', inputFieldList.value.length);
     }
   },
   { immediate: true, deep: true },
@@ -1331,6 +1513,61 @@ watch(
                   : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
               );
             }
+          } else if ((formData.connectorType || '') === 'TRANSFORM' && (formData.connectorName || '').toString().toLowerCase().includes('field_mapper')) {
+            // Field Mapper Transform：回显选择顺序与重命名映射
+            const rel = outModel?.relation;
+            const mapping = {};
+            if (Array.isArray(rel)) {
+              // 兼容后端数组格式：[ { replace_from, replace_to }, ... ]
+              rel.forEach((item) => {
+                const from = (item?.replace_from || '').toString().trim();
+                const to = (item?.replace_to || '').toString().trim();
+                if (from && to) mapping[from] = to;
+              });
+            } else if (rel && typeof rel === 'object' && !Array.isArray(rel)) {
+              // 兼容旧对象格式：{ 新名: 原名 } -> 反转为 原名: 新名
+              Object.keys(rel).forEach((newName) => {
+                const orig = rel[newName];
+                if (orig) mapping[orig] = newName;
+              });
+            }
+            renameMappings.value = mapping;
+
+            // 输入字段列表使用上游输出模型或保存的输入模型
+            const savedInputFields = Array.isArray(inModel?.fields) ? inModel.fields : [];
+            if (props.upstreamOutputModel?.fields?.length > 0) {
+              inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
+                typeof f === 'string'
+                  ? { columnName: f, columnType: '-' }
+                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
+              );
+            } else if (savedInputFields.length > 0) {
+              inputFieldList.value = savedInputFields.map((f) =>
+                typeof f === 'string'
+                  ? { columnName: f, columnType: '-' }
+                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
+              );
+            }
+            const inputNames = inputFieldList.value.map((row) => getRowColumnName(row)).filter(Boolean);
+            const savedOut = Array.isArray(outModel.fields) ? [...outModel.fields] : [];
+            const orderOrigNames = savedOut
+              .map((outName) => {
+                let orig = null;
+                if (Array.isArray(rel)) {
+                  const item = rel.find((r) => (r?.replace_to || '').toString().trim() === outName);
+                  if (item) orig = (item?.replace_from || '').toString().trim();
+                } else if (rel && typeof rel === 'object' && !Array.isArray(rel)) {
+                  const candidate = rel[outName];
+                  if (candidate) orig = candidate.toString().trim();
+                }
+                if (!orig && inputNames.includes(outName)) orig = outName;
+                return orig;
+              })
+              .filter(Boolean);
+            const sel = {};
+            orderOrigNames.forEach((n) => (sel[n] = true));
+            mapperOrder.value = orderOrigNames;
+            mapperSelected.value = sel;
           } else if (isSplit) {
             // Split Transform：回显拆分规则（一次仅一个源字段）
             const rel = outModel?.relation;
@@ -1452,6 +1689,8 @@ watch(
           // 特别处理 Replace Transform 和 Metadata Transform：即使没有 inputModel，也要保持上游输出模型作为 inputFieldList
           const isReplaceTransform =
         formData.connectorType === 'TRANSFORM' && (formData.connectorName || '').toLowerCase().includes('replace');
+      const isSqlTransform =
+        formData.connectorType === 'TRANSFORM' && ((formData.connectorName || '').toLowerCase().includes('sql_transform') || (formData.connectorName || '').toLowerCase().includes('sql'));
       const isMetadataTransform =
         formData.connectorType === 'TRANSFORM' && (formData.connectorName || '').toLowerCase().includes('metadata');
       const isFieldRenameTransform =
@@ -1466,8 +1705,8 @@ watch(
                 : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
             );
             initMetadataOutputFields();
-          } else if (isReplaceTransform && props.upstreamOutputModel?.fields?.length > 0) {
-            // Replace：无 inputModel 时也用上游输出字段初始化
+          } else if ((isReplaceTransform || isSqlTransform) && props.upstreamOutputModel?.fields?.length > 0) {
+            // Replace/SQL：无 inputModel 时也用上游输出字段初始化
             inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
               typeof f === 'string'
                 ? { columnName: f, columnType: '-' }
@@ -1480,6 +1719,20 @@ watch(
                 ? { columnName: f, columnType: '-' }
                 : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
             );
+          } else if (isFieldMapperTransform && props.upstreamOutputModel?.fields?.length > 0) {
+            // Field Mapper：无 inputModel 时也用上游输出字段初始化，并在无回显时进行默认选择
+            inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
+              typeof f === 'string'
+                ? { columnName: f, columnType: '-' }
+                : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
+            );
+            if (!Array.isArray(mapperOrder.value) || mapperOrder.value.length === 0) {
+              const names = inputFieldList.value.map((row) => getRowColumnName(row)).filter(Boolean);
+              const sel = {};
+              names.forEach((n) => (sel[n] = true));
+              mapperSelected.value = sel;
+              mapperOrder.value = names.slice();
+            }
           } else if (isSplitTransform && props.upstreamOutputModel?.fields?.length > 0) {
             // Field Split：无 inputModel 时也用上游输出字段初始化
             inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
@@ -1487,7 +1740,7 @@ watch(
                 ? { columnName: f, columnType: '-' }
                 : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
             );
-          } else if (!isReplaceTransform && !isMetadataTransform && !isFieldRenameTransform && !hasUpstreamForSink) {
+          } else if (!isReplaceTransform && !isSqlTransform && !isMetadataTransform && !isFieldRenameTransform && !isFieldMapperTransform && !hasUpstreamForSink) {
             selectedInputTable.value = '';
             inputFields.value = [];
             inputFieldList.value = [];
@@ -1561,17 +1814,21 @@ const updateOutputModel = () => {
       // 对于 Replace Transform 和 Metadata Transform，不要重置 inputFieldList，因为它使用上游输出模型
       const isReplaceTransform =
         formData.connectorType === 'TRANSFORM' && (formData.connectorName || '').toLowerCase().includes('replace');
+      const isSqlTransform =
+        formData.connectorType === 'TRANSFORM' && ((formData.connectorName || '').toLowerCase().includes('sql_transform') || (formData.connectorName || '').toLowerCase().includes('sql'));
       const isMetadataTransform =
         formData.connectorType === 'TRANSFORM' && (formData.connectorName || '').toLowerCase().includes('metadata');
       console.log(
         'DEBUG: In updateOutputModel else branch, isReplaceTransform:',
         isReplaceTransform,
+        'isSqlTransform:',
+        isSqlTransform,
         'isMetadataTransform:',
         isMetadataTransform,
         'inputFieldList before:',
         inputFieldList.value,
       );
-      if (!isReplaceTransform && !isMetadataTransform) {
+      if (!isReplaceTransform && !isSqlTransform && !isMetadataTransform) {
         selectedInputTable.value = '';
         inputFieldList.value = [];
         inputFields.value = [];
@@ -1583,9 +1840,7 @@ const updateOutputModel = () => {
   }
 };
 
-// 从行数据中取字段名（兼容 columnName / column_name / name / field / fieldName），统一 trim 便于匹配
-const getRowColumnName = (row) =>
-  (row?.columnName ?? row?.column_name ?? row?.name ?? row?.field ?? row?.fieldName ?? '').toString().trim();
+// getRowColumnName 已提前定义为函数以避免初始化顺序问题
 
 // Metadata Transform：添加元数据字段到输出字段列表
 const addMetadataField = (field) => {
@@ -1663,6 +1918,39 @@ const confirmSplit = () => {
   splitDialogVisible.value = false;
 };
 
+// Field Mapper：添加到输出列表（避免重复，默认选中）
+const addMapperField = (name) => {
+  const n = (name || '').trim();
+  if (!n) return;
+  if (!mapperOrder.value.includes(n)) {
+    mapperOrder.value = [...mapperOrder.value, n];
+  }
+  mapperSelected.value = { ...mapperSelected.value, [n]: true };
+};
+
+// Field Mapper：从输出列表删除（并取消选中）
+const removeMapperField = (name) => {
+  const n = (name || '').trim();
+  if (!n) return;
+  const idx = mapperOrder.value.indexOf(n);
+  if (idx >= 0) {
+    const next = [...mapperOrder.value];
+    next.splice(idx, 1);
+    mapperOrder.value = next;
+  }
+  const sel = { ...mapperSelected.value };
+  sel[n] = false;
+  mapperSelected.value = sel;
+};
+
+// Field Mapper：手动添加（无上游字段时）
+const addCustomMapperField = () => {
+  const n = (mapperAddName.value || '').trim();
+  if (!n) return;
+  addMapperField(n);
+  mapperAddName.value = '';
+};
+
 // Split Transform：预览应用拆分后的输出字段（将源字段在原位置替换为目标字段列表）
 const getSplitPreviewOutputFields = () => {
   if (!isSplitTransform.value || !splitSourceField.value) {
@@ -1684,6 +1972,24 @@ const getSplitPreviewOutputFields = () => {
     }
   });
   return preview.filter(Boolean);
+};
+
+// Field Mapper：顺序调整方法
+const moveMapperRowUp = (name) => {
+  const idx = mapperOrder.value.indexOf(name);
+  if (idx > 0) {
+    const arr = mapperOrder.value.slice();
+    [arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]];
+    mapperOrder.value = arr;
+  }
+};
+const moveMapperRowDown = (name) => {
+  const idx = mapperOrder.value.indexOf(name);
+  if (idx >= 0 && idx < mapperOrder.value.length - 1) {
+    const arr = mapperOrder.value.slice();
+    [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]];
+    mapperOrder.value = arr;
+  }
 };
 
 // Metadata Transform：左侧表合并（上游字段 + 元数据）与行类型判断
@@ -1828,13 +2134,13 @@ const saveConfig = async () => {
           connectorConfigObj.inputModel = { tableName: selectedInputTable.value, fields: inputFieldNames };
         }
       }
-    } else if (isReplaceTransform.value) {
-      // Replace 类 Transform：直接使用上游输出模型作为自己的输出模型
+    } else if (isReplaceTransform.value || isSqlTransform.value) {
+      // Replace/SQL 类 Transform：直接使用上游输出模型作为自己的输出模型
       if (inputFieldList.value && inputFieldList.value.length > 0) {
         const outputFields = inputFieldList.value.map((row) => getRowColumnName(row)).filter(Boolean);
         connectorConfigObj.outputModel = {
           fields: outputFields,
-          relation: {}, // Replace组件没有字段映射，relation为空对象
+          relation: {}, // Replace/SQL组件没有字段映射，relation为空对象
         };
         // 同时保存输入模型
         if (selectedInputTable.value) {
@@ -1867,6 +2173,27 @@ const saveConfig = async () => {
           relation,
         };
         // 同时保存输入模型
+        if (selectedInputTable.value) {
+          const inputFieldNames = inputFieldList.value.map((row) => getRowColumnName(row)).filter(Boolean);
+          connectorConfigObj.inputModel = { tableName: selectedInputTable.value, fields: inputFieldNames };
+        }
+      }
+    } else if (isFieldMapperTransform.value) {
+      // Field Mapper 类 Transform：根据选择与顺序生成输出字段，并保存重命名映射
+      if (inputFieldList.value && inputFieldList.value.length > 0) {
+        const orderNames = (mapperOrder.value || []).filter((n) => mapperSelected.value[n]);
+        const outputFields = orderNames.map((orig) => renameMappings.value[orig] || orig).filter(Boolean);
+        const relation = [];
+        orderNames.forEach((orig) => {
+          const renamed = renameMappings.value[orig] || orig;
+          if (renamed && orig && renamed !== orig) {
+            relation.push({ replace_from: orig, replace_to: renamed });
+          }
+        });
+        connectorConfigObj.outputModel = {
+          fields: outputFields,
+          relation,
+        };
         if (selectedInputTable.value) {
           const inputFieldNames = inputFieldList.value.map((row) => getRowColumnName(row)).filter(Boolean);
           connectorConfigObj.inputModel = { tableName: selectedInputTable.value, fields: inputFieldNames };

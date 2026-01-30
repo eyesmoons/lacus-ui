@@ -95,9 +95,10 @@
         </div>
 
         <el-divider/>
-
-        <el-button type="primary" plain icon="DocumentAdd" @click="saveSetting">保存配置</el-button>
-        <el-button plain icon="Refresh" @click="resetSetting">重置配置</el-button>
+        <div class="drawer-footer">
+            <el-button type="primary" plain icon="DocumentAdd" @click="saveSetting">保存配置</el-button>
+            <el-button plain icon="Refresh" @click="resetSetting">重置配置</el-button>
+        </div>
     </el-drawer>
 </template>
 
@@ -280,5 +281,17 @@ defineExpose({
     float: right;
     margin: -3px 8px 0px 0px;
   }
+}
+
+.drawer-footer {
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  border-top: 1px solid var(--el-border-color-lighter);
+  padding: 12px 12px 16px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  z-index: 10;
 }
 </style>
