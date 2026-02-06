@@ -131,3 +131,14 @@ export function getJobLogs(jobId) {
     method: 'get',
   });
 }
+
+/**
+ * 运行作业
+ * @param {number} jobId - 作业ID
+ */
+export function startJob(jobId) {
+  return request({
+    url: `/st/execute/start/${jobId}`,
+    method: 'get',
+  });
+}

@@ -56,9 +56,17 @@
           <span>{{ parseTime(scope.row.updateTime) }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="260" align="center" fixed="right">
+      <el-table-column label="操作" width="300" align="center" fixed="right">
         <template #default="scope">
           <el-button-group>
+            <el-tooltip content="运行任务" placement="top">
+              <el-button
+                  type="success"
+                  icon="VideoPlay"
+                  @click="startJob(scope.row)"
+                  :disabled="scope.row.status !== 1"
+              />
+            </el-tooltip>
             <el-tooltip content="设计任务" placement="top">
               <el-button type="primary" icon="Tools" @click="designJob(scope.row)" :disabled="scope.row.status === 1" />
             </el-tooltip>
@@ -178,6 +186,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { VideoPlay } from '@element-plus/icons-vue';
 import { parseTime } from '@/utils/dateUtil';
 import * as jobApi from '@/api/dig/jobApi';
 
@@ -412,6 +421,26 @@ const unpublishJob = async (row) => {
     if (error !== 'cancel') {
       console.error('取消发布任务失败:', error);
       ElMessage.error('取消发布任务失败');
+    }
+  }
+};
+
+// 运行任务
+const startJob = async (row) => {
+  try {
+    await ElMessageBox.confirm('确定要运行该任务吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'info',
+    });
+
+    await jobApi.startJob(row.jobId);
+    ElMessage.success('任务运行成功');
+    getJobList();
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('运行任务失败:', error);
+      ElMessage.error('运行任务失败');
     }
   }
 };

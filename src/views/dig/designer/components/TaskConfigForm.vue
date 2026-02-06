@@ -58,7 +58,12 @@
               <div class="section-title">输入表名</div>
               <div class="table-options">
                 <ul class="table-list" style="margin-top: 5px; margin-left: 0">
-                  <li v-for="t in availableInputTables" :key="t" :class="{ active: selectedInputTable === t }">
+                  <li
+                    v-for="t in availableInputTables"
+                    :key="t"
+                    :class="{ active: isSelectedInputTable(t) }"
+                    @click="onInputTableChange(t)"
+                  >
                     {{ t }}
                   </li>
                 </ul>
@@ -80,8 +85,8 @@
             </div>
             <div v-else>
               <!-- 显示上游输出模型的表名 -->
-              <div class="table-info" v-if="upstreamOutputTableName">
-                <div class="section-title">表名：{{ upstreamOutputTableName }}</div>
+              <div class="table-info" v-if="upstreamOutputTableNames.length > 0">
+                <div class="section-title">表名：{{ upstreamOutputTableNames.join(', ') }}</div>
               </div>
               <el-table :data="inputFieldList" size="small" max-height="400" class="field-table">
                 <el-table-column type="index" label="#" width="40" align="center" />
@@ -107,8 +112,8 @@
               }}
             </div>
             <div v-else>
-              <div class="table-info" v-if="upstreamOutputTableName">
-                <div class="section-title">表名：{{ upstreamOutputTableName }}</div>
+              <div class="table-info" v-if="upstreamOutputTableNames.length > 0">
+                <div class="section-title">表名：{{ upstreamOutputTableNames.join(', ') }}</div>
               </div>
               <el-table :data="inputFieldList" size="small" max-height="600" class="field-table">
                 <el-table-column type="index" label="#" width="40" align="center" />
@@ -139,11 +144,13 @@
       <!-- 通用重命名对话框：Field Rename 与 Field Mapper 共用 -->
       <el-dialog v-model="renameDialogVisible" title="重命名字段" width="400px">
         <div>
-          <div style="margin-bottom:8px">原字段名：<code>{{ renameTargetField }}</code></div>
+          <div style="margin-bottom: 8px">
+            原字段名：<code>{{ renameTargetField }}</code>
+          </div>
           <el-input v-model="renameNewName" placeholder="请输入新的字段名" />
         </div>
         <template #footer>
-          <el-button @click="renameDialogVisible=false">取消</el-button>
+          <el-button @click="renameDialogVisible = false">取消</el-button>
           <el-button type="primary" @click="confirmRename">确定</el-button>
         </template>
       </el-dialog>
@@ -152,16 +159,25 @@
           <div class="replace-model-container">
             <div v-if="!inputFieldList.length">
               <div class="empty-tip">
-                {{ hasUpstreamConnection ? '上游节点暂无输出模型，请先配置上游节点' : '暂无上游节点连接，请连接上游节点' }}
+                {{
+                  hasUpstreamConnection ? '上游节点暂无输出模型，请先配置上游节点' : '暂无上游节点连接，请连接上游节点'
+                }}
               </div>
-              <div class="section-title" style="margin-top:8px">手动添加输出字段</div>
-              <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px">
-                <el-input v-model="mapperAddName" placeholder="请输入字段名" style="max-width:240px" />
+              <div class="section-title" style="margin-top: 8px">手动添加输出字段</div>
+              <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px">
+                <el-input v-model="mapperAddName" placeholder="请输入字段名" style="max-width: 240px" />
                 <el-button type="primary" @click="addCustomMapperField">添加到输出</el-button>
               </div>
               <div class="section-title">输出字段（按顺序）</div>
-              <div style="overflow:auto">
-                <el-table :data="mapperOrder.map(n => ({ name: n }))" size="small" max-height="480" class="field-table" table-layout="auto" style="min-width: 900px">
+              <div style="overflow: auto">
+                <el-table
+                  :data="mapperOrder.map((n) => ({ name: n }))"
+                  size="small"
+                  max-height="480"
+                  class="field-table"
+                  table-layout="auto"
+                  style="min-width: 900px"
+                >
                   <el-table-column type="index" label="#" width="60" align="center" />
                   <el-table-column prop="name" label="字段名" min-width="180" show-overflow-tooltip />
                   <el-table-column label="输出名" min-width="220" show-overflow-tooltip>
@@ -171,9 +187,14 @@
                   </el-table-column>
                   <el-table-column label="操作" width="200" align="center" fixed="right">
                     <template #default="scope">
-                      <div style="display:flex; gap:6px; justify-content:center">
+                      <div style="display: flex; gap: 6px; justify-content: center">
                         <el-tooltip content="重命名" placement="top">
-                          <el-button circle size="small" @click="openRenameDialog({ columnName: scope.row.name })" icon="Edit" />
+                          <el-button
+                            circle
+                            size="small"
+                            @click="openRenameDialog({ columnName: scope.row.name })"
+                            icon="Edit"
+                          />
                         </el-tooltip>
                         <el-tooltip content="上移" placement="top">
                           <el-button circle size="small" @click="moveMapperRowUp(scope.row.name)" icon="Top" />
@@ -182,7 +203,13 @@
                           <el-button circle size="small" @click="moveMapperRowDown(scope.row.name)" icon="Bottom" />
                         </el-tooltip>
                         <el-tooltip content="删除" placement="top">
-                          <el-button circle size="small" type="danger" @click="removeMapperField(scope.row.name)" icon="Delete" />
+                          <el-button
+                            circle
+                            size="small"
+                            type="danger"
+                            @click="removeMapperField(scope.row.name)"
+                            icon="Delete"
+                          />
                         </el-tooltip>
                       </div>
                     </template>
@@ -191,12 +218,12 @@
               </div>
             </div>
             <div v-else>
-              <div class="table-info" v-if="upstreamOutputTableName">
-                <div class="section-title">表名：{{ upstreamOutputTableName }}</div>
+              <div class="table-info" v-if="upstreamOutputTableNames.length > 0">
+                <div class="section-title">表名：{{ upstreamOutputTableNames.join(', ') }}</div>
               </div>
-              <div style="display:flex; gap:6px; align-items: stretch; margin-top:12px">
+              <div style="display: flex; gap: 6px; align-items: stretch; margin-top: 12px">
                 <!-- 左侧：可用字段列表 -->
-                <div style="flex:1">
+                <div style="flex: 1">
                   <div class="section-title">输入模型</div>
                   <el-table :data="inputFieldList" size="small" max-height="480" class="field-table">
                     <el-table-column type="index" label="#" width="40" align="center" />
@@ -208,17 +235,31 @@
                     <el-table-column prop="columnType" label="类型" show-overflow-tooltip />
                     <el-table-column label="操作" width="100" align="center" fixed="right">
                       <template #default="scope">
-                          <el-tooltip content="添加" placement="top">
-                              <el-button circle size="small" type="primary" :disabled="mapperOrder.includes(getRowColumnName(scope.row))" @click="addMapperField(getRowColumnName(scope.row))" icon="Right"/>
-                          </el-tooltip>
+                        <el-tooltip content="添加" placement="top">
+                          <el-button
+                            circle
+                            size="small"
+                            type="primary"
+                            :disabled="mapperOrder.includes(getRowColumnName(scope.row))"
+                            @click="addMapperField(getRowColumnName(scope.row))"
+                            icon="Right"
+                          />
+                        </el-tooltip>
                       </template>
                     </el-table-column>
                   </el-table>
                 </div>
                 <!-- 右侧：输出字段（按顺序） -->
-                <div style="flex:1.2; overflow:auto">
+                <div style="flex: 1.2; overflow: auto">
                   <div class="section-title">输出模型</div>
-                  <el-table :data="mapperOrder.map(n => ({ name: n }))" size="small" max-height="480" class="field-table" table-layout="auto" style="min-width: 400px">
+                  <el-table
+                    :data="mapperOrder.map((n) => ({ name: n }))"
+                    size="small"
+                    max-height="480"
+                    class="field-table"
+                    table-layout="auto"
+                    style="min-width: 400px"
+                  >
                     <el-table-column type="index" label="#" width="60" align="center" />
                     <el-table-column prop="name" label="字段名" show-overflow-tooltip />
                     <el-table-column label="输出名" show-overflow-tooltip>
@@ -228,9 +269,14 @@
                     </el-table-column>
                     <el-table-column label="操作" width="200" align="center" fixed="right">
                       <template #default="scope">
-                        <div style="display:flex; gap:6px; justify-content:center">
+                        <div style="display: flex; gap: 6px; justify-content: center">
                           <el-tooltip content="重命名" placement="top">
-                            <el-button circle size="small" @click="openRenameDialog({ columnName: scope.row.name })" icon="Edit" />
+                            <el-button
+                              circle
+                              size="small"
+                              @click="openRenameDialog({ columnName: scope.row.name })"
+                              icon="Edit"
+                            />
                           </el-tooltip>
                           <el-tooltip content="上移" placement="top">
                             <el-button circle size="small" @click="moveMapperRowUp(scope.row.name)" icon="Top" />
@@ -239,7 +285,13 @@
                             <el-button circle size="small" @click="moveMapperRowDown(scope.row.name)" icon="Bottom" />
                           </el-tooltip>
                           <el-tooltip content="删除" placement="top">
-                            <el-button circle size="small" type="danger" @click="removeMapperField(scope.row.name)" icon="Delete" />
+                            <el-button
+                              circle
+                              size="small"
+                              type="danger"
+                              @click="removeMapperField(scope.row.name)"
+                              icon="Delete"
+                            />
                           </el-tooltip>
                         </div>
                       </template>
@@ -258,19 +310,22 @@
           <div class="replace-model-container">
             <div v-if="!inputFieldList.length" class="empty-tip">
               <div>上游输出模型：{{ upstreamOutputModel }}</div>
-              <div v-if="hasUpstreamConnection && upstreamOutputModel && Array.isArray(upstreamOutputModel.fields) && upstreamOutputModel.fields.length > 0">
+              <div
+                v-if="
+                  hasUpstreamConnection &&
+                  upstreamOutputModel &&
+                  Array.isArray(upstreamOutputModel.fields) &&
+                  upstreamOutputModel.fields.length > 0
+                "
+              >
                 检测到上游字段，可点击“拆分”开始配置
               </div>
-              <div v-else-if="hasUpstreamConnection">
-                上游节点暂无输出模型，请先配置上游节点
-              </div>
-              <div v-else>
-                暂无上游节点连接，请连接上游节点
-              </div>
+              <div v-else-if="hasUpstreamConnection">上游节点暂无输出模型，请先配置上游节点</div>
+              <div v-else>暂无上游节点连接，请连接上游节点</div>
             </div>
             <div v-else>
-              <div style="display:flex; gap:16px; align-items: stretch; margin-top:12px">
-                <div style="flex:1">
+              <div style="display: flex; gap: 16px; align-items: stretch; margin-top: 12px">
+                <div style="flex: 1">
                   <div class="section-title">输入模型</div>
                   <el-table :data="inputFieldList" size="small" max-height="480" class="field-table">
                     <el-table-column type="index" label="#" width="40" align="center" />
@@ -282,7 +337,13 @@
                     <el-table-column prop="columnType" label="类型" width="90" show-overflow-tooltip />
                     <el-table-column label="拆分为" min-width="180" show-overflow-tooltip>
                       <template #default="scope">
-                        <span v-if="getRowColumnName(scope.row) === splitSourceField && Array.isArray(splitTargetFields) && splitTargetFields.length >= 2">
+                        <span
+                          v-if="
+                            getRowColumnName(scope.row) === splitSourceField &&
+                            Array.isArray(splitTargetFields) &&
+                            splitTargetFields.length >= 2
+                          "
+                        >
                           <code>{{ '{ ' + splitSourceField + ' }' }}</code>
                           ⇒
                           <code>{{ '{ ' + splitTargetFields.join(', ') + ' }' }}</code>
@@ -297,9 +358,14 @@
                     </el-table-column>
                   </el-table>
                 </div>
-                <div style="flex:1">
+                <div style="flex: 1">
                   <div class="section-title">输出模型</div>
-                  <el-table :data="getSplitPreviewOutputFields().map(n => ({ name: n }))" size="small" max-height="480" class="field-table">
+                  <el-table
+                    :data="getSplitPreviewOutputFields().map((n) => ({ name: n }))"
+                    size="small"
+                    max-height="480"
+                    class="field-table"
+                  >
                     <el-table-column type="index" label="#" width="40" align="center" />
                     <el-table-column prop="name" label="字段名" min-width="100" show-overflow-tooltip />
                   </el-table>
@@ -310,18 +376,20 @@
         </div>
         <el-dialog v-model="splitDialogVisible" title="配置拆分" width="520px">
           <div>
-            <div style="margin-bottom:8px">源字段：<code>{{ splitSourceField }}</code></div>
+            <div style="margin-bottom: 8px">
+              源字段：<code>{{ splitSourceField }}</code>
+            </div>
             <div>
-              <div style="margin-bottom:6px">目标字段列表（至少两个）：</div>
-              <div v-for="(t, idx) in splitTargetFields" :key="idx" style="display:flex; gap:8px; margin-bottom:6px">
+              <div style="margin-bottom: 6px">目标字段列表（至少两个）：</div>
+              <div v-for="(t, idx) in splitTargetFields" :key="idx" style="display: flex; gap: 8px; margin-bottom: 6px">
                 <el-input v-model="splitTargetFields[idx]" placeholder="目标字段名" />
-                <el-button @click="splitTargetFields.splice(idx,1)" size="small">移除</el-button>
+                <el-button @click="splitTargetFields.splice(idx, 1)" size="small">移除</el-button>
               </div>
               <el-button @click="splitTargetFields.push('')" size="small">添加目标字段</el-button>
             </div>
           </div>
           <template #footer>
-            <el-button @click="splitDialogVisible=false">取消</el-button>
+            <el-button @click="splitDialogVisible = false">取消</el-button>
             <el-button type="primary" @click="confirmSplit">应用</el-button>
           </template>
         </el-dialog>
@@ -338,10 +406,10 @@
               }}
             </div>
             <div v-else>
-              <div class="table-info" v-if="upstreamOutputTableName">
-                <div class="section-title">表名：{{ upstreamOutputTableName }}</div>
+              <div class="table-info" v-if="upstreamOutputTableNames.length > 0">
+                <div class="section-title">表名：{{ upstreamOutputTableNames.join(', ') }}</div>
               </div>
-              <div style="display: flex; gap: 16px; align-items: stretch;">
+              <div style="display: flex; gap: 16px; align-items: stretch">
                 <div class="panel left-panel">
                   <div class="section-title">左侧：上游字段 + 元数据</div>
                   <el-table :data="leftCombinedList" size="small" max-height="600" class="field-table">
@@ -354,14 +422,10 @@
                     <el-table-column prop="columnType" label="类型" width="90" show-overflow-tooltip />
                     <el-table-column label="操作" width="70" align="center" fixed="right">
                       <template #default="scope">
-                        <el-button
-                          v-if="isMetadataRow(scope.row)"
-                          size="small"
-                          @click="addMetadataField(scope.row)"
-                        >
+                        <el-button v-if="isMetadataRow(scope.row)" size="small" @click="addMetadataField(scope.row)">
                           添加
                         </el-button>
-                        <span v-else style="color:#c0c4cc">-</span>
+                        <span v-else style="color: #c0c4cc">-</span>
                       </template>
                     </el-table-column>
                   </el-table>
@@ -402,7 +466,7 @@
                         >
                           移除
                         </el-button>
-                        <span v-else style="color:#c0c4cc">-</span>
+                        <span v-else style="color: #c0c4cc">-</span>
                       </template>
                     </el-table-column>
                   </el-table>
@@ -413,9 +477,16 @@
         </div>
       </el-tab-pane>
       <el-tab-pane
-        v-if="!isCopyTransform && !isReplaceTransform && !isMetadataTransform
-        && !isFieldRenameTransform && !isFieldMapperTransform && !isSplitTransform && !isSqlTransform
-        && formData.connectorType !== 'SINK'"
+        v-if="
+          !isCopyTransform &&
+          !isReplaceTransform &&
+          !isMetadataTransform &&
+          !isFieldRenameTransform &&
+          !isFieldMapperTransform &&
+          !isSplitTransform &&
+          !isSqlTransform &&
+          formData.connectorType !== 'SINK'
+        "
         label="模型配置"
         name="output"
       >
@@ -436,7 +507,7 @@
                   <li
                     v-for="tableName in availableTables"
                     :key="tableName"
-                    :class="{ active: selectedTable === tableName }"
+                    :class="{ active: isSelectedOutputTable(tableName) }"
                     @click="onOutputTableChange(tableName)"
                   >
                     {{ tableName }}
@@ -446,7 +517,7 @@
             </div>
             <div class="field-table-panel">
               <div class="section-title">输出模型</div>
-              <div v-if="!selectedTable" class="no-table-selected">请先选择左侧的表</div>
+              <div v-if="!selectedTable || selectedTable.length === 0" class="no-table-selected">请先选择左侧的表</div>
               <div v-else-if="fieldList.length === 0" class="loading-fields">正在加载字段...</div>
               <div v-else>
                 <el-table
@@ -501,7 +572,7 @@
                   <li
                     v-for="tableName in availableTables"
                     :key="tableName"
-                    :class="{ active: selectedTable === tableName }"
+                    :class="{ active: isSelectedOutputTable(tableName) }"
                     @click="onOutputTableChange(tableName)"
                   >
                     {{ tableName }}
@@ -631,7 +702,12 @@ const convertFormValuesToCorrectTypes = (formData, formConfig) => {
     }
 
     // 处理多选/复选：ElCheckboxGroup 需要数组
-    if (fieldType === 'checkbox' || fieldType === 'CHECKBOX' || fieldType === 'multi_select' || fieldType === 'MULTI_SELECT') {
+    if (
+      fieldType === 'checkbox' ||
+      fieldType === 'CHECKBOX' ||
+      fieldType === 'multi_select' ||
+      fieldType === 'MULTI_SELECT'
+    ) {
       const val = convertedData[fieldName];
       if (typeof val === 'string') {
         const s = val.trim();
@@ -661,12 +737,15 @@ const outputTableRef = ref(null);
 const inputTableRef = ref(null); // 输入表 el-table 引用（Transform 回显勾选用）
 const saving = ref(false);
 const fieldList = ref([]); // 输出表字段列表
-const selectedTable = ref(''); // 输出模型：当前选中的表名
-const outputTableFromConfig = ref(''); // 从 connectorConfig.outputModel 解析出的表名，保证左侧列表与回显不因 pickFormFieldsOnly 丢失
-const outputFields = ref([]); // 输出模型：选中的字段名
+const selectedTable = ref([]); // 输出模型：当前选中的表名（支持多选）
+const currentEditingTable = ref(null); // 当前正在编辑字段的表名
+const outputTableFromConfig = ref([]); // 从 connectorConfig.outputModel 解析出的表名，保证左侧列表与回显不因 pickFormFieldsOnly 丢失（支持多表）
+const outputFields = ref([]); // 输出模型：选中的字段名（当前表的字段）
+const tableFieldsMap = ref({}); // 存储每个表对应的字段选择状态 { tableName: [field1, field2, ...] }
+const tableFieldsList = ref({}); // 存储每个表的字段列表 { tableName: [field1, field2, ...] }
 const copyOutputFields = ref([]); // Copy 类 Transform：右侧映射列表 [{ sourceColumn, targetColumn }]
 const inputFieldList = ref([]); // 输入表字段列表（仅 Transform）
-const selectedInputTable = ref(''); // 输入模型：当前选中的表名（仅 Transform）
+const selectedInputTable = ref([]); // 输入模型：当前选中的表名（仅 Transform，支持多选）
 const inputFields = ref([]); // 输入模型：选中的字段名（仅 Transform）
 const mappingFields = ref({}); // SINK 组件字段映射关系：目标字段 -> 源字段
 const outputFieldList = ref([]); // Metadata Transform 输出字段列表
@@ -760,7 +839,9 @@ const isMetadataTransform = computed(() => {
 
 /** Field Rename 类 Transform：连接器名包含 field_rename 时进行字段重命名 */
 const isFieldRenameTransform = computed(() => {
-  return formData.connectorType === 'TRANSFORM' && (formData.connectorName || '').toLowerCase().includes('field_rename');
+  return (
+    formData.connectorType === 'TRANSFORM' && (formData.connectorName || '').toLowerCase().includes('field_rename')
+  );
 });
 
 /** Field Mapper 类 Transform：连接器名包含 field_mapper/fieldmapper 时进行字段映射（选择/排序/重命名） */
@@ -792,42 +873,103 @@ const dynamicFormConfigFiltered = computed(() => {
 });
 
 // 右侧输出模型的表：优先用 connectorConfig 回显的表名，否则用属性配置里的 tableName/table
+// 右侧输出模型的表：优先用 connectorConfig 回显的表名，否则用属性配置里的 tableName/table
 const availableTables = computed(() => {
   const fromConfig = outputTableFromConfig.value;
-  if (fromConfig) return [fromConfig];
-  const tableFromForm = formData.taskConfig?.tableName || formData.taskConfig?.table;
-  if (tableFromForm) return [tableFromForm];
+  console.log('outputTableFromConfig', outputTableFromConfig.value);
+  if (fromConfig && Array.isArray(fromConfig) && fromConfig.length > 0) {
+    // fromConfig现在总是数组
+    return fromConfig.filter(Boolean);
+  }
+  let tableFromForm = formData.taskConfig?.tableName || formData.taskConfig?.table;
+  console.log('tableFromForm', tableFromForm);
+  if (tableFromForm) {
+    // 如果tableFromForm是数组（多选），展开为单独的表名
+    return Array.isArray(tableFromForm) ? tableFromForm.filter(Boolean) : [tableFromForm];
+  }
   return [];
 });
 
 // 输出模型：已选字段名集合（小写，用于受控勾选判断）
-const outputFieldsSetLower = computed(
-  () => new Set(outputFields.value.map((f) => String(f).trim().toLowerCase()).filter(Boolean)),
-);
-const isOutputFieldSelected = (row) => outputFieldsSetLower.value.has(getRowColumnName(row).toLowerCase());
+const outputFieldsSetLower = computed(() => {
+  // 获取当前正在编辑的表
+  const currentTable = currentEditingTable.value || (selectedTable.value.length > 0 ? selectedTable.value[0] : null);
+  const currentTableFields = currentTable
+    ? (tableFieldsMap.value && tableFieldsMap.value[currentTable]) || []
+    : outputFields.value || [];
+  return new Set(currentTableFields.map((f) => String(f).trim().toLowerCase()).filter(Boolean));
+});
+// 检查字段是否选中
+const isOutputFieldSelected = (row) => {
+  const fieldName = getRowColumnName(row);
+  if (!fieldName) return false;
+  // 获取当前正在编辑的表或选中的第一个表
+  const currentTable = currentEditingTable.value || (selectedTable.value.length > 0 ? selectedTable.value[0] : null);
+
+  // 如果 tableFieldsMap 中有当前表的记录，优先使用
+  if (currentTable && tableFieldsMap.value && tableFieldsMap.value[currentTable]) {
+    const tableFields = tableFieldsMap.value[currentTable];
+    return tableFields.some((f) => String(f).trim().toLowerCase() === String(fieldName).trim().toLowerCase());
+  }
+
+  // 降级到 outputFieldsSetLower（兼容单表模式）
+  return outputFieldsSetLower.value.has(String(fieldName).trim().toLowerCase());
+};
 const isAllOutputFieldsSelected = computed(() => {
   const list = fieldList.value || [];
   if (list.length === 0) return false;
-  return list.every((row) => isOutputFieldSelected(row));
+  return list.every((row) => isOutputFieldSelected(getRowColumnName(row)));
 });
 const isSomeOutputFieldsSelected = computed(() => {
   const list = fieldList.value || [];
   if (list.length === 0) return false;
-  const selected = list.filter((row) => isOutputFieldSelected(row)).length;
+  const selected = list.filter((row) => isOutputFieldSelected(getRowColumnName(row))).length;
   return selected > 0 && selected < list.length;
 });
 const toggleAllOutputFields = (selected) => {
   const list = fieldList.value || [];
-  outputFields.value = selected ? list.map((row) => getRowColumnName(row)).filter(Boolean) : [];
+  const newSelectedFields = selected ? list.map((row) => getRowColumnName(row)).filter(Boolean) : [];
+
+  // 更新当前表的字段选择
+  const currentTable = currentEditingTable.value || (selectedTable.value.length > 0 ? selectedTable.value[0] : null);
+  if (currentTable) {
+    // 多表模式：更新 tableFieldsMap
+    const currentTableFieldsMap = tableFieldsMap.value || {};
+    tableFieldsMap.value = { ...currentTableFieldsMap, [currentTable]: newSelectedFields };
+    // 同时更新 outputFields 以保持界面同步
+    outputFields.value = newSelectedFields;
+  } else {
+    // 单表模式：更新 outputFields
+    outputFields.value = newSelectedFields;
+  }
 };
 const setOutputFieldSelected = (row, selected) => {
   const name = getRowColumnName(row);
   if (!name) return;
-  if (selected) {
-    const exists = outputFields.value.some((f) => String(f).trim().toLowerCase() === name.toLowerCase());
-    if (!exists) outputFields.value = [...outputFields.value, name];
+
+  // 更新当前表的字段选择
+  const currentTable = currentEditingTable.value || (selectedTable.value.length > 0 ? selectedTable.value[0] : null);
+  if (currentTable) {
+    // 多表模式：更新 tableFieldsMap
+    const currentTableFieldsMap = tableFieldsMap.value || {};
+    let currentTableFields = [...(currentTableFieldsMap[currentTable] || [])];
+    if (selected) {
+      const exists = currentTableFields.some((f) => String(f).trim().toLowerCase() === name.toLowerCase());
+      if (!exists) currentTableFields = [...currentTableFields, name];
+    } else {
+      currentTableFields = currentTableFields.filter((f) => String(f).trim().toLowerCase() !== name.toLowerCase());
+    }
+    tableFieldsMap.value = { ...currentTableFieldsMap, [currentTable]: currentTableFields };
+    // 同时更新 outputFields 以保持界面同步
+    outputFields.value = [...currentTableFields];
   } else {
-    outputFields.value = outputFields.value.filter((f) => String(f).trim().toLowerCase() !== name.toLowerCase());
+    // 单表模式：更新 outputFields
+    if (selected) {
+      const exists = outputFields.value.some((f) => String(f).trim().toLowerCase() === name.toLowerCase());
+      if (!exists) outputFields.value = [...outputFields.value, name];
+    } else {
+      outputFields.value = outputFields.value.filter((f) => String(f).trim().toLowerCase() !== name.toLowerCase());
+    }
   }
 };
 
@@ -870,15 +1012,32 @@ const onFieldMappingChange = () => {
 
 // 输入模型（仅 Transform）：从动态表单或已回显的 inputModel 获取可用的输入表名（Copy 时优先显示 selectedInputTable）
 const availableInputTables = computed(() => {
-  const fromForm =
+  let fromForm =
     formData.taskConfig?.inputTable ||
     formData.taskConfig?.inputTableName ||
     formData.taskConfig?.tableName ||
     formData.taskConfig?.table;
-  if (isCopyTransform.value && selectedInputTable.value) {
-    return Array.from(new Set([selectedInputTable.value, fromForm].filter(Boolean)));
+
+  // 如果fromForm是数组（多选下拉框），展开为单独的表名
+  if (Array.isArray(fromForm)) {
+    fromForm = fromForm.flat();
   }
-  if (fromForm) return [fromForm];
+
+  if (isCopyTransform.value && selectedInputTable.value) {
+    // 如果selectedInputTable.value是数组，展开后再与其他表合并
+    const selectedTables = Array.isArray(selectedInputTable.value)
+      ? selectedInputTable.value.flat()
+      : [selectedInputTable.value];
+    // fromForm 可能是数组，需要 spread 展开
+    const fromFormList = Array.isArray(fromForm) ? fromForm : [fromForm];
+    const allTables = [...selectedTables, ...fromFormList].filter(Boolean);
+    return Array.from(new Set(allTables));
+  }
+
+  if (fromForm) {
+    // 如果fromForm是数组，返回所有表名
+    return Array.isArray(fromForm) ? fromForm.filter(Boolean) : [fromForm];
+  }
   return [];
 });
 
@@ -895,10 +1054,21 @@ const hasUpstreamConnection = computed(() => {
   return result;
 });
 
-// 获取上游输出模型的表名
+// 获取上游输出模型的表名（单个）
 const upstreamOutputTableName = computed(() => {
   // 从上游输出模型中获取表名
   return props.upstreamOutputModel?.tableName || props.upstreamOutputModel?.table || '';
+});
+
+// 获取上游输出模型的所有表名（支持多表）
+const upstreamOutputTableNames = computed(() => {
+  // 如果上游输出模型的表名是数组（多选），则返回该数组
+  const tableName = props.upstreamOutputModel?.tableName || props.upstreamOutputModel?.table;
+  if (Array.isArray(tableName)) {
+    return tableName;
+  }
+  // 如果是单个表名，返回包含该表名的数组
+  return tableName ? [tableName] : [];
 });
 
 // SINK 组件：上游输出模型（从连接的上游节点获取）
@@ -926,7 +1096,7 @@ watch(
       console.log('DEBUG: watch split fallback initialized inputFieldList, length:', inputFieldList.value.length);
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 /**
@@ -1068,7 +1238,9 @@ watch(
       const isReplaceTransform =
         formData.connectorType === 'TRANSFORM' && (formData.connectorName || '').toLowerCase().includes('replace');
       const isSqlTransform =
-        formData.connectorType === 'TRANSFORM' && ((formData.connectorName || '').toLowerCase().includes('sql_transform') || (formData.connectorName || '').toLowerCase().includes('sql'));
+        formData.connectorType === 'TRANSFORM' &&
+        ((formData.connectorName || '').toLowerCase().includes('sql_transform') ||
+          (formData.connectorName || '').toLowerCase().includes('sql'));
       console.log('DEBUG: isReplaceTransform:', isReplaceTransform, 'isSqlTransform:', isSqlTransform);
       if (!isReplaceTransform && !isSqlTransform) {
         console.log('DEBUG: Calling updateOutputModel for non-Replace/SQL Transform');
@@ -1104,46 +1276,124 @@ watch(
 
 // 加载输入表字段（仅 Transform）。configOverride 回显时传入，避免依赖 formData.taskConfig 未同步
 const loadInputTableFields = async (tableName, configOverride) => {
-  if (!tableName) return;
+  if (!tableName) {
+    console.warn('输入表名为空，无法加载表字段');
+    return;
+  }
   const cfg = configOverride ?? formData.taskConfig;
+
   try {
     const datasourceId = cfg?.inputDatasourceId ?? cfg?.inputDatasource_id ?? cfg?.datasourceId ?? cfg?.datasource_id;
     const database = cfg?.inputDatabase ?? cfg?.inputDatabaseName ?? cfg?.database ?? cfg?.dbName;
+
+    console.log(
+      'DEBUG: loadInputTableFields - datasourceId:',
+      datasourceId,
+      'database:',
+      database,
+      'tableName:',
+      tableName,
+    );
+
     if (!datasourceId || !database) {
+      console.warn('缺少输入数据源ID或数据库名称，无法加载表字段', { datasourceId, database });
       inputFieldList.value = [];
       return;
     }
+
     const response = await columnApi.listColumnByName(datasourceId, database, tableName);
+    console.log('DEBUG: Input table API response:', response);
+
     const fields = Array.isArray(response) ? response : response?.data || [];
     inputFieldList.value = fields;
+    console.log('DEBUG: Successfully loaded', fields.length, 'input fields');
   } catch (error) {
     console.error('加载输入表字段失败:', error);
-    ElMessage.error('加载输入表字段失败');
+    console.error('Input table error details:', {
+      message: error.message,
+      stack: error.stack,
+      tableName,
+      datasourceId: cfg?.inputDatasourceId ?? cfg?.inputDatasource_id ?? cfg?.datasourceId ?? cfg?.datasource_id,
+      database: cfg?.inputDatabase ?? cfg?.inputDatabaseName ?? cfg?.database ?? cfg?.dbName,
+    });
+
+    // 更具体的错误消息
+    let errorMessage = '加载输入表字段失败';
+    if (error.response) {
+      // 服务器响应了错误状态码
+      errorMessage += `: 服务器错误 (${error.response.status})`;
+    } else if (error.request) {
+      // 请求已发出但没有收到响应
+      errorMessage += ': 网络错误或服务器无响应';
+    } else {
+      // 其他错误
+      errorMessage += `: ${error.message}`;
+    }
+
+    ElMessage.error(errorMessage);
     inputFieldList.value = [];
   }
 };
 
 // 加载表字段信息（输出模型）。configOverride 回显时传入；connectorConfigAtStart 用于竞态防护，仅当当前 task 的 connectorConfig 仍是本次请求的那份才写入 fieldList（避免先完成的节点数据请求覆盖后完成的 API 数据）
 const loadTableFields = async (tableName, configOverride, connectorConfigAtStart) => {
-  if (!tableName) return;
+  if (!tableName) {
+    console.warn('表名为空，无法加载表字段');
+    return;
+  }
   const cfg = configOverride ?? formData.taskConfig;
   const configSnapshot = connectorConfigAtStart ?? props.task?.connectorConfig;
+
   try {
     const datasourceId = cfg?.datasourceId ?? cfg?.datasource_id;
     const database = cfg?.database ?? cfg?.dbName;
+
+    console.log('DEBUG: loadTableFields - datasourceId:', datasourceId, 'database:', database, 'tableName:', tableName);
+
     if (!datasourceId || !database) {
-      console.warn('缺少数据源ID或数据库名称，无法加载表字段');
+      console.warn('缺少数据源ID或数据库名称，无法加载表字段', { datasourceId, database });
       if (configSnapshot == null || String(props.task?.connectorConfig) === String(configSnapshot))
         fieldList.value = [];
       return;
     }
+
     const response = await columnApi.listColumnByName(datasourceId, database, tableName);
+    console.log('DEBUG: API response:', response);
+
     const fields = Array.isArray(response) ? response : response?.data || [];
-    if (configSnapshot == null || String(props.task?.connectorConfig) === String(configSnapshot))
+    console.log('DEBUG: Processed fields:', fields);
+
+    if (configSnapshot == null || String(props.task?.connectorConfig) === String(configSnapshot)) {
       fieldList.value = fields;
+      // 同时保存到 tableFieldsList 中，以便后续可以按表获取字段列表
+      const fieldNames = fields.map((row) => getRowColumnName(row)).filter(Boolean);
+      tableFieldsList.value = { ...tableFieldsList.value, [tableName]: fieldNames };
+      console.log('DEBUG: Successfully updated fieldList with', fields.length, 'fields');
+    }
   } catch (error) {
     console.error('加载表字段失败:', error);
-    ElMessage.error('加载表字段失败');
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      tableName,
+      datasourceId: cfg?.datasourceId ?? cfg?.datasource_id,
+      database: cfg?.database ?? cfg?.dbName,
+    });
+
+    // 更具体的错误消息
+    let errorMessage = '加载表字段失败';
+    if (error.response) {
+      // 服务器响应了错误状态码
+      errorMessage += `: 服务器错误 (${error.response.status})`;
+    } else if (error.request) {
+      // 请求已发出但没有收到响应
+      errorMessage += ': 网络错误或服务器无响应';
+    } else {
+      // 其他错误
+      errorMessage += `: ${error.message}`;
+    }
+
+    ElMessage.error(errorMessage);
     if (configSnapshot == null || String(props.task?.connectorConfig) === String(configSnapshot)) fieldList.value = [];
   }
 };
@@ -1194,7 +1444,8 @@ watch(
       console.log('DEBUG: Updated inputFieldList for Replace Transform, length:', inputFieldList.value.length);
     } else if (
       props.task.connectorType === 'TRANSFORM' &&
-      ((props.task.connectorName || '').toLowerCase().includes('sql_transform') || (props.task.connectorName || '').toLowerCase().includes('sql')) &&
+      ((props.task.connectorName || '').toLowerCase().includes('sql_transform') ||
+        (props.task.connectorName || '').toLowerCase().includes('sql')) &&
       props.upstreamOutputModel?.fields?.length
     ) {
       // SQL Transform：保持与上游输出模型一致，初始化输入字段列表
@@ -1206,7 +1457,8 @@ watch(
       console.log('DEBUG: Updated inputFieldList for SQL Transform, length:', inputFieldList.value.length);
     } else if (
       props.task.connectorType === 'TRANSFORM' &&
-      ((props.task.connectorName || '').toLowerCase().includes('split') || (props.task.connectorName || '').toLowerCase().includes('field_split')) &&
+      ((props.task.connectorName || '').toLowerCase().includes('split') ||
+        (props.task.connectorName || '').toLowerCase().includes('field_split')) &&
       props.upstreamOutputModel?.fields?.length
     ) {
       // Split Transform：当上游输出模型变化或任务切换时，补初始化输入字段列表
@@ -1255,7 +1507,11 @@ watch(
         (mergedParsed.connectorType ?? props.task?.connectorType ?? '') === 'TRANSFORM' &&
         (mergedParsed.connectorName ?? props.task?.connectorName ?? '').toString().toLowerCase().includes('copy');
       if (outModel && typeof outModel === 'object' && !Array.isArray(outModel)) {
-        const tableName = outModel.tableName ?? outModel.table;
+        let tableName = outModel.tableName ?? outModel.table;
+        // 如果tableName是数组（多选下拉框），则取第一个值作为当前表
+        if (Array.isArray(tableName) && tableName.length > 0) {
+          tableName = tableName[0];
+        }
         // 检查是否是新格式（包含fields数组和relation映射）
         let savedFields = [];
         if (Array.isArray(outModel.fields)) {
@@ -1285,14 +1541,19 @@ watch(
             await loadInputTableFields(tableName, mergedParsed);
           }
         } else if (tableName) {
-          outputTableFromConfig.value = tableName;
-          selectedTable.value = tableName;
+          // 将选定的表名设置为数组形式
+          outputTableFromConfig.value = Array.isArray(tableName) ? tableName : [tableName];
+          selectedTable.value = Array.isArray(tableName) ? tableName : [tableName];
           outputFields.value = savedFields;
           await loadTableFields(tableName, mergedParsed, props.task?.connectorConfig);
         }
       }
       if (inModel && typeof inModel === 'object' && !Array.isArray(inModel)) {
-        const inputTableName = inModel.tableName ?? inModel.table;
+        let inputTableName = inModel.tableName ?? inModel.table;
+        // 如果inputTableName是数组（多选下拉框），则取第一个值作为当前输入表
+        if (Array.isArray(inputTableName) && inputTableName.length > 0) {
+          inputTableName = inputTableName[0];
+        }
         const savedInputFields = Array.isArray(inModel.fields) ? [...inModel.fields] : [];
         if (inputTableName) selectedInputTable.value = inputTableName;
         if (isCopy) {
@@ -1324,84 +1585,100 @@ watch(
   async (newTask, oldTask) => {
     console.log('DEBUG: Watch task triggered, newTask:', newTask);
     try {
-      // taskId 变化、connectorConfig 变化、或 task 引用变化（父组件用新对象替换 selectedTask）都需重新跑回显
       const taskChanged = !oldTask || newTask?.taskId !== oldTask?.taskId;
       const connectorConfigUpdated =
         newTask?.connectorConfig &&
         typeof newTask.connectorConfig === 'string' &&
         newTask.connectorConfig !== oldTask?.connectorConfig;
       const taskRefReplaced = oldTask && newTask && newTask !== oldTask;
+
       if (newTask && (taskChanged || connectorConfigUpdated || taskRefReplaced)) {
-        // 只赋值与接口一致的基本信息，不整体 assign 避免带入多余字段
         formData.taskId = newTask.taskId ?? null;
         formData.taskName = newTask.taskName ?? '';
         formData.connectorType = newTask.connectorType ?? '';
         formData.connectorName = newTask.connectorName ?? '';
 
-        // 解析 connectorConfig（详情/接口返回的 plugins[].connectorConfig 字符串，内含表单字段 + outputModel/inputModel）
         const parsed = parseConnectorConfigSafe(newTask.connectorConfig);
         const taskConfigObj = newTask.taskConfig && typeof newTask.taskConfig === 'object' ? newTask.taskConfig : {};
         const mergedParsed = { ...taskConfigObj, ...parsed };
         const formConfigRef = newTask.dynamicFormConfig || dynamicFormConfig.value;
         const fieldNames = getFormFieldNames(formConfigRef);
-        // 回显期间不触发 updateOutputModel，避免覆盖 outputModel 勾选
+
         restoringFromConnectorConfig.value = true;
-        // 有表单配置时只保留表单字段给 taskConfig，但必须保留输出/输入模型所需键
+
         let filtered = fieldNames.length > 0 ? pickFormFieldsOnly(mergedParsed, formConfigRef) : mergedParsed;
-        // 转换数值字段类型以避免ElInputNumber类型错误
+
         filtered = convertFormValuesToCorrectTypes(filtered, formConfigRef);
+
         const preserved = {};
         [...OUTPUT_MODEL_KEYS, ...INPUT_MODEL_KEYS].forEach((k) => {
           if (mergedParsed[k] !== undefined) preserved[k] = mergedParsed[k];
         });
+
         formData.taskConfig = { ...filtered, ...preserved };
 
-        // 回显 outputModel / inputModel：Copy Transform 用 outputModel 键值对 + inputModel.tableName/fields
         const outModel = mergedParsed.outputModel ?? newTask.outputModel ?? taskConfigObj.outputModel;
         const inModel = mergedParsed.inputModel ?? newTask.inputModel ?? taskConfigObj.inputModel;
+
         const isCopy =
           (formData.connectorType || '') === 'TRANSFORM' &&
-          (formData.connectorName || '').toString().toLowerCase().includes('copy');
+          (formData.connectorName || '').toLowerCase().includes('copy');
         const isReplace =
           (formData.connectorType || '') === 'TRANSFORM' &&
-          (formData.connectorName || '').toString().toLowerCase().includes('replace');
+          (formData.connectorName || '').toLowerCase().includes('replace');
         const isSink = formData.connectorType === 'SINK';
         const isMetadata =
           (formData.connectorType || '') === 'TRANSFORM' &&
-          (formData.connectorName || '').toString().toLowerCase().includes('metadata');
+          (formData.connectorName || '').toLowerCase().includes('metadata');
         const isFieldRename =
           (formData.connectorType || '') === 'TRANSFORM' &&
-          (formData.connectorName || '').toString().toLowerCase().includes('field_rename');
+          (formData.connectorName || '').toLowerCase().includes('field_rename');
         const isSplit =
           (formData.connectorType || '') === 'TRANSFORM' &&
-          (formData.connectorName || '').toString().toLowerCase().includes('split');
+          (formData.connectorName || '').toLowerCase().includes('split');
+
         if (outModel && typeof outModel === 'object' && !Array.isArray(outModel)) {
-          const tableName = outModel.tableName ?? outModel.table;
-          // 检查是否是新格式（包含fields数组和relation映射）
+          // 兼容 table, tableName, tables (多表)
+          let tableName = outModel.tableName ?? outModel.table ?? outModel.tables;
+          // 注意：不要强制取第一个表，以支持多表选择
+          // if (Array.isArray(tableName) && tableName.length > 0) {
+          //   tableName = tableName[0];
+          // }
+
           let savedFields = [];
           if (Array.isArray(outModel.fields)) {
-            // 新格式：{ fields: [...], relation: {...} }
             savedFields = [...outModel.fields];
-          } else {
-            // 旧格式：{ fieldName: mapping, ... } 或标准格式
-            savedFields = Array.isArray(outModel.fields) ? [...outModel.fields] : [];
           }
+
           if (isCopy) {
             copyOutputFields.value = parseCopyOutputModel(outModel);
-            const inputTableName = inModel?.tableName ?? inModel?.table ?? tableName;
+            let inputTableName = inModel?.tableName ?? inModel?.table ?? tableName;
+
+            if (Array.isArray(inputTableName) && inputTableName.length > 0) {
+              inputTableName = inputTableName[0];
+            }
+
             if (inputTableName) selectedInputTable.value = inputTableName;
+
             const savedInputFields = Array.isArray(inModel?.fields) ? inModel.fields : [];
+
             if (props.upstreamOutputModel?.fields?.length) {
-              inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
+              inputFieldList.value = props.upstreamOutputModel.fields.map((f) =>
                 typeof f === 'string'
                   ? { columnName: f, columnType: '-' }
-                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
+                  : {
+                      columnName: f.columnName ?? f.name ?? f,
+                      columnType: f.columnType ?? '-',
+                    },
               );
             } else if (savedInputFields.length > 0) {
               inputFieldList.value = savedInputFields.map((f) =>
                 typeof f === 'string'
                   ? { columnName: f, columnType: '-' }
-                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
+                  : {
+                      columnName: f.columnName ?? f.name ?? f,
+                      columnType: f.columnType ?? '-',
+                    },
               );
             } else if (inputTableName) {
               await loadInputTableFields(inputTableName, mergedParsed);
@@ -1410,367 +1687,88 @@ watch(
               selectedInputTable.value = '';
               inputFieldList.value = [];
             }
-          } else if (isSink && tableName) {
-            // SINK 组件：回显字段映射
-            outputTableFromConfig.value = tableName;
-            selectedTable.value = tableName;
-            if (outModel.fieldMapping && typeof outModel.fieldMapping === 'object') {
-              mappingFields.value = { ...outModel.fieldMapping };
-            }
-            await loadTableFields(tableName, mergedParsed, newTask?.connectorConfig);
-          } else if (isReplace) {
-            console.log('DEBUG: Processing Replace Transform, props.upstreamOutputModel:', props.upstreamOutputModel);
-            // Replace Transform：使用上游输出模型作为自己的输出模型
-
-            if (props.upstreamOutputModel?.fields?.length > 0) {
-              console.log(
-                'DEBUG: Setting inputFieldList from upstreamOutputModel with',
-                props.upstreamOutputModel.fields.length,
-                'fields',
-              );
-              // 使用上游输出模型的字段作为输出字段
-              outputFields.value = (props.upstreamOutputModel.fields || []).map((f) =>
-                typeof f === 'string' ? f : f.columnName ?? f.name ?? f,
-              );
-              // 同时将上游输出模型的字段设置为输入字段列表，用于显示
-              inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
-                typeof f === 'string'
-                  ? { columnName: f, columnType: '-' }
-                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-              );
-              console.log('DEBUG: inputFieldList after setting from upstream:', inputFieldList.value);
-            } else if (Array.isArray(outModel.fields)) {
-              console.log('DEBUG: Setting inputFieldList from saved outModel with', outModel.fields.length, 'fields');
-              // 如果没有上游输出模型但有保存的输出模型，则使用保存的字段
-              outputFields.value = [...outModel.fields];
-              // 同时将保存的输出模型字段设置为输入字段列表，用于显示
-              inputFieldList.value = [...outModel.fields].map((f) => ({ columnName: f, columnType: '-' }));
-              console.log('DEBUG: inputFieldList after setting from saved model:', inputFieldList.value);
-            } else {
-              console.log('DEBUG: Neither upstream nor saved output model has fields');
-            }
-          } else if (isMetadata) {
-            // Metadata Transform：回显保存的输出字段列表（包含上游字段和已选元数据字段）
-            if (Array.isArray(outModel.fields) && outModel.fields.length > 0) {
-              outputFieldList.value = outModel.fields.map((f) =>
-                typeof f === 'string'
-                  ? { columnName: f, columnType: '-' }
-                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-              );
-            } else if (props.upstreamOutputModel?.fields?.length > 0) {
-              // 若无保存的输出模型则使用当前上游字段初始化
-              initMetadataOutputFields();
-            } else {
-              outputFieldList.value = [];
-            }
-            // 输入字段列表保持为上游输出模型，若不可用则尝试从 inputModel 恢复
-            const savedInputFields = Array.isArray(inModel?.fields) ? inModel.fields : [];
-            if (props.upstreamOutputModel?.fields?.length > 0) {
-              inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
-                typeof f === 'string'
-                  ? { columnName: f, columnType: '-' }
-                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-              );
-            } else if (savedInputFields.length > 0) {
-              inputFieldList.value = savedInputFields.map((f) =>
-                typeof f === 'string'
-                  ? { columnName: f, columnType: '-' }
-                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-              );
-            }
-          } else if (isFieldRename) {
-            // Field Rename Transform：回显重命名映射
-            const rel = outModel?.relation;
-            const inverted = {};
-            if (Array.isArray(rel)) {
-              // 兼容后端数组格式：[ { replace_from, replace_to }, ... ]
-              rel.forEach((item) => {
-                const from = (item?.replace_from || '').toString().trim();
-                const to = (item?.replace_to || '').toString().trim();
-                if (from && to) inverted[from] = to;
-              });
-            } else if (rel && typeof rel === 'object' && !Array.isArray(rel)) {
-              // 兼容旧对象格式：{ 新名: 原名 } -> 反转为 原名: 新名
-              Object.keys(rel).forEach((newName) => {
-                const orig = rel[newName];
-                if (orig) inverted[orig] = newName;
-              });
-            }
-            renameMappings.value = inverted;
-
-            // 输入字段列表使用上游输出模型或保存的输入模型
-            const savedInputFields = Array.isArray(inModel?.fields) ? inModel.fields : [];
-            if (props.upstreamOutputModel?.fields?.length > 0) {
-              inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
-                typeof f === 'string'
-                  ? { columnName: f, columnType: '-' }
-                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-              );
-            } else if (savedInputFields.length > 0) {
-              inputFieldList.value = savedInputFields.map((f) =>
-                typeof f === 'string'
-                  ? { columnName: f, columnType: '-' }
-                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-              );
-            }
-          } else if ((formData.connectorType || '') === 'TRANSFORM' && (formData.connectorName || '').toString().toLowerCase().includes('field_mapper')) {
-            // Field Mapper Transform：回显选择顺序与重命名映射
-            const rel = outModel?.relation;
-            const mapping = {};
-            if (Array.isArray(rel)) {
-              // 兼容后端数组格式：[ { replace_from, replace_to }, ... ]
-              rel.forEach((item) => {
-                const from = (item?.replace_from || '').toString().trim();
-                const to = (item?.replace_to || '').toString().trim();
-                if (from && to) mapping[from] = to;
-              });
-            } else if (rel && typeof rel === 'object' && !Array.isArray(rel)) {
-              // 兼容旧对象格式：{ 新名: 原名 } -> 反转为 原名: 新名
-              Object.keys(rel).forEach((newName) => {
-                const orig = rel[newName];
-                if (orig) mapping[orig] = newName;
-              });
-            }
-            renameMappings.value = mapping;
-
-            // 输入字段列表使用上游输出模型或保存的输入模型
-            const savedInputFields = Array.isArray(inModel?.fields) ? inModel.fields : [];
-            if (props.upstreamOutputModel?.fields?.length > 0) {
-              inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
-                typeof f === 'string'
-                  ? { columnName: f, columnType: '-' }
-                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-              );
-            } else if (savedInputFields.length > 0) {
-              inputFieldList.value = savedInputFields.map((f) =>
-                typeof f === 'string'
-                  ? { columnName: f, columnType: '-' }
-                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-              );
-            }
-            const inputNames = inputFieldList.value.map((row) => getRowColumnName(row)).filter(Boolean);
-            const savedOut = Array.isArray(outModel.fields) ? [...outModel.fields] : [];
-            const orderOrigNames = savedOut
-              .map((outName) => {
-                let orig = null;
-                if (Array.isArray(rel)) {
-                  const item = rel.find((r) => (r?.replace_to || '').toString().trim() === outName);
-                  if (item) orig = (item?.replace_from || '').toString().trim();
-                } else if (rel && typeof rel === 'object' && !Array.isArray(rel)) {
-                  const candidate = rel[outName];
-                  if (candidate) orig = candidate.toString().trim();
-                }
-                if (!orig && inputNames.includes(outName)) orig = outName;
-                return orig;
-              })
-              .filter(Boolean);
-            const sel = {};
-            orderOrigNames.forEach((n) => (sel[n] = true));
-            mapperOrder.value = orderOrigNames;
-            mapperSelected.value = sel;
-          } else if (isSplit) {
-            // Split Transform：回显拆分规则（一次仅一个源字段）
-            const rel = outModel?.relation;
-            if (Array.isArray(rel) && rel.length > 0) {
-              const item = rel.find((r) => r && (r.split_from || r.splitTo || r.splitFrom));
-              const from = (item?.split_from || item?.splitFrom || '').toString().trim();
-              const to = item?.split_to;
-              splitSourceField.value = from || '';
-              splitTargetFields.value = Array.isArray(to) ? [...to] : [];
-            } else {
-              splitSourceField.value = '';
-              splitTargetFields.value = [];
-            }
-            // 输入字段列表使用上游输出模型或保存的输入模型
-            const savedInputFields = Array.isArray(inModel?.fields) ? inModel.fields : [];
-            if (props.upstreamOutputModel?.fields?.length > 0) {
-              inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
-                typeof f === 'string'
-                  ? { columnName: f, columnType: '-' }
-                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-              );
-            } else if (savedInputFields.length > 0) {
-              inputFieldList.value = savedInputFields.map((f) =>
-                typeof f === 'string'
-                  ? { columnName: f, columnType: '-' }
-                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-              );
-            }
           } else if (tableName) {
-            outputTableFromConfig.value = tableName;
-            selectedTable.value = tableName;
-            outputFields.value = savedFields;
-            await loadTableFields(tableName, mergedParsed, newTask?.connectorConfig);
+            // 处理多表选择的回显
+            let tableNames = Array.isArray(tableName) ? tableName : [tableName];
+            outputTableFromConfig.value = [...tableNames];
+            selectedTable.value = [...tableNames];
+
+            // 如果outputModel包含tableFields映射，则恢复每个表的字段选择
+            if (outModel.tableFields && typeof outModel.tableFields === 'object' && outModel.tableFields !== null) {
+              // 从tableFields恢复字段映射
+              const safeTableFields = { ...outModel.tableFields };
+              tableFieldsMap.value = safeTableFields;
+
+              // 注意：这里不应该直接从 safeTableFields 设置 tableFieldsList，
+              // 因为 safeTableFields 是用户选择的字段，而不是表的实际字段。
+              // 实际的表字段将在 loadTableFields 中设置。
+
+              // 设置当前表的字段为第一个表的字段
+              if (tableNames.length > 0 && safeTableFields[tableNames[0]]) {
+                outputFields.value = [...safeTableFields[tableNames[0]]];
+              } else {
+                outputFields.value = savedFields;
+              }
+            } else {
+              outputFields.value = savedFields;
+            }
+
+            // 加载第一个表的字段（用于显示）
+            if (tableNames.length > 0) {
+              const firstTable = tableNames[0];
+              currentEditingTable.value = firstTable;
+              await loadTableFields(firstTable, mergedParsed, newTask?.connectorConfig);
+
+              // 再次确认 outputFields，防止 loadTableFields 过程中被重置
+              if (outModel.tableFields && outModel.tableFields[firstTable]) {
+                outputFields.value = [...outModel.tableFields[firstTable]];
+              } else if (tableNames.length === 1) {
+                // 单表模式下，如果没有 tableFields，尝试使用 savedFields
+                // 注意：savedFields 是 outModel.fields，通常只包含当前表的字段
+                outputFields.value = savedFields;
+              }
+            }
+
+            // 为所有表预加载字段列表，以便后续切换表时能够正确过滤字段
+            for (const tableName of tableNames) {
+              if (tableName !== tableNames[0]) {
+                // 避免重复加载第一个表
+                try {
+                  const datasourceId = mergedParsed.datasourceId ?? mergedParsed.datasource_id;
+                  const database = mergedParsed.database ?? mergedParsed.dbName;
+                  if (datasourceId && database) {
+                    const response = await columnApi.listColumnByName(datasourceId, database, tableName);
+                    const fields = Array.isArray(response) ? response : response?.data || [];
+                    const fieldNames = fields.map((row) => getRowColumnName(row)).filter(Boolean);
+                    // 将表的实际字段列表保存到 tableFieldsList
+                    tableFieldsList.value = { ...tableFieldsList.value, [tableName]: fieldNames };
+                  }
+                } catch (error) {
+                  console.error(`加载表 ${tableName} 的字段列表失败:`, error);
+                }
+              }
+            }
           } else {
-            outputTableFromConfig.value = '';
-            selectedTable.value = '';
+            outputTableFromConfig.value = [];
+            selectedTable.value = [];
             outputFields.value = [];
             fieldList.value = [];
           }
         } else {
-          outputTableFromConfig.value = '';
-          selectedTable.value = '';
+          outputTableFromConfig.value = [];
+          selectedTable.value = [];
           outputFields.value = [];
           fieldList.value = [];
           if (isCopy) copyOutputFields.value = [];
         }
-
-        // 回显 inputModel（仅 Transform）：Copy 已在上面用 inModel 恢复；此处补 selectedInputTable，非 Copy 时恢复 inputFields 并加载表结构
-        const inModelRestore = mergedParsed.inputModel ?? newTask.inputModel ?? taskConfigObj.inputModel;
-        if (inModelRestore && typeof inModelRestore === 'object' && !Array.isArray(inModelRestore)) {
-          const inputTableName = inModelRestore.tableName ?? inModelRestore.table;
-          const savedInputFields = Array.isArray(inModelRestore.fields) ? [...inModelRestore.fields] : [];
-          if (inputTableName) {
-            selectedInputTable.value = inputTableName;
-            if (isCopy) {
-              if (savedInputFields.length === 0) await loadInputTableFields(inputTableName, mergedParsed);
-            } else {
-              inputFields.value = savedInputFields;
-              await loadInputTableFields(inputTableName, mergedParsed);
-            }
-          } else if (formData.connectorType === 'SINK') {
-            // SINK 组件：始终使用上游输出模型作为输入字段列表，以反映最新的上游字段
-            if (props.upstreamOutputModel?.fields?.length > 0) {
-              inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
-                typeof f === 'string'
-                  ? { columnName: f, columnType: '-' }
-                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-              );
-            } else if (savedInputFields.length > 0) {
-              // 如果没有上游输出模型但有保存的输入字段，则使用保存的字段
-              inputFieldList.value = savedInputFields.map((f) =>
-                typeof f === 'string'
-                  ? { columnName: f, columnType: '-' }
-                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-              );
-            }
-          } else if (
-            formData.connectorType === 'TRANSFORM' &&
-            (formData.connectorName || '').toLowerCase().includes('metadata')
-          ) {
-            // Metadata Transform：始终使用上游输出模型作为输入字段列表
-            if (props.upstreamOutputModel?.fields?.length > 0) {
-              inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
-                typeof f === 'string'
-                  ? { columnName: f, columnType: '-' }
-                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-              );
-              // 初始化输出字段列表，包含上游字段和元数据字段
-              initMetadataOutputFields();
-            } else if (savedInputFields.length > 0) {
-              // 如果没有上游输出模型但有保存的输入字段，则使用保存的字段
-              inputFieldList.value = savedInputFields.map((f) =>
-                typeof f === 'string'
-                  ? { columnName: f, columnType: '-' }
-                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-              );
-            }
-          } else if (
-            formData.connectorType === 'TRANSFORM' &&
-            (formData.connectorName || '').toLowerCase().includes('replace')
-          ) {
-            // Replace Transform：始终使用上游输出模型作为输入/输出字段列表
-            if (props.upstreamOutputModel?.fields?.length > 0) {
-              inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
-                typeof f === 'string'
-                  ? { columnName: f, columnType: '-' }
-                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-              );
-            } else if (savedInputFields.length > 0) {
-              // 如果没有上游输出模型但有保存的输入字段，则使用保存的字段
-              inputFieldList.value = savedInputFields.map((f) =>
-                typeof f === 'string'
-                  ? { columnName: f, columnType: '-' }
-                  : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-              );
-            }
-          }
-        } else if (!isCopy) {
-          // 特别处理 Replace Transform 和 Metadata Transform：即使没有 inputModel，也要保持上游输出模型作为 inputFieldList
-          const isReplaceTransform =
-        formData.connectorType === 'TRANSFORM' && (formData.connectorName || '').toLowerCase().includes('replace');
-      const isSqlTransform =
-        formData.connectorType === 'TRANSFORM' && ((formData.connectorName || '').toLowerCase().includes('sql_transform') || (formData.connectorName || '').toLowerCase().includes('sql'));
-      const isMetadataTransform =
-        formData.connectorType === 'TRANSFORM' && (formData.connectorName || '').toLowerCase().includes('metadata');
-      const isFieldRenameTransform =
-        formData.connectorType === 'TRANSFORM' && (formData.connectorName || '').toLowerCase().includes('field_rename');
-      const hasUpstreamForSink = formData.connectorType === 'SINK' && props.upstreamOutputModel?.fields?.length > 0;
-
-      if (isMetadataTransform && props.upstreamOutputModel?.fields?.length > 0) {
-            // Metadata：无 inputModel 时也用上游输出字段初始化，并补充输出列表
-            inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
-              typeof f === 'string'
-                ? { columnName: f, columnType: '-' }
-                : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-            );
-            initMetadataOutputFields();
-          } else if ((isReplaceTransform || isSqlTransform) && props.upstreamOutputModel?.fields?.length > 0) {
-            // Replace/SQL：无 inputModel 时也用上游输出字段初始化
-            inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
-              typeof f === 'string'
-                ? { columnName: f, columnType: '-' }
-                : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-            );
-          } else if (isFieldRenameTransform && props.upstreamOutputModel?.fields?.length > 0) {
-            // Field Rename：无 inputModel 时也用上游输出字段初始化
-            inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
-              typeof f === 'string'
-                ? { columnName: f, columnType: '-' }
-                : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-            );
-          } else if (isFieldMapperTransform && props.upstreamOutputModel?.fields?.length > 0) {
-            // Field Mapper：无 inputModel 时也用上游输出字段初始化，并在无回显时进行默认选择
-            inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
-              typeof f === 'string'
-                ? { columnName: f, columnType: '-' }
-                : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-            );
-            if (!Array.isArray(mapperOrder.value) || mapperOrder.value.length === 0) {
-              const names = inputFieldList.value.map((row) => getRowColumnName(row)).filter(Boolean);
-              const sel = {};
-              names.forEach((n) => (sel[n] = true));
-              mapperSelected.value = sel;
-              mapperOrder.value = names.slice();
-            }
-          } else if (isSplitTransform && props.upstreamOutputModel?.fields?.length > 0) {
-            // Field Split：无 inputModel 时也用上游输出字段初始化
-            inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
-              typeof f === 'string'
-                ? { columnName: f, columnType: '-' }
-                : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-            );
-          } else if (!isReplaceTransform && !isSqlTransform && !isMetadataTransform && !isFieldRenameTransform && !isFieldMapperTransform && !hasUpstreamForSink) {
-            selectedInputTable.value = '';
-            inputFields.value = [];
-            inputFieldList.value = [];
-          }
-        }
-
-        // 检查是否为新节点（以node_开头的是前端生成的临时ID）
-        const isNewNode = !newTask.taskId || newTask.taskId === 'null' || String(newTask.taskId).startsWith('node_');
-
-        if (isNewNode) {
-          if (newTask.dynamicFormConfig) {
-            dynamicFormConfig.value = newTask.dynamicFormConfig;
-          } else {
-            loadTaskConfig();
-          }
-        } else {
-          if (newTask.dynamicFormConfig) {
-            dynamicFormConfig.value = newTask.dynamicFormConfig;
-          } else {
-            loadTaskConfig();
-          }
-        }
       }
     } catch (error) {
-      console.error('处理任务变化时发生错误:', error);
+      console.error('Watch task error:', error);
     } finally {
       restoringFromConnectorConfig.value = false;
     }
   },
-  { immediate: true, deep: true },
+  { immediate: true },
 );
 
 // 配置变化
@@ -1783,39 +1781,119 @@ const onConfigChange = (config) => {
 
 // 左侧数据源选中的表变化时，同步到右侧输出模型（右侧表来自左侧选中的数据表）
 const updateOutputModel = () => {
-  const tableFromForm = formData.taskConfig?.tableName || formData.taskConfig?.table;
+  let tableFromForm = formData.taskConfig?.tableName || formData.taskConfig?.table;
+
+  // 保留完整的tableFromForm数组，以便支持多表选择
+  const originalTableFromForm = Array.isArray(tableFromForm) ? [...tableFromForm] : tableFromForm;
+
   if (tableFromForm) {
-    if (selectedTable.value !== tableFromForm) {
+    // 将tableFromForm转换为数组形式进行比较
+    const tableFromFormArray = Array.isArray(tableFromForm) ? tableFromForm : [tableFromForm];
+    if (JSON.stringify(selectedTable.value) !== JSON.stringify(tableFromFormArray)) {
+      // 在切换表之前，保存当前表的字段选择到 tableFieldsMap
+      const currentTable =
+        currentEditingTable.value || (selectedTable.value.length > 0 ? selectedTable.value[0] : null);
+      if (currentTable && tableFieldsMap.value && tableFieldsList.value && tableFieldsList.value[currentTable]) {
+        // 只保存当前表中存在的字段到映射中，避免跨表字段污染
+        const currentTableFields = tableFieldsList.value[currentTable] || [];
+        const filteredOutputFields = outputFields.value.filter((field) =>
+          currentTableFields.some((tableField) => tableField.toLowerCase() === field.toLowerCase()),
+        );
+        // 将当前 outputFields 的内容（过滤后的）保存到当前表的映射中
+        tableFieldsMap.value = { ...tableFieldsMap.value, [currentTable]: filteredOutputFields };
+      }
+
       outputFields.value = []; // 用户切换表时清空勾选
-      outputTableFromConfig.value = tableFromForm;
-      selectedTable.value = tableFromForm;
-      loadTableFields(tableFromForm);
+      // 将选定的表名设置为数组形式
+      outputTableFromConfig.value = tableFromFormArray;
+      selectedTable.value = tableFromFormArray;
+      // 在调用 loadTableFields 之前检查必要参数是否存在且有效
+      if (
+        tableFromFormArray &&
+        tableFromFormArray.length > 0 &&
+        (formData.taskConfig?.datasourceId || formData.taskConfig?.database)
+      ) {
+        // 加载第一个表的字段，以保持原有行为
+        const tableToLoad = tableFromFormArray[0];
+        currentEditingTable.value = tableToLoad;
+        loadTableFields(tableToLoad);
+
+        // 异步为所有表预加载字段列表，以便后续切换表时能够正确过滤字段
+        setTimeout(async () => {
+          for (const tableName of tableFromFormArray) {
+            if (tableName !== tableToLoad) {
+              // 避免重复加载第一个表
+              try {
+                const datasourceId = formData.taskConfig?.datasourceId;
+                const database = formData.taskConfig?.database;
+                if (datasourceId && database) {
+                  const response = await columnApi.listColumnByName(datasourceId, database, tableName);
+                  const fields = Array.isArray(response) ? response : response?.data || [];
+                  const fieldNames = fields.map((row) => getRowColumnName(row)).filter(Boolean);
+                  // 将表的实际字段列表保存到 tableFieldsList
+                  tableFieldsList.value = { ...tableFieldsList.value, [tableName]: fieldNames };
+                }
+              } catch (error) {
+                console.error(`加载表 ${tableName} 的字段列表失败:`, error);
+              }
+            }
+          }
+        }, 0);
+      } else {
+        if (!tableFromFormArray || tableFromFormArray.length === 0) {
+          console.warn('表名为空，无法加载表字段');
+          fieldList.value = [];
+        } else {
+          console.warn('缺少数据源ID或数据库信息，无法加载表字段', {
+            datasourceId: formData.taskConfig?.datasourceId,
+            database: formData.taskConfig?.database,
+          });
+        }
+      }
     }
   } else {
-    outputTableFromConfig.value = '';
-    selectedTable.value = '';
+    outputTableFromConfig.value = [];
+    selectedTable.value = [];
     fieldList.value = [];
     outputFields.value = [];
   }
 
   // Transform：输入表仍可由属性配置驱动（若有 inputTable 等字段）
   if (formData.connectorType === 'TRANSFORM') {
-    const inputTableFromForm =
+    let inputTableFromForm =
       formData.taskConfig?.inputTable ||
       formData.taskConfig?.inputTableName ||
       formData.taskConfig?.tableName ||
       formData.taskConfig?.table;
+
+    // 保留完整的inputTableFromForm数组，以便支持多表选择
+    const originalInputTableFromForm = Array.isArray(inputTableFromForm) ? [...inputTableFromForm] : inputTableFromForm;
+
     if (inputTableFromForm) {
-      if (selectedInputTable.value !== inputTableFromForm) {
-        selectedInputTable.value = inputTableFromForm;
-        loadInputTableFields(inputTableFromForm);
+      // 将inputTableFromForm转换为数组形式进行比较
+      const inputTableFromFormArray = Array.isArray(inputTableFromForm) ? inputTableFromForm : [inputTableFromForm];
+      if (JSON.stringify(selectedInputTable.value) !== JSON.stringify(inputTableFromFormArray)) {
+        selectedInputTable.value = inputTableFromFormArray;
+        // 在调用 loadInputTableFields 之前检查必要参数是否存在
+        if (formData.taskConfig?.datasourceId || formData.taskConfig?.database) {
+          // 加载第一个表的字段，以保持原有行为
+          const tableToLoad = inputTableFromFormArray[0];
+          loadInputTableFields(tableToLoad);
+        } else {
+          console.warn('缺少数据源ID或数据库信息，无法加载输入表字段', {
+            datasourceId: formData.taskConfig?.datasourceId,
+            database: formData.taskConfig?.database,
+          });
+        }
       }
     } else {
       // 对于 Replace Transform 和 Metadata Transform，不要重置 inputFieldList，因为它使用上游输出模型
       const isReplaceTransform =
         formData.connectorType === 'TRANSFORM' && (formData.connectorName || '').toLowerCase().includes('replace');
       const isSqlTransform =
-        formData.connectorType === 'TRANSFORM' && ((formData.connectorName || '').toLowerCase().includes('sql_transform') || (formData.connectorName || '').toLowerCase().includes('sql'));
+        formData.connectorType === 'TRANSFORM' &&
+        ((formData.connectorName || '').toLowerCase().includes('sql_transform') ||
+          (formData.connectorName || '').toLowerCase().includes('sql'));
       const isMetadataTransform =
         formData.connectorType === 'TRANSFORM' && (formData.connectorName || '').toLowerCase().includes('metadata');
       console.log(
@@ -1829,7 +1907,7 @@ const updateOutputModel = () => {
         inputFieldList.value,
       );
       if (!isReplaceTransform && !isSqlTransform && !isMetadataTransform) {
-        selectedInputTable.value = '';
+        selectedInputTable.value = [];
         inputFieldList.value = [];
         inputFields.value = [];
         console.log('DEBUG: Reset inputFieldList to empty array');
@@ -1863,9 +1941,7 @@ const removeOutputField = (index) => {
 // Metadata Transform：按字段名移除（用于右表对齐显示时的精确移除）
 const removeOutputFieldByName = (name) => {
   const target = (name || '').toLowerCase();
-  outputFieldList.value = outputFieldList.value.filter(
-    (f) => getRowColumnName(f).toLowerCase() !== target
-  );
+  outputFieldList.value = outputFieldList.value.filter((f) => getRowColumnName(f).toLowerCase() !== target);
 };
 
 // Metadata Transform：初始化输出字段列表
@@ -2061,18 +2137,172 @@ const confirmRename = () => {
 };
 
 // 输出模型表变化处理（用户切换表时清空已选字段）
-const onOutputTableChange = async (tableName) => {
-  outputFields.value = [];
-  outputTableFromConfig.value = tableName; // 与左侧列表一致，避免被误判为“未选表”
-  selectedTable.value = tableName;
-  await loadTableFields(tableName);
+// 支持多表选择：点击表名加载该表的字段
+const onOutputTableChange = async (clickedTableName) => {
+  // 在切换表之前，保存当前表的字段选择到 tableFieldsMap
+  const currentTable = currentEditingTable.value || (selectedTable.value.length > 0 ? selectedTable.value[0] : null);
+  if (currentTable && tableFieldsMap.value && tableFieldsList.value && tableFieldsList.value[currentTable]) {
+    // 只保存当前表中存在的字段到映射中，避免跨表字段污染
+    const currentTableFields = tableFieldsList.value[currentTable] || [];
+    const filteredOutputFields = outputFields.value.filter((field) =>
+      currentTableFields.some((tableField) => tableField.toLowerCase() === field.toLowerCase()),
+    );
+    // 将当前 outputFields 的内容（过滤后的）保存到当前表的映射中
+    tableFieldsMap.value = { ...tableFieldsMap.value, [currentTable]: filteredOutputFields };
+  }
+
+  // 检查当前是否处于多表选择模式
+  const isMultiSelectMode = availableTables.value.length > 1;
+
+  if (isMultiSelectMode) {
+    // 多表模式下：点击表名加载对应表的字段，同时更新选中状态
+    let newSelectedTables = [...selectedTable.value];
+    const clickedTable = String(clickedTableName);
+
+    if (newSelectedTables.includes(clickedTable)) {
+      // 如果已选中，可以保持选中状态或根据需求调整
+      // 这里我们保持选中状态，只加载该表的字段
+    } else {
+      // 如果未选中，添加到选中列表
+      newSelectedTables = [...newSelectedTables, clickedTable];
+    }
+
+    // 保持 outputTableFromConfig.value 与 availableTables.value 一致
+    outputTableFromConfig.value = [...availableTables.value];
+    selectedTable.value = newSelectedTables;
+
+    // 加载点击的表的字段
+    if (formData.taskConfig?.datasourceId || formData.taskConfig?.database) {
+      // 显式加载该表的字段
+      await loadTableFields(clickedTable);
+
+      currentEditingTable.value = clickedTable;
+      // 切换表后，更新 outputFields 为当前表之前保存的字段选择
+      // 确保从 tableFieldsMap 获取，因为 onOutputTableChange 开头可能已经更新了它（如果它是当前表）
+      // 如果是新选中的表，tableFieldsMap[clickedTable] 可能是空的
+      const savedFieldsForTable = tableFieldsMap.value[clickedTable] || [];
+      outputFields.value = [...savedFieldsForTable];
+    } else {
+      console.warn('缺少数据源ID或数据库信息，无法加载表字段', {
+        datasourceId: formData.taskConfig?.datasourceId,
+        database: formData.taskConfig?.database,
+      });
+      ElMessage.warning('请先配置数据源和数据库信息');
+      fieldList.value = [];
+      outputFields.value = [];
+    }
+  } else {
+    // 单表模式下：保持原有行为
+    const tableName = clickedTableName; // 保持原来的参数名
+    outputTableFromConfig.value = Array.isArray(tableName) ? tableName : [tableName]; // 与左侧列表一致，避免被误判为"未选表"
+    selectedTable.value = Array.isArray(tableName) ? tableName : [tableName];
+
+    // 在调用 loadTableFields 之前检查必要参数是否存在且有效
+    if (tableName && (formData.taskConfig?.datasourceId || formData.taskConfig?.database)) {
+      // 如果是多表选择，加载第一个表的字段
+      const tableToLoad = Array.isArray(tableName) ? tableName[0] : tableName;
+      currentEditingTable.value = tableToLoad;
+      await loadTableFields(tableToLoad);
+    } else {
+      if (!tableName) {
+        console.warn('表名为空，无法加载表字段');
+        fieldList.value = [];
+        outputFields.value = [];
+      } else {
+        console.warn('缺少数据源ID或数据库信息，无法加载表字段', {
+          datasourceId: formData.taskConfig?.datasourceId,
+          database: formData.taskConfig?.database,
+        });
+        ElMessage.warning('请先配置数据源和数据库信息');
+        fieldList.value = [];
+        outputFields.value = [];
+      }
+    }
+  }
 };
 
 // 输入模型表变化处理（仅 Transform）；Copy 类切换表时清空右侧映射
-const onInputTableChange = async (tableName) => {
+// 支持多表选择：点击表名切换选中状态，而非只选择单个表
+const onInputTableChange = async (clickedTableName) => {
   if (isCopyTransform.value) copyOutputFields.value = [];
-  selectedInputTable.value = tableName;
-  await loadInputTableFields(tableName);
+
+  // 检查当前是否处于多表选择模式
+  const isMultiSelectMode = availableInputTables.value.length > 1;
+
+  if (isMultiSelectMode) {
+    // 多表模式下：点击表名切换该表的选中状态
+    let newSelectedInputTables = [...selectedInputTable.value];
+    const clickedTable = String(clickedTableName);
+
+    if (newSelectedInputTables.includes(clickedTable)) {
+      // 如果已选中，则取消选中
+      newSelectedInputTables = newSelectedInputTables.filter((table) => table !== clickedTable);
+    } else {
+      // 如果未选中，则添加到选中列表
+      newSelectedInputTables = [...newSelectedInputTables, clickedTable];
+    }
+
+    selectedInputTable.value = newSelectedInputTables;
+
+    // 如果还有选中的表，加载第一个选中表的字段
+    if (newSelectedInputTables.length > 0) {
+      const tableToLoad = newSelectedInputTables[0];
+      if (formData.taskConfig?.datasourceId || formData.taskConfig?.database) {
+        await loadInputTableFields(tableToLoad);
+      } else {
+        console.warn('缺少数据源ID或数据库信息，无法加载输入表字段', {
+          datasourceId: formData.taskConfig?.datasourceId,
+          database: formData.taskConfig?.database,
+        });
+        ElMessage.warning('请先配置数据源和数据库信息');
+        inputFieldList.value = [];
+      }
+    } else {
+      // 没有选中任何表
+      inputFieldList.value = [];
+    }
+  } else {
+    // 单表模式下：保持原有行为
+    const tableName = clickedTableName; // 保持原来的参数名
+    selectedInputTable.value = Array.isArray(tableName) ? tableName : [tableName];
+
+    // 在调用 loadInputTableFields 之前检查必要参数是否存在且有效
+    if (tableName && (formData.taskConfig?.datasourceId || formData.taskConfig?.database)) {
+      // 如果是多表选择，加载第一个表的字段
+      const tableToLoad = Array.isArray(tableName) ? tableName[0] : tableName;
+      await loadInputTableFields(tableToLoad);
+    } else {
+      if (!tableName) {
+        console.warn('输入表名为空，无法加载表字段');
+        inputFieldList.value = [];
+      } else {
+        console.warn('缺少数据源ID或数据库信息，无法加载输入表字段', {
+          datasourceId: formData.taskConfig?.datasourceId,
+          database: formData.taskConfig?.database,
+        });
+        ElMessage.warning('请先配置数据源和数据库信息');
+        inputFieldList.value = [];
+      }
+    }
+  }
+};
+
+// 检查输入表是否被选中（兼容多表选择）
+const isSelectedInputTable = (tableName) => {
+  if (Array.isArray(selectedInputTable.value)) {
+    return selectedInputTable.value.includes(tableName);
+  }
+  // 兼容旧的非数组值（尽管现在应该是数组）
+  return selectedInputTable.value === tableName;
+};
+
+// 检查输出表是否被选中（兼容多表选择）
+const isSelectedOutputTable = (tableName) => {
+  if (Array.isArray(selectedTable.value)) {
+    return selectedTable.value.includes(tableName);
+  }
+  // 兼容旧的非数组值（尽管现在应该是数组）
+  return selectedTable.value === tableName;
 };
 
 // 保存配置：connectorConfig 严格按 /st/connector/form 返回的字段结构，不包含 taskName、datasourceConfig 等多余参数
@@ -2116,8 +2346,12 @@ const saveConfig = async () => {
           relation: outputModelMapping,
         };
         if (selectedInputTable.value) {
+          // 如果selectedInputTable.value是数组（多选），则使用第一个值作为表名
+          const inputTableName = Array.isArray(selectedInputTable.value)
+            ? selectedInputTable.value[0]
+            : selectedInputTable.value;
           const inputFieldNames = inputFieldList.value.map((row) => getRowColumnName(row)).filter(Boolean);
-          connectorConfigObj.inputModel = { tableName: selectedInputTable.value, fields: inputFieldNames };
+          connectorConfigObj.inputModel = { tableName: inputTableName, fields: inputFieldNames };
         }
       }
     } else if (isMetadataTransform.value) {
@@ -2130,8 +2364,12 @@ const saveConfig = async () => {
         };
         // 同时保存输入模型
         if (selectedInputTable.value) {
+          // 如果selectedInputTable.value是数组（多选），则使用第一个值作为表名
+          const inputTableName = Array.isArray(selectedInputTable.value)
+            ? selectedInputTable.value[0]
+            : selectedInputTable.value;
           const inputFieldNames = inputFieldList.value.map((row) => getRowColumnName(row)).filter(Boolean);
-          connectorConfigObj.inputModel = { tableName: selectedInputTable.value, fields: inputFieldNames };
+          connectorConfigObj.inputModel = { tableName: inputTableName, fields: inputFieldNames };
         }
       }
     } else if (isReplaceTransform.value || isSqlTransform.value) {
@@ -2144,8 +2382,12 @@ const saveConfig = async () => {
         };
         // 同时保存输入模型
         if (selectedInputTable.value) {
+          // 如果selectedInputTable.value是数组（多选），则使用第一个值作为表名
+          const inputTableName = Array.isArray(selectedInputTable.value)
+            ? selectedInputTable.value[0]
+            : selectedInputTable.value;
           const inputFieldNames = inputFieldList.value.map((row) => getRowColumnName(row)).filter(Boolean);
-          connectorConfigObj.inputModel = { tableName: selectedInputTable.value, fields: inputFieldNames };
+          connectorConfigObj.inputModel = { tableName: inputTableName, fields: inputFieldNames };
         }
       }
     } else if (isFieldRenameTransform.value) {
@@ -2174,8 +2416,12 @@ const saveConfig = async () => {
         };
         // 同时保存输入模型
         if (selectedInputTable.value) {
+          // 如果selectedInputTable.value是数组（多选），则使用第一个值作为表名
+          const inputTableName = Array.isArray(selectedInputTable.value)
+            ? selectedInputTable.value[0]
+            : selectedInputTable.value;
           const inputFieldNames = inputFieldList.value.map((row) => getRowColumnName(row)).filter(Boolean);
-          connectorConfigObj.inputModel = { tableName: selectedInputTable.value, fields: inputFieldNames };
+          connectorConfigObj.inputModel = { tableName: inputTableName, fields: inputFieldNames };
         }
       }
     } else if (isFieldMapperTransform.value) {
@@ -2195,8 +2441,12 @@ const saveConfig = async () => {
           relation,
         };
         if (selectedInputTable.value) {
+          // 如果selectedInputTable.value是数组（多选），则使用第一个值作为表名
+          const inputTableName = Array.isArray(selectedInputTable.value)
+            ? selectedInputTable.value[0]
+            : selectedInputTable.value;
           const inputFieldNames = inputFieldList.value.map((row) => getRowColumnName(row)).filter(Boolean);
-          connectorConfigObj.inputModel = { tableName: selectedInputTable.value, fields: inputFieldNames };
+          connectorConfigObj.inputModel = { tableName: inputTableName, fields: inputFieldNames };
         }
       }
     } else if (isSplitTransform.value) {
@@ -2222,8 +2472,12 @@ const saveConfig = async () => {
           relation,
         };
         if (selectedInputTable.value) {
+          // 如果selectedInputTable.value是数组（多选），则使用第一个值作为表名
+          const inputTableName = Array.isArray(selectedInputTable.value)
+            ? selectedInputTable.value[0]
+            : selectedInputTable.value;
           const inputFieldNames = inputFieldList.value.map((row) => getRowColumnName(row)).filter(Boolean);
-          connectorConfigObj.inputModel = { tableName: selectedInputTable.value, fields: inputFieldNames };
+          connectorConfigObj.inputModel = { tableName: inputTableName, fields: inputFieldNames };
         }
       }
     } else if (formData.connectorType === 'SINK' && selectedTable.value) {
@@ -2234,9 +2488,51 @@ const saveConfig = async () => {
           fieldMapping[targetField] = sourceField;
         }
       });
-      connectorConfigObj.outputModel = { tableName: selectedTable.value, fieldMapping };
+      // 支持多表选择：如果selectedTable.value是数组（多选），则保存所有表名到outputModel
+      if (Array.isArray(selectedTable.value) && selectedTable.value.length > 1) {
+        // 多表选择模式：为每个表创建映射
+        const tableMappings = {};
+        selectedTable.value.forEach((table) => {
+          // 如果有特定于表的字段映射则使用，否则使用通用的fieldMapping
+          tableMappings[table] = fieldMapping;
+        });
+        connectorConfigObj.outputModel = { tables: [...selectedTable.value], tableMappings };
+      } else {
+        // 单表模式：保持原有行为
+        let outputTableName;
+        if (Array.isArray(selectedTable.value)) {
+          outputTableName = selectedTable.value[0];
+        } else {
+          outputTableName = selectedTable.value;
+        }
+        connectorConfigObj.outputModel = { tableName: outputTableName, fieldMapping };
+      }
     } else if (selectedTable.value && Array.isArray(outputFields.value)) {
-      connectorConfigObj.outputModel = { tableName: selectedTable.value, fields: [...outputFields.value] };
+      // 在保存前，确保当前表的最新字段选择被保存到 tableFieldsMap
+      const currentTable =
+        currentEditingTable.value || (selectedTable.value.length > 0 ? selectedTable.value[0] : null);
+      if (currentTable && tableFieldsMap.value && tableFieldsList.value && tableFieldsList.value[currentTable]) {
+        // 只保存当前表中存在的字段到映射中，避免跨表字段污染
+        const currentTableFields = tableFieldsList.value[currentTable] || [];
+        const filteredOutputFields = outputFields.value.filter((field) =>
+          currentTableFields.some((tableField) => tableField.toLowerCase() === field.toLowerCase()),
+        );
+        // 将当前的字段选择（过滤后的）保存到当前表的映射中
+        tableFieldsMap.value = { ...tableFieldsMap.value, [currentTable]: filteredOutputFields };
+      }
+
+      // 统一使用多表结构保存（tables + tableFields），以支持单表和多表的一致性回显
+      // 规范化 selectedTable.value 为数组
+      const tables = Array.isArray(selectedTable.value) ? selectedTable.value : [selectedTable.value];
+
+      // 为每个表创建字段列表
+      const tableFields = {};
+      tables.forEach((table) => {
+        // 使用 tableFieldsMap 中保存的特定于表的字段选择
+        tableFields[table] = tableFieldsMap.value[table] || [];
+      });
+
+      connectorConfigObj.outputModel = { tables, tableFields };
     }
 
     // inputModel 合并进 connectorConfig：仅 Transform（非 copy 时用勾选字段；copy 时上面已写 inputModel）
@@ -2246,7 +2542,11 @@ const saveConfig = async () => {
       selectedInputTable.value &&
       Array.isArray(inputFields.value)
     ) {
-      connectorConfigObj.inputModel = { tableName: selectedInputTable.value, fields: [...inputFields.value] };
+      // 如果selectedInputTable.value是数组（多选），则使用第一个值作为表名
+      const inputTableName = Array.isArray(selectedInputTable.value)
+        ? selectedInputTable.value[0]
+        : selectedInputTable.value;
+      connectorConfigObj.inputModel = { tableName: inputTableName, fields: [...inputFields.value] };
     }
 
     // SINK 组件：保存输入模型（来自上游的字段列表）
@@ -2308,11 +2608,12 @@ const resetConfig = () => {
     delete formData[key];
   });
   // 重新初始化表单数据
-  outputTableFromConfig.value = '';
-  selectedTable.value = '';
+  outputTableFromConfig.value = [];
+  selectedTable.value = [];
+  currentEditingTable.value = null;
   fieldList.value = [];
   outputFields.value = [];
-  selectedInputTable.value = '';
+  selectedInputTable.value = [];
   inputFieldList.value = [];
   inputFields.value = [];
   copyOutputFields.value = [];
@@ -2469,10 +2770,10 @@ onMounted(() => {
   top: 12px; /* 与单元格内容垂直居中 */
 }
 .connector-line.connected {
-  border-top: 2px solid #67C23A; /* 成功绿 */
+  border-top: 2px solid #67c23a; /* 成功绿 */
 }
 .connector-line.missing {
-  border-top: 2px dashed #C0C4CC; /* 灰色虚线 */
+  border-top: 2px dashed #c0c4cc; /* 灰色虚线 */
 }
 
 /* 元数据页中间箭头风格：与 Copy 组件一致 */
@@ -2535,10 +2836,10 @@ onMounted(() => {
 }
 /* 缺失时灰色表现 */
 .metadata-model-container .connection-item.missing .connector-dot {
-  background: #C0C4CC;
+  background: #c0c4cc;
 }
 .metadata-model-container .connection-item.missing .connector-line {
-  background: #C0C4CC;
+  background: #c0c4cc;
 }
 /* 调整箭头与表头对齐，适配 Element Plus 小号表格 */
 .metadata-model-container .left-panel .el-table,
