@@ -1018,41 +1018,54 @@ const availableInputTables = computed(() => {
     formData.taskConfig?.tableName ||
     formData.taskConfig?.table;
 
-  // 如果fromForm是数组（多选下拉框），展开为单独的表名
   if (Array.isArray(fromForm)) {
     fromForm = fromForm.flat();
   }
 
-  if (isCopyTransform.value && selectedInputTable.value) {
-    // 如果selectedInputTable.value是数组，展开后再与其他表合并
+  const upstreamList = upstreamOutputTableNames.value || [];
+
+  if (isCopyTransform.value) {
     const selectedTables = Array.isArray(selectedInputTable.value)
       ? selectedInputTable.value.flat()
-      : [selectedInputTable.value];
-    // fromForm 可能是数组，需要 spread 展开
-    const fromFormList = Array.isArray(fromForm) ? fromForm : [fromForm];
-    const allTables = [...selectedTables, ...fromFormList].filter(Boolean);
-    return Array.from(new Set(allTables));
+      : selectedInputTable.value
+      ? [selectedInputTable.value]
+      : [];
+    const fromFormList = Array.isArray(fromForm) ? fromForm.filter(Boolean) : fromForm ? [fromForm] : [];
+    const allTables = [...selectedTables, ...fromFormList, ...upstreamList].filter(Boolean);
+    if (allTables.length > 0) {
+      return Array.from(new Set(allTables));
+    }
   }
 
   if (fromForm) {
-    // 如果fromForm是数组，返回所有表名
     return Array.isArray(fromForm) ? fromForm.filter(Boolean) : [fromForm];
+  }
+  if (upstreamList.length > 0) {
+    return upstreamList;
   }
   return [];
 });
 
 // 检查是否有上游节点连接
 const hasUpstreamConnection = computed(() => {
-  // 检查是否有上游输出模型
-  const result = props.upstreamOutputModel?.fields?.length > 0;
-  console.log(
-    'DEBUG: hasUpstreamConnection computed - upstreamOutputModel:',
-    props.upstreamOutputModel,
-    'result:',
-    result,
-  );
-  return result;
+  const m = props.upstreamOutputModel;
+  if (!m || typeof m !== 'object') return false;
+  if (Array.isArray(m.fields) && m.fields.length > 0) return true;
+  if (m.tableFields && typeof m.tableFields === 'object') {
+    return Object.values(m.tableFields).some((arr) => Array.isArray(arr) && arr.length > 0);
+  }
+  return false;
 });
+
+function upstreamHasFields() {
+  const m = props.upstreamOutputModel;
+  if (!m || typeof m !== 'object') return false;
+  if (Array.isArray(m.fields) && m.fields.length > 0) return true;
+  if (m.tableFields && typeof m.tableFields === 'object') {
+    return Object.values(m.tableFields).some((arr) => Array.isArray(arr) && arr.length > 0);
+  }
+  return false;
+}
 
 // 获取上游输出模型的表名（单个）
 const upstreamOutputTableName = computed(() => {
@@ -1062,7 +1075,11 @@ const upstreamOutputTableName = computed(() => {
 
 // 获取上游输出模型的所有表名（支持多表）
 const upstreamOutputTableNames = computed(() => {
-  // 如果上游输出模型的表名是数组（多选），则返回该数组
+  // 优先检查 tables 数组 (新结构)
+  if (props.upstreamOutputModel?.tables && Array.isArray(props.upstreamOutputModel.tables)) {
+    return props.upstreamOutputModel.tables;
+  }
+  // 兼容旧结构
   const tableName = props.upstreamOutputModel?.tableName || props.upstreamOutputModel?.table;
   if (Array.isArray(tableName)) {
     return tableName;
@@ -1071,32 +1088,26 @@ const upstreamOutputTableNames = computed(() => {
   return tableName ? [tableName] : [];
 });
 
-// SINK 组件：上游输出模型（从连接的上游节点获取）
-const sinkInputModel = computed(() => {
-  if (formData.connectorType === 'SINK' && props.upstreamOutputModel?.fields?.length) {
-    return props.upstreamOutputModel;
-  }
-  return null;
-});
-
-// Split Transform 补初始化：当上游字段可用但左侧输入字段为空时，自动回填
 watch(
-  () => [isSplitTransform.value, props.upstreamOutputModel?.fields?.length],
-  () => {
-    if (
-      isSplitTransform.value &&
-      (!Array.isArray(inputFieldList.value) || inputFieldList.value.length === 0) &&
-      props.upstreamOutputModel?.fields?.length > 0
-    ) {
-      inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
-        typeof f === 'string'
-          ? { columnName: f, columnType: '-' }
-          : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-      );
-      console.log('DEBUG: watch split fallback initialized inputFieldList, length:', inputFieldList.value.length);
-    }
+  () => inputFieldList.value,
+  (val, old) => {
+    const len = Array.isArray(val) ? val.length : 0;
+    const sel = Array.isArray(selectedInputTable.value) ? selectedInputTable.value : [selectedInputTable.value];
+    console.log(
+      'DEBUG: inputFieldList updated',
+      'length:',
+      len,
+      'selectedInputTable:',
+      sel,
+      'upstreamTables:',
+      upstreamOutputTableNames.value,
+      'detail:',
+      val,
+      'prevLength:',
+      Array.isArray(old) ? old.length : 0,
+    );
   },
-  { immediate: true },
+  { immediate: true, deep: true },
 );
 
 /**
@@ -1413,20 +1424,34 @@ watch(
       (props.task.connectorType || '') === 'TRANSFORM' &&
       (props.task.connectorName || '').toString().toLowerCase().includes('copy');
     const isSink = props.task.connectorType === 'SINK';
-    const isReplace =
-      props.task.connectorType === 'TRANSFORM' && (props.task.connectorName || '').toLowerCase().includes('replace');
-
-    console.log('DEBUG: isCopy:', isCopy, 'isSink:', isSink, 'isReplace:', isReplace);
-
-    if (isCopy && props.upstreamOutputModel?.fields?.length) {
-      selectedInputTable.value = props.upstreamOutputModel.tableName ?? '';
-      inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
-        typeof f === 'string'
-          ? { columnName: f, columnType: '-' }
-          : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-      );
+    const isReplace = props.task.connectorType === 'TRANSFORM' && (props.task.connectorName || '').toLowerCase().includes('replace');
+    console.log("isCopy", isCopy, "isSink", isSink, "isReplace", isReplace)
+    if (isCopy && upstreamHasFields()) {
+      const tfObj =
+        (props.upstreamOutputModel && typeof props.upstreamOutputModel === 'object'
+          ? props.upstreamOutputModel.tableFields
+          : null) || {};
+      const tablesFromModel = Array.isArray(props.upstreamOutputModel?.tables) ? props.upstreamOutputModel.tables : [];
+      const upstreamTables = tablesFromModel.length > 0 ? tablesFromModel : Object.keys(tfObj);
+      const initialTableName =
+        props.upstreamOutputModel.tableName ?? (upstreamTables.length > 0 ? upstreamTables[0] : '');
+        selectedInputTable.value = initialTableName;
+      if (props.upstreamOutputModel.tableFields && typeof props.upstreamOutputModel.tableFields === 'object') {
+        const tableNameForCopy =
+          Array.isArray(selectedInputTable.value) && selectedInputTable.value.length > 0
+            ? selectedInputTable.value[0]
+            : selectedInputTable.value || initialTableName;
+        const tf = props.upstreamOutputModel.tableFields[tableNameForCopy] || [];
+        inputFieldList.value = tf.map((f) =>
+          typeof f === 'string'
+            ? { columnName: f, columnType: '-' }
+            : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
+        );
+      } else {
+        inputFieldList.value = [];
+      }
       console.log('DEBUG: Updated inputFieldList for Copy Transform, length:', inputFieldList.value.length);
-    } else if (isSink && props.upstreamOutputModel?.fields?.length) {
+    } else if (isSink && upstreamHasFields()) {
       // SINK 组件：使用上游输出模型作为输入字段列表
       inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
         typeof f === 'string'
@@ -1434,57 +1459,66 @@ watch(
           : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
       );
       console.log('DEBUG: Updated inputFieldList for SINK Transform, length:', inputFieldList.value.length);
-    } else if (isReplace && props.upstreamOutputModel?.fields?.length) {
+    } else if (isReplace && upstreamHasFields()) {
       // Replace Transform：使用上游输出模型作为输入字段列表
-      inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
-        typeof f === 'string'
-          ? { columnName: f, columnType: '-' }
-          : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-      );
+        const tableFields = props.upstreamOutputModel.tableFields ?? {};
+        inputFieldList.value = Object.entries(tableFields).flatMap(
+            ([tableName, fields]) =>
+                fields.map((f) => ({
+                    tableName,
+                    columnName: f,
+                    columnType: '-',
+                })),
+        );
       console.log('DEBUG: Updated inputFieldList for Replace Transform, length:', inputFieldList.value.length);
-    } else if (
-      props.task.connectorType === 'TRANSFORM' &&
-      ((props.task.connectorName || '').toLowerCase().includes('sql_transform') ||
-        (props.task.connectorName || '').toLowerCase().includes('sql')) &&
-      props.upstreamOutputModel?.fields?.length
-    ) {
-      // SQL Transform：保持与上游输出模型一致，初始化输入字段列表
-      inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
-        typeof f === 'string'
-          ? { columnName: f, columnType: '-' }
-          : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-      );
-      console.log('DEBUG: Updated inputFieldList for SQL Transform, length:', inputFieldList.value.length);
     } else if (
       props.task.connectorType === 'TRANSFORM' &&
       ((props.task.connectorName || '').toLowerCase().includes('split') ||
         (props.task.connectorName || '').toLowerCase().includes('field_split')) &&
-      props.upstreamOutputModel?.fields?.length
+      upstreamHasFields()
     ) {
       // Split Transform：当上游输出模型变化或任务切换时，补初始化输入字段列表
-      inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
-        typeof f === 'string'
-          ? { columnName: f, columnType: '-' }
-          : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-      );
+        const tableFields = props.upstreamOutputModel.tableFields ?? {};
+        inputFieldList.value = Object.entries(tableFields).flatMap(
+            ([tableName, fields]) =>
+                fields.map((f) => ({
+                    tableName,
+                    columnName: f,
+                    columnType: '-',
+                })),
+        );
       console.log('DEBUG: Updated inputFieldList for Split Transform, length:', inputFieldList.value.length);
     } else if (
       props.task.connectorType === 'TRANSFORM' &&
       (props.task.connectorName || '').toLowerCase().includes('field_mapper') &&
-      props.upstreamOutputModel?.fields?.length
+      upstreamHasFields()
     ) {
       // Field Mapper Transform：使用上游输出模型作为输入字段列表，并初始化选择与顺序
-      inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
-        typeof f === 'string'
-          ? { columnName: f, columnType: '-' }
-          : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-      );
+        const tableFields = props.upstreamOutputModel.tableFields ?? {};
+        inputFieldList.value = Object.entries(tableFields).flatMap(
+            ([tableName, fields]) =>
+                fields.map((f) => ({
+                    tableName,
+                    columnName: f,
+                    columnType: '-',
+                })),
+        );
       const names = inputFieldList.value.map((row) => getRowColumnName(row)).filter(Boolean);
       const sel = {};
       names.forEach((n) => (sel[n] = true));
       mapperSelected.value = sel;
       mapperOrder.value = names.slice();
       console.log('DEBUG: Updated inputFieldList for Field Mapper Transform, length:', inputFieldList.value.length);
+    } else {
+        const tableFields = props.upstreamOutputModel.tableFields ?? {};
+        inputFieldList.value = Object.entries(tableFields).flatMap(
+            ([tableName, fields]) =>
+                fields.map((f) => ({
+                    tableName,
+                    columnName: f,
+                    columnType: '-',
+                })),
+        );
     }
   },
   { immediate: true, deep: true },
@@ -1523,7 +1557,11 @@ watch(
         }
         if (isCopy) {
           copyOutputFields.value = parseCopyOutputModel(outModel);
-          if (tableName) selectedInputTable.value = tableName;
+          if (tableName) {
+            selectedInputTable.value = tableName;
+          } else if (Array.isArray(props.upstreamOutputModel?.tables) && props.upstreamOutputModel.tables.length > 0) {
+            selectedInputTable.value = props.upstreamOutputModel.tables[0];
+          }
           const savedInputFields = Array.isArray(inModel?.fields) ? inModel.fields : [];
           if (savedInputFields.length > 0) {
             inputFieldList.value = savedInputFields.map((f) =>
@@ -1531,7 +1569,7 @@ watch(
                 ? { columnName: f, columnType: '-' }
                 : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
             );
-          } else if (props.upstreamOutputModel?.fields?.length) {
+          } else if (upstreamHasFields()) {
             inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
               typeof f === 'string'
                 ? { columnName: f, columnType: '-' }
@@ -1598,6 +1636,11 @@ watch(
         formData.connectorType = newTask.connectorType ?? '';
         formData.connectorName = newTask.connectorName ?? '';
 
+        // 如果新任务没有自带 dynamicFormConfig，且连接器有效，则重新加载配置
+        if (!newTask.dynamicFormConfig && formData.connectorName) {
+          await loadTaskConfig();
+        }
+
         const parsed = parseConnectorConfigSafe(newTask.connectorConfig);
         const taskConfigObj = newTask.taskConfig && typeof newTask.taskConfig === 'object' ? newTask.taskConfig : {};
         const mergedParsed = { ...taskConfigObj, ...parsed };
@@ -1650,6 +1693,49 @@ watch(
             savedFields = [...outModel.fields];
           }
 
+          // 通用的 inputFieldList 初始化逻辑 (适用于所有 Transform 组件)
+          if (props.upstreamOutputModel?.fields?.length) {
+            inputFieldList.value = props.upstreamOutputModel.fields.map((f) =>
+              typeof f === 'string'
+                ? { columnName: f, columnType: '-' }
+                : {
+                    columnName: f.columnName ?? f.name ?? f,
+                    columnType: f.columnType ?? '-',
+                  },
+            );
+          } else if (
+            props.upstreamOutputModel?.tableFields &&
+            typeof props.upstreamOutputModel.tableFields === 'object'
+          ) {
+            const allFields = [];
+            const tableFields = props.upstreamOutputModel.tableFields;
+            const tables = props.upstreamOutputModel.tables || Object.keys(tableFields);
+            tables.forEach((table) => {
+              if (tableFields[table] && Array.isArray(tableFields[table])) {
+                allFields.push(...tableFields[table]);
+              }
+            });
+            inputFieldList.value = allFields.map((f) =>
+              typeof f === 'string'
+                ? { columnName: f, columnType: '-' }
+                : {
+                    columnName: f.columnName ?? f.name ?? f,
+                    columnType: f.columnType ?? '-',
+                  },
+            );
+          } else if (Array.isArray(inModel?.fields) && inModel.fields.length > 0) {
+            inputFieldList.value = inModel.fields.map((f) =>
+              typeof f === 'string'
+                ? { columnName: f, columnType: '-' }
+                : {
+                    columnName: f.columnName ?? f.name ?? f,
+                    columnType: f.columnType ?? '-',
+                  },
+            );
+          } else {
+            inputFieldList.value = [];
+          }
+
           if (isCopy) {
             copyOutputFields.value = parseCopyOutputModel(outModel);
             let inputTableName = inModel?.tableName ?? inModel?.table ?? tableName;
@@ -1660,32 +1746,12 @@ watch(
 
             if (inputTableName) selectedInputTable.value = inputTableName;
 
-            const savedInputFields = Array.isArray(inModel?.fields) ? inModel.fields : [];
-
-            if (props.upstreamOutputModel?.fields?.length) {
-              inputFieldList.value = props.upstreamOutputModel.fields.map((f) =>
-                typeof f === 'string'
-                  ? { columnName: f, columnType: '-' }
-                  : {
-                      columnName: f.columnName ?? f.name ?? f,
-                      columnType: f.columnType ?? '-',
-                    },
-              );
-            } else if (savedInputFields.length > 0) {
-              inputFieldList.value = savedInputFields.map((f) =>
-                typeof f === 'string'
-                  ? { columnName: f, columnType: '-' }
-                  : {
-                      columnName: f.columnName ?? f.name ?? f,
-                      columnType: f.columnType ?? '-',
-                    },
-              );
-            } else if (inputTableName) {
+            // 如果 inputFieldList 为空，尝试从 inputTableName 加载
+            if (inputFieldList.value.length === 0 && inputTableName) {
               await loadInputTableFields(inputTableName, mergedParsed);
-            } else {
+            } else if (inputFieldList.value.length === 0) {
               copyOutputFields.value = [];
               selectedInputTable.value = '';
-              inputFieldList.value = [];
             }
           } else if (tableName) {
             // 处理多表选择的回显

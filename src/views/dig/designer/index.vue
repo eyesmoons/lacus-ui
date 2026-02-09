@@ -973,6 +973,14 @@ function computeUpstreamOutputModel(currentTaskId) {
               if (Array.isArray(parsed.outputModel.fields)) {
                 return parsed.outputModel;
               }
+              // 如果包含多表结构，直接返回
+              if (
+                Array.isArray(parsed.outputModel.tables) &&
+                parsed.outputModel.tableFields &&
+                typeof parsed.outputModel.tableFields === 'object'
+              ) {
+                return parsed.outputModel;
+              }
               // 如果包含 tableName 或 table 字段，认为是标准格式
               else if (parsed.outputModel.tableName || parsed.outputModel.table) {
                 return parsed.outputModel;
