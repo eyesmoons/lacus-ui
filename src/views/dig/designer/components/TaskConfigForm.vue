@@ -1717,13 +1717,18 @@ const updateOutputModel = () => {
                 formData.connectorType === 'TRANSFORM' &&
                 ((formData.connectorName || '').toLowerCase().includes('field_mapper') ||
                     (formData.connectorName || '').toLowerCase().includes('fieldmapper'));
+            const isSplitTransformHere =
+                formData.connectorType === 'TRANSFORM' &&
+                ((formData.connectorName || '').toLowerCase().includes('field_split') ||
+                    (formData.connectorName || '').toLowerCase().includes('split'));
             const keepInputFieldList =
                 isReplaceTransform ||
                 isSqlTransform ||
                 isMetadataTransform ||
                 isCopyTransform ||
                 isFieldRenameTransform ||
-                isFieldMapperTransform;
+                isFieldMapperTransform ||
+                isSplitTransformHere;
             console.log(
                 'DEBUG: In updateOutputModel else branch, isReplaceTransform:',
                 isReplaceTransform,
