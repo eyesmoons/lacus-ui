@@ -1214,6 +1214,67 @@ watch(
                     outputFields.value = savedFields;
                     await loadTableFields(tableName, mergedParsed, props.task?.connectorConfig);
                 }
+
+                // 各组件回显：从 outputModel 恢复 UI 状态
+                const connType = mergedParsed.connectorType ?? props.task?.connectorType ?? '';
+                const connName = (mergedParsed.connectorName ?? props.task?.connectorName ?? '').toString().toLowerCase();
+                if (connType === 'SINK' && outModel) {
+                    const sinkMapping =
+                        outModel.fieldMapping && typeof outModel.fieldMapping === 'object'
+                            ? outModel.fieldMapping
+                            : Array.isArray(outModel.tables) && outModel.tables.length > 0 && outModel.tableMappings?.[outModel.tables[0]]
+                                ? outModel.tableMappings[outModel.tables[0]]
+                                : {};
+                    if (sinkMapping && typeof sinkMapping === 'object') mappingFields.value = { ...sinkMapping };
+                }
+                if (connType === 'TRANSFORM' && connName.includes('field_rename') && Array.isArray(outModel?.relation)) {
+                    const next = {};
+                    outModel.relation.forEach((r) => {
+                        if (r.replace_from != null) next[r.replace_from] = r.replace_to ?? r.replace_from;
+                    });
+                    renameMappings.value = next;
+                }
+                if (
+                    connType === 'TRANSFORM' &&
+                    (connName.includes('field_mapper') || connName.includes('fieldmapper')) &&
+                    Array.isArray(outModel?.fields)
+                ) {
+                    const relation = Array.isArray(outModel.relation) ? outModel.relation : [];
+                    mapperOrder.value = outModel.fields.map((outName) => {
+                        const r = relation.find((x) => x.replace_to === outName);
+                        return r ? r.replace_from : outName;
+                    });
+                    const nextRenames = {};
+                    relation.forEach((r) => {
+                        if (r.replace_from != null) nextRenames[r.replace_from] = r.replace_to ?? r.replace_from;
+                    });
+                    renameMappings.value = nextRenames;
+                }
+                if (
+                    connType === 'TRANSFORM' &&
+                    (connName.includes('split') || connName.includes('field_split')) &&
+                    Array.isArray(outModel?.relation)
+                ) {
+                    const splitRel = outModel.relation.find((r) => r.split_from != null);
+                    if (splitRel) {
+                        splitSourceField.value = splitRel.split_from;
+                        splitTargetFields.value = Array.isArray(splitRel.split_to) ? [...splitRel.split_to] : ['', ''];
+                    }
+                }
+                if (
+                    connType === 'TRANSFORM' &&
+                    connName.includes('metadata') &&
+                    Array.isArray(outModel?.fields) &&
+                    outModel.fields.length > 0
+                ) {
+                    const left = [...inputFieldList.value, ...metadataFields.value];
+                    outputFieldList.value = outModel.fields.map((name) => {
+                        const fromLeft = left.find(
+                            (r) => (r.columnName ?? r.name ?? '').toString().trim().toLowerCase() === String(name).toLowerCase(),
+                        );
+                        return fromLeft ? { ...fromLeft } : { columnName: name, columnType: '-' };
+                    });
+                }
             }
             if (inModel && typeof inModel === 'object' && !Array.isArray(inModel)) {
                 let inputTableName = inModel.tableName ?? inModel.table;
@@ -1466,6 +1527,52 @@ watch(
                     outputFields.value = [];
                     fieldList.value = [];
                     if (isCopy) copyOutputFields.value = [];
+                }
+
+                // 各组件回显：从 outputModel 恢复 UI 状态（与 connectorConfig watch 保持一致）
+                if (formData.connectorType === 'SINK' && outModel) {
+                    const sinkMapping =
+                        outModel.fieldMapping && typeof outModel.fieldMapping === 'object'
+                            ? outModel.fieldMapping
+                            : Array.isArray(outModel.tables) && outModel.tables.length > 0 && outModel.tableMappings?.[outModel.tables[0]]
+                                ? outModel.tableMappings[outModel.tables[0]]
+                                : {};
+                    if (sinkMapping && typeof sinkMapping === 'object') mappingFields.value = { ...sinkMapping };
+                }
+                if (isFieldRename && Array.isArray(outModel?.relation)) {
+                    const next = {};
+                    outModel.relation.forEach((r) => {
+                        if (r.replace_from != null) next[r.replace_from] = r.replace_to ?? r.replace_from;
+                    });
+                    renameMappings.value = next;
+                }
+                if (isFieldMapperTransform.value && Array.isArray(outModel?.fields)) {
+                    const relation = Array.isArray(outModel.relation) ? outModel.relation : [];
+                    mapperOrder.value = outModel.fields.map((outName) => {
+                        const r = relation.find((x) => x.replace_to === outName);
+                        return r ? r.replace_from : outName;
+                    });
+                    const nextRenames = {};
+                    relation.forEach((r) => {
+                        if (r.replace_from != null) nextRenames[r.replace_from] = r.replace_to ?? r.replace_from;
+                    });
+                    renameMappings.value = nextRenames;
+                }
+                if (isSplit && Array.isArray(outModel?.relation)) {
+                    const splitRel = outModel.relation.find((r) => r.split_from != null);
+                    if (splitRel) {
+                        splitSourceField.value = splitRel.split_from;
+                        splitTargetFields.value = Array.isArray(splitRel.split_to) ? [...splitRel.split_to] : ['', ''];
+                    }
+                }
+                if (isMetadata && Array.isArray(outModel?.fields) && outModel.fields.length > 0) {
+                    const left = [...inputFieldList.value, ...metadataFields.value];
+                    outputFieldList.value = outModel.fields.map((name) => {
+                        const fromLeft = left.find(
+                            (r) => (r.columnName ?? r.name ?? '').toString().trim().toLowerCase() === String(name).toLowerCase(),
+                        );
+                        return fromLeft ? { ...fromLeft } : { columnName: name, columnType: '-' };
+                    });
                 }
             }
         } catch (error) {
