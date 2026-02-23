@@ -402,7 +402,7 @@ function handleDrop(event) {
   const y = event.clientY - rect.top;
   // 创建新节点
   const nodeData = {
-    id: `node_${Date.now()}`,
+    id: `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // 更强的唯一性保证
     label: `${
       draggedComponent.component.displayName ||
       draggedComponent.component.pluginIdentifier?.pluginName ||
@@ -1015,13 +1015,33 @@ function computeUpstreamOutputModel(currentTaskId) {
 // 双击节点处理函数：已存在任务先拉取详情并更新 connectorConfig，再打开弹框，避免第一次打开时输出模型「正在加载字段...」
 const openTaskConfig = async (task) => {
   try {
-    // 设置选中的任务
+    // 设置选中的任务 - 创建全新的对象引用确保watch能正确触发
     selectedTask.value = {
-      ...task,
+      taskId: task.taskId,
       taskName: task.taskName || task.label || '未命名任务',
       connectorType: task.connectorType || 'SOURCE',
-      connectorName: task.connectorName || task.name,
+      connectorName:
+        task.connectorName || task.name || task.data?.name || task.data?.pluginIdentifier?.pluginName || '',
+      connectorConfig: task.connectorConfig || '',
+      taskConfig: task.taskConfig || {},
+      position: task.position || { x: 0, y: 0 },
       dynamicFormConfig: [], // 初始化为空数组
+      // 复制其他可能存在的属性
+      ...Object.fromEntries(
+        Object.entries(task).filter(
+          ([key]) =>
+            ![
+              'taskId',
+              'taskName',
+              'connectorType',
+              'connectorName',
+              'connectorConfig',
+              'taskConfig',
+              'position',
+              'dynamicFormConfig',
+            ].includes(key),
+        ),
+      ),
     };
 
     // Copy Transform 等需要上游输出：根据连线取上游 Source 的 outputModel，供字段映射左侧列表使用
