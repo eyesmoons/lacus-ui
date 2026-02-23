@@ -14,14 +14,14 @@
                         </el-form-item>
                     </div>
                     <!-- 动态表单配置（SOURCE类型）：不含输出模型字段，输出模型在右侧 Tab 配置 -->
-                    <SourceConfigSection
+                    <div
+                        class="config-section"
                         v-if="
-                            formData.connectorType === 'SOURCE' && dynamicFormConfigFiltered && dynamicFormConfigFiltered.length > 0
-                        "
-                        :config="dynamicFormConfigFiltered"
-                        v-model="formData.taskConfig"
-                        @change="onConfigChange"
-                    />
+              formData.connectorType === 'SOURCE' && dynamicFormConfigFiltered && dynamicFormConfigFiltered.length > 0
+            "
+                    >
+                        <dynamic-form :config="dynamicFormConfigFiltered" v-model="formData.taskConfig" @change="onConfigChange" />
+                    </div>
                     <!-- 动态表单配置（TRANSFORM类型） -->
                     <div
                         class="config-section"
@@ -52,44 +52,91 @@
             </el-tab-pane>
             <!-- Copy 类 Transform：输入/输出合并为字段映射（左表 + 复制 → 右表） -->
             <el-tab-pane v-if="isCopyTransform" label="模型配置" name="copyMap">
-                <CopyTransform
-                    :available-input-tables="availableInputTables"
-                    :is-selected-input-table="isSelectedInputTable"
-                    :input-field-list="inputFieldList"
-                    v-model="copyOutputFields"
-                    @input-table-change="onInputTableChange"
-                />
+                <div class="output-model-section">
+                    <div class="copy-transform-header">
+                        <div class="table-select-panel">
+                            <div class="section-title">输入表名</div>
+                            <div class="table-options">
+                                <ul class="table-list" style="margin-top: 5px; margin-left: 0">
+                                    <li
+                                        v-for="t in availableInputTables"
+                                        :key="t"
+                                        :class="{ active: isSelectedInputTable(t) }"
+                                        @click="onInputTableChange(t)"
+                                    >
+                                        {{ t }}
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <CopyTransformFieldMap :input-field-list="inputFieldList" v-model="copyOutputFields" />
+                </div>
             </el-tab-pane>
             <!-- Replace 类 Transform：直接显示上游输出模型 -->
             <el-tab-pane v-if="isReplaceTransform || isSqlTransform" label="模型配置" name="replaceModel">
-                <ReplaceTransform
-                    v-if="isReplaceTransform"
-                    :has-upstream-connection="hasUpstreamConnection"
-                    :upstream-output-model="upstreamOutputModel"
-                    :input-field-list="inputFieldList"
-                    :upstream-output-table-names="upstreamOutputTableNames"
-                    :get-row-column-name="getRowColumnName"
-                />
-                <SqlTransform
-                    v-else-if="isSqlTransform"
-                    :has-upstream-connection="hasUpstreamConnection"
-                    :upstream-output-model="upstreamOutputModel"
-                    :input-field-list="inputFieldList"
-                    :upstream-output-table-names="upstreamOutputTableNames"
-                    :get-row-column-name="getRowColumnName"
-                />
+                <div class="output-model-section">
+                    <div class="replace-model-container">
+                        <div v-if="!inputFieldList.length" class="empty-tip">
+                            <div>{{ hasUpstreamConnection }}, upstreamOutputModel: {{ upstreamOutputModel }}</div>
+                            {{
+                                hasUpstreamConnection ? '上游节点暂无输出模型，请先配置上游节点' : '暂无上游节点连接，请连接上游节点'
+                            }}
+                        </div>
+                        <div v-else>
+                            <!-- 显示上游输出模型的表名 -->
+                            <div class="table-info" v-if="upstreamOutputTableNames.length > 0">
+                                <div class="section-title">表名：{{ upstreamOutputTableNames.join(', ') }}</div>
+                            </div>
+                            <el-table :data="inputFieldList" size="small" max-height="400" class="field-table">
+                                <el-table-column type="index" label="#" width="40" align="center" />
+                                <el-table-column prop="columnName" label="字段名" min-width="100" show-overflow-tooltip>
+                                    <template #default="scope">
+                                        {{ getRowColumnName(scope.row) || '-' }}
+                                    </template>
+                                </el-table-column>
+                                <el-table-column prop="columnType" label="类型" width="90" show-overflow-tooltip />
+                            </el-table>
+                        </div>
+                    </div>
+                </div>
             </el-tab-pane>
             <!-- Field Rename 类 Transform：基于上游输出模型对字段重命名 -->
             <el-tab-pane v-if="isFieldRenameTransform" label="模型配置" name="renameModel">
-                <FieldRenameTransform
-                    :has-upstream-connection="hasUpstreamConnection"
-                    :upstream-output-model="upstreamOutputModel"
-                    :input-field-list="inputFieldList"
-                    :upstream-output-table-names="upstreamOutputTableNames"
-                    :get-row-column-name="getRowColumnName"
-                    :get-renamed-name="getRenamedName"
-                    @open-rename="openRenameDialog"
-                />
+                <div class="output-model-section">
+                    <div class="replace-model-container">
+                        <div v-if="!inputFieldList.length" class="empty-tip">
+                            <div>{{ hasUpstreamConnection }}, upstreamOutputModel: {{ upstreamOutputModel }}</div>
+                            {{
+                                hasUpstreamConnection ? '上游节点暂无输出模型，请先配置上游节点' : '暂无上游节点连接，请连接上游节点'
+                            }}
+                        </div>
+                        <div v-else>
+                            <div class="table-info" v-if="upstreamOutputTableNames.length > 0">
+                                <div class="section-title">表名：{{ upstreamOutputTableNames.join(', ') }}</div>
+                            </div>
+                            <el-table :data="inputFieldList" size="small" max-height="600" class="field-table">
+                                <el-table-column type="index" label="#" width="40" align="center" />
+                                <el-table-column prop="columnName" label="字段名" min-width="100" show-overflow-tooltip>
+                                    <template #default="scope">
+                                        {{ getRowColumnName(scope.row) || '-' }}
+                                    </template>
+                                </el-table-column>
+                                <el-table-column prop="columnType" label="类型" width="90" show-overflow-tooltip />
+                                <el-table-column label="重命名为" min-width="120" show-overflow-tooltip>
+                                    <template #default="scope">
+                                        <span>{{ getRenamedName(scope.row) }}</span>
+                                    </template>
+                                </el-table-column>
+                                <el-table-column label="操作" width="90" align="center" fixed="right">
+                                    <template #default="scope">
+                                        <el-button size="small" @click="openRenameDialog(scope.row)">重命名</el-button>
+                                    </template>
+                                </el-table-column>
+                            </el-table>
+                        </div>
+                    </div>
+                </div>
             </el-tab-pane>
 
             <!-- Field Mapper 类 Transform：选择/排序/重命名输出字段 -->
@@ -108,55 +155,326 @@
                 </template>
             </el-dialog>
             <el-tab-pane v-if="isFieldMapperTransform" label="模型配置" name="mapperModel">
-                <FieldMapperTransform
-                    :input-field-list="inputFieldList"
-                    :has-upstream-connection="hasUpstreamConnection"
-                    :upstream-output-table-names="upstreamOutputTableNames"
-                    :mapper-order="mapperOrder"
-                    :rename-mappings="renameMappings"
-                    v-model:mapper-add-name="mapperAddName"
-                    :get-row-column-name="getRowColumnName"
-                    @open-rename="openRenameDialog"
-                    @move-up="moveMapperRowUp"
-                    @move-down="moveMapperRowDown"
-                    @remove="removeMapperField"
-                    @add-field="addMapperField"
-                    @add-custom-field="addCustomMapperField"
-                />
+                <div class="output-model-section">
+                    <div class="replace-model-container">
+                        <div v-if="!inputFieldList.length">
+                            <div class="empty-tip">
+                                {{
+                                    hasUpstreamConnection ? '上游节点暂无输出模型，请先配置上游节点' : '暂无上游节点连接，请连接上游节点'
+                                }}
+                            </div>
+                            <div class="section-title" style="margin-top: 8px">手动添加输出字段</div>
+                            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px">
+                                <el-input v-model="mapperAddName" placeholder="请输入字段名" style="max-width: 240px" />
+                                <el-button type="primary" @click="addCustomMapperField">添加到输出</el-button>
+                            </div>
+                            <div class="section-title">输出字段（按顺序）</div>
+                            <div style="overflow: auto">
+                                <el-table
+                                    :data="mapperOrder.map((n) => ({ name: n }))"
+                                    size="small"
+                                    max-height="480"
+                                    class="field-table"
+                                    table-layout="auto"
+                                    style="min-width: 900px"
+                                >
+                                    <el-table-column type="index" label="#" width="60" align="center" />
+                                    <el-table-column prop="name" label="字段名" min-width="180" show-overflow-tooltip />
+                                    <el-table-column label="输出名" min-width="220" show-overflow-tooltip>
+                                        <template #default="scope">
+                                            <span>{{ renameMappings[scope.row.name] || scope.row.name }}</span>
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column label="操作" width="200" align="center" fixed="right">
+                                        <template #default="scope">
+                                            <div style="display: flex; gap: 6px; justify-content: center">
+                                                <el-tooltip content="重命名" placement="top">
+                                                    <el-button
+                                                        circle
+                                                        size="small"
+                                                        @click="openRenameDialog({ columnName: scope.row.name })"
+                                                        icon="Edit"
+                                                    />
+                                                </el-tooltip>
+                                                <el-tooltip content="上移" placement="top">
+                                                    <el-button circle size="small" @click="moveMapperRowUp(scope.row.name)" icon="Top" />
+                                                </el-tooltip>
+                                                <el-tooltip content="下移" placement="top">
+                                                    <el-button circle size="small" @click="moveMapperRowDown(scope.row.name)" icon="Bottom" />
+                                                </el-tooltip>
+                                                <el-tooltip content="删除" placement="top">
+                                                    <el-button
+                                                        circle
+                                                        size="small"
+                                                        type="danger"
+                                                        @click="removeMapperField(scope.row.name)"
+                                                        icon="Delete"
+                                                    />
+                                                </el-tooltip>
+                                            </div>
+                                        </template>
+                                    </el-table-column>
+                                </el-table>
+                            </div>
+                        </div>
+                        <div v-else>
+                            <div class="table-info" v-if="upstreamOutputTableNames.length > 0">
+                                <div class="section-title">表名：{{ upstreamOutputTableNames.join(', ') }}</div>
+                            </div>
+                            <div style="display: flex; gap: 6px; align-items: stretch; margin-top: 12px">
+                                <!-- 左侧：可用字段列表 -->
+                                <div style="flex: 1">
+                                    <div class="section-title">输入模型</div>
+                                    <el-table :data="inputFieldList" size="small" max-height="480" class="field-table">
+                                        <el-table-column type="index" label="#" width="40" align="center" />
+                                        <el-table-column prop="columnName" label="字段名" show-overflow-tooltip>
+                                            <template #default="scope">
+                                                {{ getRowColumnName(scope.row) || '-' }}
+                                            </template>
+                                        </el-table-column>
+                                        <el-table-column prop="columnType" label="类型" show-overflow-tooltip />
+                                        <el-table-column label="操作" width="100" align="center" fixed="right">
+                                            <template #default="scope">
+                                                <el-tooltip content="添加" placement="top">
+                                                    <el-button
+                                                        circle
+                                                        size="small"
+                                                        type="primary"
+                                                        :disabled="mapperOrder.includes(getRowColumnName(scope.row))"
+                                                        @click="addMapperField(getRowColumnName(scope.row))"
+                                                        icon="Right"
+                                                    />
+                                                </el-tooltip>
+                                            </template>
+                                        </el-table-column>
+                                    </el-table>
+                                </div>
+                                <!-- 右侧：输出字段（按顺序） -->
+                                <div style="flex: 1.2; overflow: auto">
+                                    <div class="section-title">输出模型</div>
+                                    <el-table
+                                        :data="mapperOrder.map((n) => ({ name: n }))"
+                                        size="small"
+                                        max-height="480"
+                                        class="field-table"
+                                        table-layout="auto"
+                                        style="min-width: 400px"
+                                    >
+                                        <el-table-column type="index" label="#" width="60" align="center" />
+                                        <el-table-column prop="name" label="字段名" show-overflow-tooltip />
+                                        <el-table-column label="输出名" show-overflow-tooltip>
+                                            <template #default="scope">
+                                                <span>{{ renameMappings[scope.row.name] || scope.row.name }}</span>
+                                            </template>
+                                        </el-table-column>
+                                        <el-table-column label="操作" width="200" align="center" fixed="right">
+                                            <template #default="scope">
+                                                <div style="display: flex; gap: 6px; justify-content: center">
+                                                    <el-tooltip content="重命名" placement="top">
+                                                        <el-button
+                                                            circle
+                                                            size="small"
+                                                            @click="openRenameDialog({ columnName: scope.row.name })"
+                                                            icon="Edit"
+                                                        />
+                                                    </el-tooltip>
+                                                    <el-tooltip content="上移" placement="top">
+                                                        <el-button circle size="small" @click="moveMapperRowUp(scope.row.name)" icon="Top" />
+                                                    </el-tooltip>
+                                                    <el-tooltip content="下移" placement="top">
+                                                        <el-button circle size="small" @click="moveMapperRowDown(scope.row.name)" icon="Bottom" />
+                                                    </el-tooltip>
+                                                    <el-tooltip content="删除" placement="top">
+                                                        <el-button
+                                                            circle
+                                                            size="small"
+                                                            type="danger"
+                                                            @click="removeMapperField(scope.row.name)"
+                                                            icon="Delete"
+                                                        />
+                                                    </el-tooltip>
+                                                </div>
+                                            </template>
+                                        </el-table-column>
+                                    </el-table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </el-tab-pane>
 
             <!-- Split 类 Transform：一次仅支持一个字段拆分，无分隔符配置 -->
             <el-tab-pane v-if="isSplitTransform" label="模型配置" name="splitModel">
-                <SplitTransform
-                    :input-field-list="inputFieldList"
-                    :has-upstream-connection="hasUpstreamConnection"
-                    :upstream-output-model="upstreamOutputModel"
-                    v-model:split-dialog-visible="splitDialogVisible"
-                    :split-source-field="splitSourceField"
-                    v-model:split-target-fields="splitTargetFields"
-                    :get-row-column-name="getRowColumnName"
-                    :get-split-preview-output-fields="getSplitPreviewOutputFields"
-                    @open-split="openSplitDialog"
-                    @confirm-split="confirmSplit"
-                />
+                <div class="output-model-section">
+                    <div class="replace-model-container">
+                        <div v-if="!inputFieldList.length" class="empty-tip">
+                            <div>上游输出模型：{{ upstreamOutputModel }}</div>
+                            <div
+                                v-if="
+                  hasUpstreamConnection &&
+                  upstreamOutputModel &&
+                  Array.isArray(upstreamOutputModel.fields) &&
+                  upstreamOutputModel.fields.length > 0
+                "
+                            >
+                                检测到上游字段，可点击“拆分”开始配置
+                            </div>
+                            <div v-else-if="hasUpstreamConnection">上游节点暂无输出模型，请先配置上游节点</div>
+                            <div v-else>暂无上游节点连接，请连接上游节点</div>
+                        </div>
+                        <div v-else>
+                            <div style="display: flex; gap: 16px; align-items: stretch; margin-top: 12px">
+                                <div style="flex: 1">
+                                    <div class="section-title">输入模型</div>
+                                    <el-table :data="inputFieldList" size="small" max-height="480" class="field-table">
+                                        <el-table-column type="index" label="#" width="40" align="center" />
+                                        <el-table-column prop="columnName" label="字段名" min-width="100" show-overflow-tooltip>
+                                            <template #default="scope">
+                                                {{ getRowColumnName(scope.row) || '-' }}
+                                            </template>
+                                        </el-table-column>
+                                        <el-table-column prop="columnType" label="类型" width="90" show-overflow-tooltip />
+                                        <el-table-column label="拆分为" min-width="180" show-overflow-tooltip>
+                                            <template #default="scope">
+                        <span
+                            v-if="
+                            getRowColumnName(scope.row) === splitSourceField &&
+                            Array.isArray(splitTargetFields) &&
+                            splitTargetFields.length >= 2
+                          "
+                        >
+                          <code>{{ '{ ' + splitSourceField + ' }' }}</code>
+                          ⇒
+                          <code>{{ '{ ' + splitTargetFields.join(', ') + ' }' }}</code>
+                        </span>
+                                                <span v-else>-</span>
+                                            </template>
+                                        </el-table-column>
+                                        <el-table-column label="操作" width="120" align="center" fixed="right">
+                                            <template #default="scope">
+                                                <el-button size="small" @click="openSplitDialog(scope.row)">拆分</el-button>
+                                            </template>
+                                        </el-table-column>
+                                    </el-table>
+                                </div>
+                                <div style="flex: 1">
+                                    <div class="section-title">输出模型</div>
+                                    <el-table
+                                        :data="getSplitPreviewOutputFields().map((n) => ({ name: n }))"
+                                        size="small"
+                                        max-height="480"
+                                        class="field-table"
+                                    >
+                                        <el-table-column type="index" label="#" width="40" align="center" />
+                                        <el-table-column prop="name" label="字段名" min-width="100" show-overflow-tooltip />
+                                    </el-table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <el-dialog v-model="splitDialogVisible" title="配置拆分" width="520px">
+                    <div>
+                        <div style="margin-bottom: 8px">
+                            源字段：<code>{{ splitSourceField }}</code>
+                        </div>
+                        <div>
+                            <div style="margin-bottom: 6px">目标字段列表（至少两个）：</div>
+                            <div v-for="(t, idx) in splitTargetFields" :key="idx" style="display: flex; gap: 8px; margin-bottom: 6px">
+                                <el-input v-model="splitTargetFields[idx]" placeholder="目标字段名" />
+                                <el-button @click="splitTargetFields.splice(idx, 1)" size="small">移除</el-button>
+                            </div>
+                            <el-button @click="splitTargetFields.push('')" size="small">添加目标字段</el-button>
+                        </div>
+                    </div>
+                    <template #footer>
+                        <el-button @click="splitDialogVisible = false">取消</el-button>
+                        <el-button type="primary" @click="confirmSplit">应用</el-button>
+                    </template>
+                </el-dialog>
             </el-tab-pane>
 
             <!-- Metadata 类 Transform：添加元数据字段到上游输出模型 -->
             <el-tab-pane v-if="isMetadataTransform" label="模型配置" name="metadataModel">
-                <MetadataTransform
-                    :input-field-list="inputFieldList"
-                    :has-upstream-connection="hasUpstreamConnection"
-                    :upstream-output-model="upstreamOutputModel"
-                    :upstream-output-table-names="upstreamOutputTableNames"
-                    :left-combined-list="leftCombinedList"
-                    :right-aligned-list="rightAlignedList"
-                    :get-row-column-name="getRowColumnName"
-                    :is-metadata-row="isMetadataRow"
-                    :is-metadata-index="isMetadataIndex"
-                    :is-row-connected="isRowConnected"
-                    @add-metadata-field="addMetadataField"
-                    @remove-output-field="removeOutputFieldByName"
-                />
+                <div class="output-model-section">
+                    <div class="metadata-model-container">
+                        <div v-if="!inputFieldList.length" class="empty-tip">
+                            <div>{{ hasUpstreamConnection }}, upstreamOutputModel: {{ upstreamOutputModel }}</div>
+                            {{
+                                hasUpstreamConnection ? '上游节点暂无输出模型，请先配置上游节点' : '暂无上游节点连接，请连接上游节点'
+                            }}
+                        </div>
+                        <div v-else>
+                            <div class="table-info" v-if="upstreamOutputTableNames.length > 0">
+                                <div class="section-title">表名：{{ upstreamOutputTableNames.join(', ') }}</div>
+                            </div>
+                            <div style="display: flex; gap: 16px; align-items: stretch">
+                                <div class="panel left-panel">
+                                    <div class="section-title">左侧：上游字段 + 元数据</div>
+                                    <el-table :data="leftCombinedList" size="small" max-height="600" class="field-table">
+                                        <el-table-column type="index" label="#" width="40" align="center" />
+                                        <el-table-column prop="columnName" label="字段名" min-width="100" show-overflow-tooltip>
+                                            <template #default="scope">
+                                                {{ getRowColumnName(scope.row) || '-' }}
+                                            </template>
+                                        </el-table-column>
+                                        <el-table-column prop="columnType" label="类型" width="90" show-overflow-tooltip />
+                                        <el-table-column label="操作" width="70" align="center" fixed="right">
+                                            <template #default="scope">
+                                                <el-button v-if="isMetadataRow(scope.row)" size="small" @click="addMetadataField(scope.row)">
+                                                    添加
+                                                </el-button>
+                                                <span v-else style="color: #c0c4cc">-</span>
+                                            </template>
+                                        </el-table-column>
+                                    </el-table>
+                                </div>
+                                <div class="panel center-panel">
+                                    <div class="connection-lines">
+                                        <div
+                                            v-for="(row, index) in leftCombinedList"
+                                            :key="index"
+                                            class="connection-item"
+                                            :class="isRowConnected(row) ? 'connected' : 'missing'"
+                                            :title="getRowColumnName(row)"
+                                        >
+                                            <span class="connector-dot left-dot" />
+                                            <span class="connector-line" />
+                                            <span class="connector-dot right-dot" />
+                                        </div>
+                                        <div v-if="!leftCombinedList.length" class="no-connections">暂无连接</div>
+                                    </div>
+                                </div>
+                                <div class="panel right-panel">
+                                    <div class="section-title">右侧：输出字段（默认等于上游）</div>
+                                    <el-table :data="rightAlignedList" size="small" max-height="600" class="field-table">
+                                        <el-table-column type="index" label="#" width="40" align="center" />
+                                        <el-table-column prop="columnName" label="字段名" min-width="100" show-overflow-tooltip>
+                                            <template #default="scope">
+                                                {{ getRowColumnName(scope.row) || '-' }}
+                                            </template>
+                                        </el-table-column>
+                                        <el-table-column prop="columnType" label="类型" width="90" show-overflow-tooltip />
+                                        <el-table-column label="操作" width="70" align="center" fixed="right">
+                                            <template #default="scope">
+                                                <el-button
+                                                    v-if="isMetadataIndex(scope.$index) && getRowColumnName(leftCombinedList[scope.$index])"
+                                                    size="small"
+                                                    type="danger"
+                                                    @click="removeOutputFieldByName(getRowColumnName(leftCombinedList[scope.$index]))"
+                                                >
+                                                    移除
+                                                </el-button>
+                                                <span v-else style="color: #c0c4cc">-</span>
+                                            </template>
+                                        </el-table-column>
+                                    </el-table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </el-tab-pane>
             <el-tab-pane
                 v-if="
@@ -245,17 +563,84 @@
             </el-tab-pane>
             <!-- SINK 组件：字段映射（左表+映射→右表） -->
             <el-tab-pane v-if="formData.connectorType === 'SINK'" label="模型配置" name="sinkMap">
-                <SinkModelConfig
-                    :available-tables="availableTables"
-                    :input-field-list="inputFieldList"
-                    :field-list="fieldList"
-                    :mapping-fields="mappingFields"
-                    :is-selected-output-table="isSelectedOutputTable"
-                    :get-row-column-name="getRowColumnName"
-                    @output-table-change="onOutputTableChange"
-                    @field-mapping-change="onFieldMappingChange"
-                    @update-mapping-field="(key, val) => (mappingFields[key] = val)"
-                />
+                <div class="output-model-section">
+                    <div class="copy-transform-header">
+                        <div class="table-select-panel">
+                            <div class="section-title">目标表名</div>
+                            <div class="table-options">
+                                <ul class="table-list">
+                                    <li
+                                        v-for="tableName in availableTables"
+                                        :key="tableName"
+                                        :class="{ active: isSelectedOutputTable(tableName) }"
+                                        @click="onOutputTableChange(tableName)"
+                                    >
+                                        {{ tableName }}
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field-mapping-container">
+                        <div class="mapping-header">
+                            <!--              <div class="panel-label">输入模型</div>-->
+                            <!--              <div class="panel-label">输出模型</div>-->
+                        </div>
+                        <div class="mapping-body">
+                            <!-- 左侧面板：上游输出字段列表 -->
+                            <div class="panel left-panel">
+                                <div class="section-title">输入模型</div>
+                                <div v-if="!inputFieldList.length" class="empty-tip">请先建立与上游节点的连接以获取输出字段</div>
+                                <el-table v-else :data="inputFieldList" size="small" max-height="400" class="field-table">
+                                    <el-table-column type="index" label="#" width="40" align="center" />
+                                    <el-table-column prop="columnName" label="字段名" min-width="100" show-overflow-tooltip>
+                                        <template #default="scope">
+                                            {{ getRowColumnName(scope.row) || '-' }}
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column prop="columnType" label="类型" width="90" show-overflow-tooltip />
+                                </el-table>
+                            </div>
+                            <!-- 中间：连接线示意 -->
+                            <div class="panel center-panel">
+                                <div class="connection-lines">
+                                    <div v-if="!fieldList.length" class="no-connections">等待选择目标表</div>
+                                </div>
+                            </div>
+                            <!-- 右侧面板：目标表字段列表，用于映射 -->
+                            <div class="panel right-panel">
+                                <div class="section-title">输出模型</div>
+                                <div v-if="!fieldList.length" class="empty-tip">请先选择目标表</div>
+                                <el-table v-else :data="fieldList" size="small" max-height="400" class="field-table">
+                                    <el-table-column type="index" label="#" width="40" align="center" />
+                                    <el-table-column label="目标字段" min-width="100">
+                                        <template #default="scope">
+                                            <span class="target-name">{{ getRowColumnName(scope.row) }}</span>
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column label="映射来源" min-width="140">
+                                        <template #default="scope">
+                                            <el-select
+                                                v-model="mappingFields[getRowColumnName(scope.row)]"
+                                                size="small"
+                                                placeholder="选择映射字段"
+                                                clearable
+                                                @change="onFieldMappingChange"
+                                            >
+                                                <el-option
+                                                    v-for="inputField in inputFieldList"
+                                                    :key="getRowColumnName(inputField)"
+                                                    :label="getRowColumnName(inputField)"
+                                                    :value="getRowColumnName(inputField)"
+                                                />
+                                            </el-select>
+                                        </template>
+                                    </el-table-column>
+                                </el-table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </el-tab-pane>
         </el-tabs>
     </div>
@@ -269,15 +654,7 @@ import * as taskApi from '@/api/dig/taskApi';
 import * as columnApi from '@/api/metadata/columnApi';
 import { getDatasource } from '@/api/metadata/datasourceApi';
 import DynamicForm from './DynamicForm.vue';
-import SourceConfigSection from './SourceConfigSection.vue';
-import SinkModelConfig from './SinkModelConfig.vue';
-import CopyTransform from './CopyTransform.vue';
-import ReplaceTransform from './ReplaceTransform.vue';
-import SqlTransform from './SqlTransform.vue';
-import FieldRenameTransform from './FieldRenameTransform.vue';
-import FieldMapperTransform from './FieldMapperTransform.vue';
-import SplitTransform from './SplitTransform.vue';
-import MetadataTransform from './MetadataTransform.vue';
+import CopyTransformFieldMap from './CopyTransformFieldMap.vue';
 import { useRoute } from 'vue-router';
 
 const props = defineProps({
@@ -2326,4 +2703,342 @@ onMounted(() => {
 });
 </script>
 
-<style src="./TaskConfigForm.scss" scoped lang="scss"></style>
+<style scoped lang="scss">
+.task-config-form {
+    .config-section {
+        margin-bottom: 20px;
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 800;
+            color: #3a71a8;
+            margin-bottom: 5px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--el-border-color-lighter);
+        }
+    }
+
+    .field-config {
+        margin-top: 8px;
+    }
+
+    .form-actions {
+        margin-top: 20px;
+        padding-top: 16px;
+        border-top: 1px solid var(--el-border-color-lighter);
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        position: sticky;
+        bottom: 0;
+        background: white;
+        z-index: 10;
+        padding-bottom: 16px;
+
+        .el-button {
+            min-width: 100px;
+        }
+    }
+}
+
+.output-model-section {
+    padding: 2px 4px 0 4px;
+}
+
+.copy-transform-header {
+    margin-bottom: 12px;
+}
+
+.output-model-container {
+    display: flex;
+    gap: 20px;
+}
+
+.table-select-panel {
+    width: 120px;
+
+    .section-title {
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .table-options {
+        overflow-x: auto;
+        width: 100%;
+        display: inline-block;
+        line-height: 16px;
+        .table-options-title {
+            font-size: 13px;
+            color: #606266;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .table-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+
+            li {
+                padding: 2px 5px;
+                font-size: 13px;
+                cursor: pointer;
+                border-radius: 4px;
+                transition: background-color 0.2s ease;
+
+                &:hover {
+                    background-color: #f5f7fa;
+                }
+
+                &.active {
+                    font-weight: bold;
+                    color: #409eff;
+                }
+            }
+        }
+    }
+}
+
+.field-table-panel {
+    flex: 1;
+    width: 200px;
+    .section-title {
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .no-table-selected {
+        text-align: center;
+        color: #909399;
+        padding: 10px 0;
+    }
+
+    .loading-fields {
+        text-align: center;
+        color: #909399;
+        padding: 10px 0;
+    }
+}
+
+.field-mapping-container {
+    padding: 0;
+    /* 与 el-table size="small" 行高一致，便于中间连接线与左右表格行对齐 */
+    --copy-map-row-height: 32px;
+    --copy-map-header-offset: 72px;
+}
+
+/* 连接线样式：已连接为实线，未连接为虚线 */
+.connector-line {
+    height: 1px;
+    width: 100%;
+    display: inline-block;
+    position: relative;
+    top: 12px; /* 与单元格内容垂直居中 */
+}
+.connector-line.connected {
+    border-top: 2px solid #67c23a; /* 成功绿 */
+}
+.connector-line.missing {
+    border-top: 2px dashed #c0c4cc; /* 灰色虚线 */
+}
+
+/* 元数据页中间箭头风格：与 Copy 组件一致 */
+.metadata-model-container {
+    --copy-map-row-height: 32px;
+    /* 调整偏移使箭头与首行更贴合，可按需微调 */
+    --copy-map-header-offset: 76px;
+}
+.metadata-model-container .panel {
+    min-width: 0;
+}
+.metadata-model-container .panel .section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #3a71a8;
+    margin-bottom: 8px;
+    margin-top: 8px;
+}
+.metadata-model-container .panel .field-table {
+    width: 100%;
+}
+.metadata-model-container .center-panel {
+    flex: 0 0 100px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: var(--copy-map-header-offset);
+}
+.metadata-model-container .connection-lines {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+}
+.metadata-model-container .connection-item {
+    height: var(--copy-map-row-height);
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
+.metadata-model-container .connector-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--el-color-primary);
+    flex-shrink: 0;
+    display: block;
+}
+.metadata-model-container .connector-dot.right-dot {
+    background: var(--el-color-success);
+}
+.metadata-model-container .connector-line {
+    width: 24px;
+    height: 2px;
+    background: linear-gradient(to right, var(--el-color-primary), var(--el-color-success));
+    flex-shrink: 0;
+    display: block;
+    transform: translateY(0.5px); /* 细调居中，避免视差偏移 */
+}
+/* 缺失时灰色表现 */
+.metadata-model-container .connection-item.missing .connector-dot {
+    background: #c0c4cc;
+}
+.metadata-model-container .connection-item.missing .connector-line {
+    background: #c0c4cc;
+}
+/* 调整箭头与表头对齐，适配 Element Plus 小号表格 */
+.metadata-model-container .left-panel .el-table,
+.metadata-model-container .right-panel .el-table {
+    /* 确保箭头列与表格第一行对齐 */
+    margin-top: 0;
+}
+.mapping-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px 8px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    .panel-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--el-text-color-secondary);
+        flex: 1;
+        &.center-label {
+            text-align: center;
+            flex: 0 0 120px;
+        }
+    }
+}
+.mapping-body {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+    min-height: 320px;
+}
+.panel {
+    flex: 1;
+    min-width: 0;
+    .section-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: #3a71a8;
+        margin-bottom: 8px;
+    }
+    .empty-tip {
+        color: var(--el-text-color-placeholder);
+        font-size: 12px;
+        padding: 16px;
+        text-align: center;
+    }
+    .field-table {
+        width: 100%;
+    }
+}
+.center-panel {
+    flex: 0 0 100px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    /* 与左右表格对齐：预留与 section-title + 表头 等高的空间，使第一条线对齐第一行数据 */
+    padding-top: var(--copy-map-header-offset);
+    .connection-lines {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0;
+    }
+    .connection-item {
+        height: var(--copy-map-row-height);
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        flex-shrink: 0;
+    }
+    .connector-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--el-color-primary);
+        flex-shrink: 0;
+        &.right-dot {
+            background: var(--el-color-success);
+        }
+    }
+    .connector-line {
+        margin-top: -25px;
+        width: 24px;
+        height: 2px;
+        background: linear-gradient(to right, var(--el-color-primary), var(--el-color-success));
+        flex-shrink: 0;
+    }
+    .no-connections {
+        font-size: 11px;
+        color: var(--el-text-color-placeholder);
+        text-align: center;
+        padding: 8px;
+    }
+}
+.target-name {
+    color: var(--el-text-color-regular);
+    font-size: 12px;
+}
+
+.replace-model-container {
+    padding: 8px 0;
+    .section-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: #3a71a8;
+        margin-bottom: 8px;
+    }
+    .empty-tip {
+        color: var(--el-text-color-placeholder);
+        font-size: 12px;
+        padding: 16px;
+        text-align: center;
+    }
+    .field-table {
+        width: 100%;
+    }
+}
+
+.metadata-model-container {
+    padding: 8px 0;
+    .section-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: #3a71a8;
+        margin-bottom: 8px;
+    }
+    .empty-tip {
+        color: var(--el-text-color-placeholder);
+        font-size: 12px;
+        padding: 16px;
+        text-align: center;
+    }
+    .field-table {
+        width: 100%;
+    }
+}
+</style>
