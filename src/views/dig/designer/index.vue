@@ -182,6 +182,9 @@ const x6Container = ref(null);
 let graph = null;
 let draggedComponent = null;
 let taskIdCounter = 1;
+/** 定时自动保存 DAG 的定时器 ID，离开页面时清除 */
+let autoSaveDagTimerId = null;
+const AUTO_SAVE_DAG_INTERVAL_MS = 10 * 1000;
 const selectedEdge = ref(null);
 const showPropertyDialog = ref(false);
 /** 当前打开配置的节点的上游 Source 的 outputModel（用于 Copy Transform 左侧输入字段） */
@@ -242,6 +245,9 @@ onMounted(async () => {
     await nextTick();
     renderGraphFromData();
   }
+
+  // 当前页面每 10 秒自动调用 /st/job/task/dag 保存 DAG
+  autoSaveDagTimerId = setInterval(() => performDagSave({ silent: true }), AUTO_SAVE_DAG_INTERVAL_MS);
 });
 
 const loadConnectors = async () => {
@@ -709,6 +715,10 @@ function handleDelete() {
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleKeyDown);
+  if (autoSaveDagTimerId) {
+    clearInterval(autoSaveDagTimerId);
+    autoSaveDagTimerId = null;
+  }
 });
 
 function renderGraphFromData() {
@@ -776,93 +786,75 @@ function renderGraphFromData() {
   });
 }
 
-function saveJob() {
+/**
+ * 执行 DAG 保存（节点与边关系 + 节点位置）
+ * @param {Object} options - { silent: boolean } 为 true 时不弹成功提示，用于定时自动保存
+ */
+function performDagSave(options = {}) {
+  const silent = !!options.silent;
   try {
-    // 验证是否有任务数据
-    if (tasks.value.length === 0) {
-      ElMessage.warning('请先添加任务节点');
-      return;
-    }
-
-    // 获取当前作业ID
     const jobId = route.query.jobId;
-    if (!jobId) {
-      ElMessage.error('作业ID不能为空');
+    if (!jobId) return;
+
+    if (tasks.value.length === 0) {
+      if (!silent) ElMessage.warning('请先添加任务节点');
       return;
     }
 
-    // 验证所有连接的节点是否都已保存配置
-    const invalidEdges = edges.value.filter((edge) => !edge.sourceTaskId || !edge.sinkTaskId);
-
-    if (invalidEdges.length > 0) {
-      ElMessage.warning('请先保存所有任务节点的配置，然后再保存DAG关系');
-      return;
+    if (!silent) {
+      const invalidEdges = edges.value.filter((edge) => !edge.sourceTaskId || !edge.sinkTaskId);
+      if (invalidEdges.length > 0) {
+        ElMessage.warning('请先保存所有任务节点的配置，然后再保存DAG关系');
+        return;
+      }
     }
 
-    // 组装DAG数据（节点和边的关系）
-    // 对边进行去重，避免重复的sourceTaskId和sinkTaskId组合
     const uniqueEdges = [];
     const seenEdges = new Set();
-
     edges.value
-      .filter((edge) => edge.sourceTaskId && edge.sinkTaskId) // 只保存有效的边
+      .filter((edge) => edge.sourceTaskId && edge.sinkTaskId)
       .forEach((edge) => {
         const edgeKey = `${edge.sourceTaskId}-${edge.sinkTaskId}`;
         if (!seenEdges.has(edgeKey)) {
           seenEdges.add(edgeKey);
-          uniqueEdges.push({
-            sourceTaskId: edge.sourceTaskId,
-            sinkTaskId: edge.sinkTaskId,
-          });
+          uniqueEdges.push({ sourceTaskId: edge.sourceTaskId, sinkTaskId: edge.sinkTaskId });
         }
       });
 
-    // 获取当前画布中存在的节点的位置信息（而不是tasks.value中的全部节点）
-    const currentNodes = graph.getNodes();
-    const nodePositions = currentNodes.map((node) => ({
-      taskId: node.id,
-      position: { x: node.getPosition().x, y: node.getPosition().y },
-    }));
+    const nodePositions = graph
+      ? graph.getNodes().map((node) => ({ taskId: node.id, position: { x: node.getPosition().x, y: node.getPosition().y } }))
+      : [];
 
     const dagData = {
       jobId: parseInt(jobId),
       relations: uniqueEdges,
-      plugins: nodePositions, // 保存节点的位置信息
+      plugins: nodePositions,
     };
 
-    console.log(
-      '有效的边:',
-      edges.value.filter((edge) => edge.sourceTaskId && edge.sinkTaskId),
-    );
-
-    // 调用保存DAG API
     taskApi
       .saveDag(dagData)
       .then((response) => {
-        ElMessage.success('DAG保存成功');
-
-        // 如果API返回了边的ID信息，更新边的后端ID
+        if (!silent) ElMessage.success('DAG保存成功');
         const data = response.data ?? response;
         if (data && Array.isArray(data.relations)) {
           data.relations.forEach((relation) => {
             const edge = edges.value.find(
               (e) => e.sourceTaskId === relation.sourceTaskId && e.sinkTaskId === relation.sinkTaskId,
             );
-            if (edge) {
-              // 更新边的ID（如果有的话）
-              if (relation.edgeId) {
-                edge.edgeId = relation.edgeId;
-              }
-            }
+            if (edge && relation.edgeId) edge.edgeId = relation.edgeId;
           });
         }
       })
       .catch((error) => {
-        console.error('保存作业失败:', error);
+        if (!silent) console.error('保存作业失败:', error);
       });
   } catch (error) {
-    console.error('保存作业时发生错误:', error);
+    if (!silent) console.error('保存作业时发生错误:', error);
   }
+}
+
+function saveJob() {
+  performDagSave({ silent: false });
 }
 function validateConfig() {
   try {
