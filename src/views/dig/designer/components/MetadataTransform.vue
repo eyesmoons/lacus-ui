@@ -2,7 +2,6 @@
     <div class="output-model-section">
         <div class="metadata-model-container">
             <div v-if="!inputFieldList.length" class="empty-tip">
-                <div>{{ hasUpstreamConnection }}, upstreamOutputModel: {{ upstreamOutputModel }}</div>
                 {{
                     hasUpstreamConnection ? '上游节点暂无输出模型，请先配置上游节点' : '暂无上游节点连接，请连接上游节点'
                 }}

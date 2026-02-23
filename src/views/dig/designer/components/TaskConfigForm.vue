@@ -1142,6 +1142,12 @@ watch(
                         columnType: '-',
                     })),
             );
+            // Metadata 组件：有上游字段时初始化右侧输出列表，使输出字段正确渲染
+            const isMetadata =
+                (props.task.connectorName || '').toLowerCase().includes('metadata') && inputFieldList.value.length > 0;
+            if (isMetadata) {
+                initMetadataOutputFields();
+            }
         }
     },
     { immediate: true, deep: true },
@@ -1259,8 +1265,13 @@ watch(
                 formData.connectorType = newTask.connectorType ?? '';
                 formData.connectorName = newTask.connectorName ?? '';
 
+                // 立即同步或清空动态表单配置，避免仍使用上一节点（如 Source）的表单配置渲染当前节点（如 Transform）
+                const hasValidFormConfig =
+                    newTask.dynamicFormConfig && Array.isArray(newTask.dynamicFormConfig) && newTask.dynamicFormConfig.length > 0;
+                dynamicFormConfig.value = hasValidFormConfig ? newTask.dynamicFormConfig : [];
+
                 // 如果新任务没有自带 dynamicFormConfig，且连接器有效，则重新加载配置
-                if (!newTask.dynamicFormConfig && formData.connectorName) {
+                if (!hasValidFormConfig && formData.connectorName) {
                     await loadTaskConfig();
                 }
 
@@ -1357,6 +1368,12 @@ watch(
                         );
                     } else {
                         inputFieldList.value = [];
+                    }
+
+                    // Metadata 组件：有上游字段时初始化右侧输出列表
+                    const isMetadataHere = (newTask.connectorName || '').toLowerCase().includes('metadata');
+                    if (isMetadataHere && inputFieldList.value.length > 0) {
+                        initMetadataOutputFields();
                     }
 
                     if (isCopy) {
@@ -1576,7 +1593,7 @@ const updateOutputModel = () => {
                 }
             }
         } else {
-            // 对于 Replace Transform 和 Metadata Transform，不要重置 inputFieldList，因为它使用上游输出模型
+            // 对于 Copy/Replace/Sql/Metadata 等使用上游输出模型或模型配置中选表的 Transform，不要重置 inputFieldList
             const isReplaceTransform =
                 formData.connectorType === 'TRANSFORM' && (formData.connectorName || '').toLowerCase().includes('replace');
             const isSqlTransform =
@@ -1585,6 +1602,21 @@ const updateOutputModel = () => {
                     (formData.connectorName || '').toLowerCase().includes('sql'));
             const isMetadataTransform =
                 formData.connectorType === 'TRANSFORM' && (formData.connectorName || '').toLowerCase().includes('metadata');
+            const isCopyTransform =
+                formData.connectorType === 'TRANSFORM' && (formData.connectorName || '').toLowerCase().includes('copy');
+            const isFieldRenameTransform =
+                formData.connectorType === 'TRANSFORM' && (formData.connectorName || '').toLowerCase().includes('field_rename');
+            const isFieldMapperTransform =
+                formData.connectorType === 'TRANSFORM' &&
+                ((formData.connectorName || '').toLowerCase().includes('field_mapper') ||
+                    (formData.connectorName || '').toLowerCase().includes('fieldmapper'));
+            const keepInputFieldList =
+                isReplaceTransform ||
+                isSqlTransform ||
+                isMetadataTransform ||
+                isCopyTransform ||
+                isFieldRenameTransform ||
+                isFieldMapperTransform;
             console.log(
                 'DEBUG: In updateOutputModel else branch, isReplaceTransform:',
                 isReplaceTransform,
@@ -1592,10 +1624,12 @@ const updateOutputModel = () => {
                 isSqlTransform,
                 'isMetadataTransform:',
                 isMetadataTransform,
+                'isCopyTransform:',
+                isCopyTransform,
                 'inputFieldList before:',
                 inputFieldList.value,
             );
-            if (!isReplaceTransform && !isSqlTransform && !isMetadataTransform) {
+            if (!keepInputFieldList) {
                 selectedInputTable.value = [];
                 inputFieldList.value = [];
                 inputFields.value = [];

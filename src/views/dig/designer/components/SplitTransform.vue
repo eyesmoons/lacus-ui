@@ -2,7 +2,6 @@
     <div class="output-model-section">
         <div class="replace-model-container">
             <div v-if="!inputFieldList.length" class="empty-tip">
-                <div>上游输出模型：{{ upstreamOutputModel }}</div>
                 <div
                     v-if="
                         hasUpstreamConnection &&
