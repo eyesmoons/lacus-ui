@@ -834,7 +834,7 @@ function performDagSave(options = {}) {
     taskApi
       .saveDag(dagData)
       .then((response) => {
-        if (!silent) ElMessage.success('DAG保存成功');
+        ElMessage.success(silent ? '已自动保存DAG' : 'DAG保存成功');
         const data = response.data ?? response;
         if (data && Array.isArray(data.relations)) {
           data.relations.forEach((relation) => {
@@ -1068,8 +1068,6 @@ const loadDynamicFormConfig = async (task) => {
     const formConfig = await connectorApi.getConnectorForm(connectorType, connectorName);
 
     if (!formConfig || (Array.isArray(formConfig) && formConfig.length === 0)) {
-      console.warn('动态表单配置为空或无效');
-      ElMessage.warning('该连接器暂无可配置项');
       return;
     }
 
@@ -1638,10 +1636,31 @@ const handleTaskIdUpdate = ({ oldTaskId, newTaskId }) => {
   -webkit-backdrop-filter: blur(18px) saturate(180%);
   padding: 0 !important;
 }
+.property-drawer-glass :deep(.el-drawer__body) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
 .property-drawer-content {
   width: 100%;
+  height: 100%;
   min-height: 220px;
   padding: 0 0 8px 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.property-drawer-content .dialog-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.property-drawer-content .dialog-body :deep(.task-config-form) {
+  flex: 1;
+  min-height: 0;
 }
 </style>

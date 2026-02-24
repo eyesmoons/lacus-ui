@@ -1,6 +1,7 @@
 <template>
     <div class="task-config-form">
-        <el-tabs v-model="activeTab">
+        <div class="task-config-form__scroll">
+            <el-tabs v-model="activeTab">
             <el-tab-pane label="属性配置" name="props">
                 <el-form :model="formData" :rules="rules" ref="formRef" label-width="80px" size="small">
                     <!-- 基本信息 -->
@@ -43,10 +44,6 @@
                     >
                         <div class="section-title">输出配置</div>
                         <dynamic-form :config="dynamicFormConfigFiltered" v-model="formData.taskConfig" @change="onConfigChange" />
-                    </div>
-                    <!-- 操作按钮 -->
-                    <div class="form-actions">
-                        <el-button size="default" type="primary" @click="saveConfig" :loading="saving">保存配置</el-button>
                     </div>
                 </el-form>
             </el-tab-pane>
@@ -258,6 +255,11 @@
                 />
             </el-tab-pane>
         </el-tabs>
+        </div>
+        <!-- 长条保存按钮固定在底部，属性再多也能始终可见 -->
+        <div class="form-actions">
+            <el-button class="form-actions__btn" type="primary" @click="saveConfig" :loading="saving">保存配置</el-button>
+        </div>
     </div>
 </template>
 
@@ -1321,6 +1323,7 @@ watch(
             const taskRefReplaced = oldTask && newTask && newTask !== oldTask;
 
             if (newTask && (taskChanged || connectorConfigUpdated || taskRefReplaced)) {
+                activeTab.value = 'props';
                 formData.taskId = newTask.taskId ?? null;
                 formData.taskName = newTask.taskName ?? '';
                 formData.connectorType = newTask.connectorType ?? '';
