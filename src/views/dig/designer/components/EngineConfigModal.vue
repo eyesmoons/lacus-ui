@@ -52,7 +52,10 @@
           <el-input v-model="form.sparkParams.master" placeholder="请输入 master"></el-input>
         </el-form-item>
         <el-form-item label="deploy-mode" prop="deployMode">
-          <el-input v-model="form.sparkParams.deployMode" placeholder="请输入 deploy-mode"></el-input>
+          <el-select v-model="form.sparkParams.deployMode" placeholder="请选择 deploy-mode">
+            <el-option label="client" value="client"></el-option>
+            <el-option label="cluster" value="cluster"></el-option>
+          </el-select>
         </el-form-item>
       </template>
     </el-form>
@@ -66,12 +69,24 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue';
+import { ref, reactive, watch, nextTick } from 'vue';
 
 const props = defineProps({
   visible: {
     type: Boolean,
     default: false,
+  },
+  engineName: {
+    type: String,
+    default: 'seatunnel',
+  },
+  engineVersion: {
+    type: String,
+    default: '',
+  },
+  engineParam: {
+    type: String,
+    default: '',
   },
 });
 
@@ -92,7 +107,7 @@ const form = reactive({
   },
   sparkParams: {
     master: '',
-    deployMode: '',
+    deployMode: 'client',
   },
 });
 
@@ -100,6 +115,27 @@ watch(
   () => props.visible,
   (val) => {
     dialogVisible.value = val;
+    if (val) {
+      form.engine = props.engineName || 'seatunnel';
+
+      nextTick(() => {
+        form.engineVersion = props.engineVersion || '';
+        try {
+          const params = JSON.parse(props.engineParam || '{}');
+          if (form.engine === 'seatunnel') {
+            form.seatunnelParams.deployMode = params['deploy-mode'] || '';
+          } else if (form.engine === 'flink') {
+            form.flinkParams.deployMode = params['deploy-mode'] || '';
+            form.flinkParams.master = params.master || '';
+          } else if (form.engine === 'spark') {
+            form.sparkParams.deployMode = params['deploy-mode'] || 'client';
+            form.sparkParams.master = params.master || '';
+          }
+        } catch (e) {
+          console.error('解析引擎参数失败:', e);
+        }
+      });
+    }
   },
 );
 
@@ -109,7 +145,7 @@ watch(
     form.engineVersion = '';
     form.seatunnelParams = { deployMode: '' };
     form.flinkParams = { deployMode: '', master: '' };
-    form.sparkParams = { master: '', deployMode: '' };
+    form.sparkParams = { master: '', deployMode: 'client' };
   },
 );
 

@@ -139,7 +139,13 @@
       <monaco-editor v-model="configPreview" language="json" height="600px" :options="{ readOnly: true }" />
     </el-dialog>
 
-    <engine-config-modal v-model:visible="engineConfigVisible" @confirm="handleEngineConfigConfirm" />
+    <engine-config-modal
+      v-model:visible="engineConfigVisible"
+      :engine-name="jobInfo.engineName"
+      :engine-version="jobInfo.engineVersion"
+      :engine-param="jobInfo.engineParam"
+      @confirm="handleEngineConfigConfirm"
+    />
   </div>
 </template>
 
@@ -205,6 +211,9 @@ const jobInfo = reactive({
   jobId: null,
   jobName: '',
   description: '',
+  engineName: '',
+  engineVersion: '',
+  engineParam: '',
 });
 
 onMounted(async () => {
@@ -314,6 +323,9 @@ const loadJobDagData = async (jobId) => {
     const dagData = response.data || response;
     // 更新作业信息
     jobInfo.jobId = jobId;
+    jobInfo.engineName = dagData.engineName;
+    jobInfo.engineVersion = dagData.engineVersion;
+    jobInfo.engineParam = dagData.engineParam;
 
     // 创建ID映射表，用于更新边的引用
     const idMapping = {};
