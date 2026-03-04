@@ -1,0 +1,347 @@
+.task-config-form {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+
+    .task-config-form__scroll {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+    }
+
+    .config-section {
+        margin-bottom: 20px;
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 800;
+            color: #3a71a8;
+            margin-bottom: 5px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--el-border-color-lighter);
+        }
+    }
+
+    .field-config {
+        margin-top: 8px;
+    }
+
+    /* 长条保存按钮固定在底部，不随内容滚动 */
+    .form-actions {
+        flex-shrink: 0;
+        padding: 12px 0 16px;
+        border-top: 1px solid var(--el-border-color-lighter);
+        background: var(--el-bg-color);
+        z-index: 10;
+
+        .form-actions__btn {
+            display: block;
+            width: 100%;
+            height: 44px;
+            font-size: 15px;
+        }
+    }
+}
+
+/* 以下样式用于子组件内的类，使用 :deep() 使 scoped 下仍能生效 */
+.task-config-form :deep(.output-model-section) {
+    padding: 2px 4px 0 4px;
+}
+
+.task-config-form :deep(.copy-transform-header) {
+    margin-bottom: 12px;
+}
+
+.task-config-form :deep(.output-model-container) {
+    display: flex;
+    gap: 20px;
+}
+
+.task-config-form :deep(.table-select-panel) {
+    width: 120px;
+
+    .section-title {
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .table-options {
+        overflow-x: auto;
+        width: 100%;
+        display: inline-block;
+        line-height: 16px;
+        .table-options-title {
+            font-size: 13px;
+            color: #606266;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .table-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+
+            li {
+                padding: 2px 5px;
+                font-size: 13px;
+                cursor: pointer;
+                border-radius: 4px;
+                transition: background-color 0.2s ease;
+
+                &:hover {
+                    background-color: #f5f7fa;
+                }
+
+                &.active {
+                    font-weight: bold;
+                    color: #409eff;
+                }
+            }
+        }
+    }
+}
+
+.task-config-form :deep(.field-table-panel) {
+    flex: 1;
+    width: 200px;
+    .section-title {
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .no-table-selected {
+        text-align: center;
+        color: #909399;
+        padding: 10px 0;
+    }
+
+    .loading-fields {
+        text-align: center;
+        color: #909399;
+        padding: 10px 0;
+    }
+}
+
+.task-config-form :deep(.field-mapping-container) {
+    padding: 0;
+    /* 与 el-table size="small" 行高一致，便于中间连接线与左右表格行对齐 */
+    --copy-map-row-height: 32px;
+    --copy-map-header-offset: 72px;
+}
+
+/* 连接线样式：已连接为实线，未连接为虚线 */
+.task-config-form :deep(.connector-line) {
+    height: 1px;
+    width: 100%;
+    display: inline-block;
+    position: relative;
+    top: 12px; /* 与单元格内容垂直居中 */
+}
+.task-config-form :deep(.connector-line.connected) {
+    border-top: 2px solid #67c23a; /* 成功绿 */
+}
+.task-config-form :deep(.connector-line.missing) {
+    border-top: 2px dashed #c0c4cc; /* 灰色虚线 */
+}
+
+/* 元数据页中间箭头风格：与 Copy 组件一致 */
+.task-config-form :deep(.metadata-model-container) {
+    --copy-map-row-height: 32px;
+    /* 调整偏移使箭头与首行更贴合，可按需微调 */
+    --copy-map-header-offset: 76px;
+}
+.task-config-form :deep(.metadata-model-container .panel) {
+    min-width: 0;
+}
+.task-config-form :deep(.metadata-model-container .panel .section-title) {
+    font-size: 12px;
+    font-weight: 600;
+    color: #3a71a8;
+    margin-bottom: 8px;
+    margin-top: 8px;
+}
+.task-config-form :deep(.metadata-model-container .panel .field-table) {
+    width: 100%;
+}
+.task-config-form :deep(.metadata-model-container .center-panel) {
+    flex: 0 0 100px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: var(--copy-map-header-offset);
+}
+.task-config-form :deep(.metadata-model-container .connection-lines) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+}
+.task-config-form :deep(.metadata-model-container .connection-item) {
+    height: var(--copy-map-row-height);
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
+.task-config-form :deep(.metadata-model-container .connector-dot) {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--el-color-primary);
+    flex-shrink: 0;
+    display: block;
+}
+.task-config-form :deep(.metadata-model-container .connector-dot.right-dot) {
+    background: var(--el-color-success);
+}
+.task-config-form :deep(.metadata-model-container .connector-line) {
+    width: 24px;
+    height: 2px;
+    background: linear-gradient(to right, var(--el-color-primary), var(--el-color-success));
+    flex-shrink: 0;
+    display: block;
+    transform: translateY(0.5px); /* 细调居中，避免视差偏移 */
+}
+/* 缺失时灰色表现 */
+.task-config-form :deep(.metadata-model-container .connection-item.missing .connector-dot) {
+    background: #c0c4cc;
+}
+.task-config-form :deep(.metadata-model-container .connection-item.missing .connector-line) {
+    background: #c0c4cc;
+}
+/* 调整箭头与表头对齐，适配 Element Plus 小号表格 */
+.task-config-form :deep(.metadata-model-container .left-panel .el-table),
+.task-config-form :deep(.metadata-model-container .right-panel .el-table) {
+    /* 确保箭头列与表格第一行对齐 */
+    margin-top: 0;
+}
+.task-config-form :deep(.mapping-header) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px 8px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    .panel-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--el-text-color-secondary);
+        flex: 1;
+        &.center-label {
+            text-align: center;
+            flex: 0 0 120px;
+        }
+    }
+}
+.task-config-form :deep(.mapping-body) {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+    min-height: 320px;
+}
+.task-config-form :deep(.panel) {
+    flex: 1;
+    min-width: 0;
+    .section-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: #3a71a8;
+        margin-bottom: 8px;
+    }
+    .empty-tip {
+        color: var(--el-text-color-placeholder);
+        font-size: 12px;
+        padding: 16px;
+        text-align: center;
+    }
+    .field-table {
+        width: 100%;
+    }
+}
+.task-config-form :deep(.center-panel) {
+    flex: 0 0 100px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    /* 与左右表格对齐：预留与 section-title + 表头 等高的空间，使第一条线对齐第一行数据 */
+    padding-top: var(--copy-map-header-offset);
+    .connection-lines {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0;
+    }
+    .connection-item {
+        height: var(--copy-map-row-height);
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        flex-shrink: 0;
+    }
+    .connector-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--el-color-primary);
+        flex-shrink: 0;
+        &.right-dot {
+            background: var(--el-color-success);
+        }
+    }
+    .connector-line {
+        margin-top: -25px;
+        width: 24px;
+        height: 2px;
+        background: linear-gradient(to right, var(--el-color-primary), var(--el-color-success));
+        flex-shrink: 0;
+    }
+    .no-connections {
+        font-size: 11px;
+        color: var(--el-text-color-placeholder);
+        text-align: center;
+        padding: 8px;
+    }
+}
+.task-config-form :deep(.target-name) {
+    color: var(--el-text-color-regular);
+    font-size: 12px;
+}
+
+.task-config-form :deep(.replace-model-container) {
+    padding: 8px 0;
+    .section-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: #3a71a8;
+        margin-bottom: 8px;
+    }
+    .empty-tip {
+        color: var(--el-text-color-placeholder);
+        font-size: 12px;
+        padding: 16px;
+        text-align: center;
+    }
+    .field-table {
+        width: 100%;
+    }
+}
+
+.task-config-form :deep(.metadata-model-container) {
+    padding: 8px 0;
+    .section-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: #3a71a8;
+        margin-bottom: 8px;
+    }
+    .empty-tip {
+        color: var(--el-text-color-placeholder);
+        font-size: 12px;
+        padding: 16px;
+        text-align: center;
+    }
+    .field-table {
+        width: 100%;
+    }
+}
