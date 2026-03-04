@@ -149,3 +149,14 @@ export function getTaskLogs(taskId) {
     method: 'get',
   });
 }
+
+/**
+ * 获取作业配置
+ * @param {number} jobId - 作业ID
+ */
+export function getJobConfig(jobId) {
+  return request({
+    url: `/st/job/config/${jobId}`,
+    method: 'get',
+  });
+}

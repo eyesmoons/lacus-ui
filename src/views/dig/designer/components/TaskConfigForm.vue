@@ -249,6 +249,7 @@
                     :mapping-fields="mappingFields"
                     :is-selected-output-table="isSelectedOutputTable"
                     :get-row-column-name="getRowColumnName"
+                    :has-upstream-connection="props.hasUpstreamConnection"
                     @output-table-change="onOutputTableChange"
                     @field-mapping-change="onFieldMappingChange"
                     @update-mapping-field="(key, val) => (mappingFields[key] = val)"
@@ -291,6 +292,11 @@ const props = defineProps({
     upstreamOutputModel: {
         type: Object,
         default: null,
+    },
+    /** Sink 是否已与上游节点连线（用于模型配置页空状态提示区分） */
+    hasUpstreamConnection: {
+        type: Boolean,
+        default: false,
     },
 });
 
@@ -1038,13 +1044,11 @@ const loadTableFields = async (tableName, configOverride, connectorConfigAtStart
 watch(
     () => [props.task, props.upstreamOutputModel],
     () => {
-        console.log(
-            'DEBUG: Watch [props.task, props.upstreamOutputModel] triggered, task:',
-            props.task,
-            'upstreamOutputModel:',
-            props.upstreamOutputModel,
-        );
         if (!props.task) return;
+        const isSinkLog = props.task.connectorType === 'SINK';
+        if (isSinkLog) {
+            console.log('[Sink 配置] watch 触发 upstreamOutputModel=', props.upstreamOutputModel ? { keys: Object.keys(props.upstreamOutputModel), hasFields: !!props.upstreamOutputModel?.fields, fieldsLen: props.upstreamOutputModel?.fields?.length, hasTableFields: !!(props.upstreamOutputModel?.tableFields && typeof props.upstreamOutputModel.tableFields === 'object') } : null);
+        }
         const isCopy =
             (props.task.connectorType || '') === 'TRANSFORM' &&
             (props.task.connectorName || '').toString().toLowerCase().includes('copy');
@@ -1076,14 +1080,31 @@ watch(
                 inputFieldList.value = [];
             }
             console.log('DEBUG: Updated inputFieldList for Copy Transform, length:', inputFieldList.value.length);
-        } else if (isSink && upstreamHasFields()) {
-            // SINK 组件：使用上游输出模型作为输入字段列表
-            inputFieldList.value = (props.upstreamOutputModel.fields || []).map((f) =>
-                typeof f === 'string'
-                    ? { columnName: f, columnType: '-' }
-                    : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
-            );
-            console.log('DEBUG: Updated inputFieldList for SINK Transform, length:', inputFieldList.value.length);
+        } else if (isSink && (upstreamHasFields() || props.upstreamOutputModel)) {
+            // SINK 组件：使用上游输出模型作为输入字段列表（支持 .fields 或 .tableFields）
+            const m = props.upstreamOutputModel;
+            const fieldsFromModel = Array.isArray(m?.fields) && m.fields.length > 0
+                ? m.fields
+                : null;
+            const tableFieldsObj = m?.tableFields && typeof m.tableFields === 'object' ? m.tableFields : null;
+            if (fieldsFromModel) {
+                inputFieldList.value = fieldsFromModel.map((f) =>
+                    typeof f === 'string'
+                        ? { columnName: f, columnType: '-' }
+                        : { columnName: f.columnName ?? f.name ?? f, columnType: f.columnType ?? '-' },
+                );
+            } else if (tableFieldsObj && Object.keys(tableFieldsObj).length > 0) {
+                inputFieldList.value = Object.entries(tableFieldsObj).flatMap(([, arr]) =>
+                    (Array.isArray(arr) ? arr : []).map((f) =>
+                        typeof f === 'string'
+                            ? { columnName: f, columnType: '-' }
+                            : { columnName: f?.columnName ?? f?.name ?? f, columnType: f?.columnType ?? '-' },
+                    ),
+                );
+            } else {
+                inputFieldList.value = [];
+            }
+            console.log('[Sink 输入模型] upstream 有字段=', upstreamHasFields(), 'm.fields len=', m?.fields?.length, 'tableFields keys=', tableFieldsObj ? Object.keys(tableFieldsObj) : [], 'inputFieldList.length=', inputFieldList.value.length);
         } else if (isReplace && upstreamHasFields()) {
             // Replace Transform：使用上游输出模型作为输入字段列表
             const tableFields = props.upstreamOutputModel.tableFields ?? {};

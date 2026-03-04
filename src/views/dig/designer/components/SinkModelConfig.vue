@@ -26,7 +26,9 @@
                 <!-- 左侧面板：上游输出字段列表 -->
                 <div class="panel left-panel">
                     <div class="section-title">输入模型</div>
-                    <div v-if="!inputFieldList.length" class="empty-tip">请先建立与上游节点的连接以获取输出字段</div>
+                    <div v-if="!inputFieldList.length" class="empty-tip">
+                        {{ hasUpstreamConnection ? '已连接上游节点，请先配置上游节点的输出模型以获取输出字段' : '请先建立与上游节点的连接以获取输出字段' }}
+                    </div>
                     <el-table v-else :data="inputFieldList" size="small" max-height="400" class="field-table">
                         <el-table-column type="index" label="#" width="40" align="center" />
                         <el-table-column prop="columnName" label="字段名" min-width="100" show-overflow-tooltip>
@@ -87,6 +89,11 @@ defineProps({
     availableTables: {
         type: Array,
         default: () => [],
+    },
+    /** 是否已与上游节点连线（用于区分未连线 / 已连线但上游未配置的提示） */
+    hasUpstreamConnection: {
+        type: Boolean,
+        default: false,
     },
     inputFieldList: {
         type: Array,

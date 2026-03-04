@@ -124,6 +124,7 @@
             <task-config-form
               :task="selectedTask"
               :upstream-output-model="upstreamOutputModelForDrawer"
+              :has-upstream-connection="hasUpstreamConnectionForDrawer"
               @update="handleTaskConfigUpdate"
               @close="handleTaskConfigClose"
               @updateTaskId="handleTaskIdUpdate"
@@ -137,11 +138,13 @@
     <el-dialog v-model="previewVisible" title="配置预览" width="80%" top="5vh">
       <monaco-editor v-model="configPreview" language="json" height="600px" :options="{ readOnly: true }" />
     </el-dialog>
+
+    <engine-config-modal v-model:visible="engineConfigVisible" @confirm="handleEngineConfigConfirm" />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick, onBeforeUnmount } from 'vue';
+import { ref, reactive, computed, watch, onMounted, nextTick, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import {
@@ -163,6 +166,7 @@ import {
 import * as connectorApi from '@/api/dig/connectorApi';
 import * as taskApi from '@/api/dig/taskApi';
 import TaskConfigForm from './components/TaskConfigForm.vue';
+import EngineConfigModal from './components/EngineConfigModal.vue';
 import MonacoEditor from '@/components/MonacoEditor/index.vue';
 import { Graph, Shape } from '@antv/x6';
 
@@ -176,6 +180,7 @@ const tasks = ref([]); // 业务数据
 const edges = ref([]); // 业务数据
 const selectedTask = ref(null);
 const previewVisible = ref(false);
+const engineConfigVisible = ref(false);
 const configPreview = ref('');
 const canvasRef = ref(null);
 const x6Container = ref(null);
@@ -184,11 +189,17 @@ let draggedComponent = null;
 let taskIdCounter = 1;
 /** 定时自动保存 DAG 的定时器 ID，离开页面时清除 */
 let autoSaveDagTimerId = null;
-const AUTO_SAVE_DAG_INTERVAL_MS = 10 * 1000;
+const AUTO_SAVE_DAG_INTERVAL_MS = 60 * 1000;
 const selectedEdge = ref(null);
 const showPropertyDialog = ref(false);
 /** 当前打开配置的节点的上游 Source 的 outputModel（用于 Copy Transform 左侧输入字段） */
 const upstreamOutputModelForDrawer = ref(null);
+/** Sink 是否已与上游节点连线（用于区分「未连线」与「已连线但上游未配置」的提示） */
+const hasUpstreamConnectionForDrawer = computed(() => {
+  const task = selectedTask.value;
+  if (!task || task.connectorType !== 'SINK') return false;
+  return edges.value.some((e) => e.sinkTaskId === task.taskId);
+});
 
 const jobInfo = reactive({
   jobId: null,
@@ -247,7 +258,7 @@ onMounted(async () => {
   }
 
   // 当前页面每 10 秒自动调用 /st/job/task/dag 保存 DAG
-  autoSaveDagTimerId = setInterval(() => performDagSave({ silent: true }), AUTO_SAVE_DAG_INTERVAL_MS);
+  // autoSaveDagTimerId = setInterval(() => performDagSave({ silent: true }), AUTO_SAVE_DAG_INTERVAL_MS);
 });
 
 const loadConnectors = async () => {
@@ -791,70 +802,93 @@ function renderGraphFromData() {
  * @param {Object} options - { silent: boolean } 为 true 时不弹成功提示，用于定时自动保存
  */
 function performDagSave(options = {}) {
-  const silent = !!options.silent;
-  try {
-    const jobId = route.query.jobId;
-    if (!jobId) return;
-
-    if (tasks.value.length === 0) {
-      if (!silent) ElMessage.warning('请先添加任务节点');
-      return;
-    }
-
-    if (!silent) {
-      const invalidEdges = edges.value.filter((edge) => !edge.sourceTaskId || !edge.sinkTaskId);
-      if (invalidEdges.length > 0) {
-        ElMessage.warning('请先保存所有任务节点的配置，然后再保存DAG关系');
+  const { silent = false, engine, engineName, engineVersion, engineParam } = options;
+  return new Promise((resolve, reject) => {
+    try {
+      const jobId = route.query.jobId || jobInfo.jobId;
+      if (!jobId || jobId === 'null' || jobId === 'undefined') {
+        const msg = '未找到有效作业ID，无法保存';
+        if (!silent) ElMessage.warning(msg);
+        console.error(msg, { queryId: route.query.jobId, infoId: jobInfo.jobId });
+        reject(new Error(msg));
         return;
       }
+
+      if (tasks.value.length === 0) {
+        const msg = '请先添加任务节点';
+        if (!silent) ElMessage.warning(msg);
+        console.error(msg);
+        reject(new Error(msg));
+        return;
+      }
+
+      if (!silent) {
+        const invalidEdges = edges.value.filter((edge) => !edge.sourceTaskId || !edge.sinkTaskId);
+        if (invalidEdges.length > 0) {
+          const msg = '请先保存所有任务节点的配置，然后再保存DAG关系';
+          ElMessage.warning(msg);
+          console.error(msg);
+          reject(new Error(msg));
+          return;
+        }
+      }
+
+      const uniqueEdges = [];
+      const seenEdges = new Set();
+      edges.value
+        .filter((edge) => edge.sourceTaskId && edge.sinkTaskId)
+        .forEach((edge) => {
+          const edgeKey = `${edge.sourceTaskId}-${edge.sinkTaskId}`;
+          if (!seenEdges.has(edgeKey)) {
+            seenEdges.add(edgeKey);
+            uniqueEdges.push({ sourceTaskId: edge.sourceTaskId, sinkTaskId: edge.sinkTaskId });
+          }
+        });
+
+      const nodePositions = graph
+        ? graph
+            .getNodes()
+            .map((node) => ({ taskId: node.id, position: { x: node.getPosition().x, y: node.getPosition().y } }))
+        : [];
+
+      const dagData = {
+        jobId: parseInt(jobId),
+        relations: uniqueEdges,
+        plugins: nodePositions,
+        engine,
+        engineName,
+        engineVersion,
+        engineParam,
+      };
+
+      console.log('Sending saveDag request:', dagData);
+      taskApi
+        .saveDag(dagData)
+        .then((response) => {
+          if (!silent) ElMessage.success('DAG保存成功');
+          resolve(response);
+        })
+        .catch((error) => {
+          const msg = '保存作业失败';
+          if (!silent) ElMessage.error(msg);
+          console.error(msg, error);
+          reject(error);
+        });
+    } catch (error) {
+      const msg = '保存作业时发生错误';
+      if (!silent) ElMessage.error(msg);
+      console.error(msg, error);
+      reject(error);
     }
-
-    const uniqueEdges = [];
-    const seenEdges = new Set();
-    edges.value
-      .filter((edge) => edge.sourceTaskId && edge.sinkTaskId)
-      .forEach((edge) => {
-        const edgeKey = `${edge.sourceTaskId}-${edge.sinkTaskId}`;
-        if (!seenEdges.has(edgeKey)) {
-          seenEdges.add(edgeKey);
-          uniqueEdges.push({ sourceTaskId: edge.sourceTaskId, sinkTaskId: edge.sinkTaskId });
-        }
-      });
-
-    const nodePositions = graph
-      ? graph.getNodes().map((node) => ({ taskId: node.id, position: { x: node.getPosition().x, y: node.getPosition().y } }))
-      : [];
-
-    const dagData = {
-      jobId: parseInt(jobId),
-      relations: uniqueEdges,
-      plugins: nodePositions,
-    };
-
-    taskApi
-      .saveDag(dagData)
-      .then((response) => {
-        ElMessage.success(silent ? '已自动保存DAG' : 'DAG保存成功');
-        const data = response.data ?? response;
-        if (data && Array.isArray(data.relations)) {
-          data.relations.forEach((relation) => {
-            const edge = edges.value.find(
-              (e) => e.sourceTaskId === relation.sourceTaskId && e.sinkTaskId === relation.sinkTaskId,
-            );
-            if (edge && relation.edgeId) edge.edgeId = relation.edgeId;
-          });
-        }
-      })
-      .catch((error) => {
-        if (!silent) console.error('保存作业失败:', error);
-      });
-  } catch (error) {
-    if (!silent) console.error('保存作业时发生错误:', error);
-  }
+  });
 }
 
 function saveJob() {
-  performDagSave({ silent: false });
+  engineConfigVisible.value = true;
+}
+
+function handleEngineConfigConfirm(engineConfig) {
+  performDagSave({ silent: false, ...engineConfig });
 }
 function validateConfig() {
   try {
@@ -901,13 +935,36 @@ function validateConfig() {
     ElMessage.error('配置验证失败');
   }
 }
-function previewConfig() {
-  const config = {
-    plugins: tasks.value,
-    edges: edges.value,
-  };
-  configPreview.value = JSON.stringify(config, null, 2);
-  previewVisible.value = true;
+async function previewConfig() {
+  console.log('previewConfig clicked');
+  try {
+    const jobId = route.query.jobId || jobInfo.jobId;
+    if (!jobId) {
+      ElMessage.warning('作业ID不存在');
+      return;
+    }
+
+    // 1. 点击预览配置按钮时先调用一下保存DAG接口，引擎默认选择seatunnel
+    console.log('Auto-saving DAG before preview...');
+    await performDagSave({
+      silent: true,
+      engine: 'seatunnel',
+      engineName: 'seatunnel',
+      engineParam: JSON.stringify({ 'deploy-mode': 'local' }),
+    });
+
+    // 2. 调用预览接口获取配置
+    console.log('Fetching job config for preview, jobId:', jobId);
+    const response = await taskApi.getJobConfig(jobId);
+    console.log('getJobConfig response:', response);
+    const data = response.data ?? response;
+
+    configPreview.value = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+    previewVisible.value = true;
+  } catch (error) {
+    console.error('获取预览配置失败:', error);
+    ElMessage.error(`获取预览配置失败: ${error.message || '网络错误'}`);
+  }
 }
 function goBack() {
   router.push('/dig/job');
@@ -923,11 +980,106 @@ function resetCanvas() {
 }
 
 // 根据连线计算当前节点的上游节点的 outputModel（用于 Copy Transform 和 SINK 组件左侧输入字段）
-// 支持多级连接：如果上游是 Transform，则继续向上追溯；否则直接使用 Source 的 outputModel
+// Sink：输入模型优先来自直接上游 Transform 的输出，若无 Transform 则来自直接上游 Source 的输出（仅取直接上游，不跨级）
+// 其他节点（如 Copy Transform）：支持多级追溯，上游为 Replace 时跳过取再上游，否则优先用 Transform 的 outputModel
 function computeUpstreamOutputModel(currentTaskId) {
   if (!currentTaskId) return null;
 
-  // 递归查找上游输出模型
+  const currentTask = tasks.value.find((t) => t.taskId === currentTaskId);
+  const isSink = currentTask?.connectorType === 'SINK';
+
+  // 解析上游节点的 outputModel 为统一结构（供 Sink 与 findUpstreamOutput 复用）
+  function parseOutputModel(parsed, upstreamTask) {
+    if (!parsed?.outputModel) return null;
+    const om = parsed.outputModel;
+    if (typeof om !== 'object' || Array.isArray(om)) return om;
+    if (Array.isArray(om.fields)) return om;
+    if (Array.isArray(om.tables) && om.tableFields && typeof om.tableFields === 'object') return om;
+    if (om.tableName || om.table) return om;
+    const fields = Object.keys(om);
+    return { tableName: '', fields, relation: om };
+  }
+
+  // Sink 仅取直接上游输出：有 Transform 用 Transform 输出，否则用 Source 输出
+  if (isSink) {
+    const currentIdStr = String(currentTaskId ?? '');
+    const incoming = edges.value.filter((e) => String(e.sinkTaskId ?? '') === currentIdStr);
+    // [DEBUG] Sink 上游计算
+    console.log(
+      '[Sink 上游] currentTaskId=',
+      currentTaskId,
+      'incomingEdges=',
+      incoming.length,
+      'edges.sinkTaskId sample=',
+      edges.value.slice(0, 3).map((e) => e.sinkTaskId),
+    );
+    if (incoming.length === 0) {
+      console.log('[Sink 上游] 无入边，返回 null');
+      return null;
+    }
+    const upstreamTaskId = incoming[0].sourceTaskId;
+    const upstreamIdStr = String(upstreamTaskId ?? '');
+    let upstreamTask = tasks.value.find((t) => String(t.taskId ?? '') === upstreamIdStr);
+    // 若 tasks 中上游无 connectorConfig，尝试从画布节点取最新数据（可能仅 graph 被更新过）
+    if (graph && !upstreamTask?.connectorConfig) {
+      try {
+        const cell = graph.getCellById(upstreamIdStr);
+        const nodeData = cell?.getData?.();
+        if (
+          nodeData &&
+          nodeData.connectorConfig !== undefined &&
+          nodeData.connectorConfig !== null &&
+          nodeData.connectorConfig !== ''
+        ) {
+          upstreamTask = nodeData;
+          console.log('[Sink 上游] 从 graph 节点取到上游 connectorConfig');
+        }
+      } catch (err) {
+        console.warn('[Sink 上游] 从 graph 取上游节点失败', err);
+      }
+    }
+    console.log(
+      '[Sink 上游] upstreamTaskId=',
+      upstreamTaskId,
+      'upstreamTaskFound=',
+      !!upstreamTask,
+      'hasConnectorConfig=',
+      !!upstreamTask?.connectorConfig,
+      'connectorConfigType=',
+      typeof upstreamTask?.connectorConfig,
+    );
+    if (!upstreamTask?.connectorConfig) {
+      console.log('[Sink 上游] 上游无 connectorConfig，返回 null');
+      return null;
+    }
+    try {
+      const parsed =
+        typeof upstreamTask.connectorConfig === 'string'
+          ? JSON.parse(upstreamTask.connectorConfig)
+          : upstreamTask.connectorConfig;
+      const result = parseOutputModel(parsed, upstreamTask) ?? parsed?.outputModel ?? null;
+      console.log(
+        '[Sink 上游] parsed.outputModel 存在=',
+        !!parsed?.outputModel,
+        'result=',
+        result
+          ? typeof result === 'object'
+            ? {
+                keys: Object.keys(result),
+                hasFields: !!result.fields,
+                hasTableFields: !!(result.tableFields && typeof result.tableFields === 'object'),
+              }
+            : result
+          : null,
+      );
+      return result;
+    } catch (e) {
+      console.error('[Sink 上游] 解析上游配置失败:', e);
+      return null;
+    }
+  }
+
+  // 递归查找上游输出模型（非 Sink：Copy Transform 等）
   function findUpstreamOutput(taskId, visited = []) {
     // 防止循环引用
     if (visited.includes(taskId)) return null;
@@ -958,36 +1110,8 @@ function computeUpstreamOutputModel(currentTaskId) {
           return findUpstreamOutput(upstreamTaskId, visited);
         } else {
           // 其他 Transform：如果 Transform 有自己的 outputModel，优先使用
-          if (parsed?.outputModel) {
-            // 检查 outputModel 是否是新格式（包含 fields 数组和 relation 映射）
-            if (typeof parsed.outputModel === 'object' && !Array.isArray(parsed.outputModel)) {
-              // 如果包含 fields 数组，认为是新格式
-              if (Array.isArray(parsed.outputModel.fields)) {
-                return parsed.outputModel;
-              }
-              // 如果包含多表结构，直接返回
-              if (
-                Array.isArray(parsed.outputModel.tables) &&
-                parsed.outputModel.tableFields &&
-                typeof parsed.outputModel.tableFields === 'object'
-              ) {
-                return parsed.outputModel;
-              }
-              // 如果包含 tableName 或 table 字段，认为是标准格式
-              else if (parsed.outputModel.tableName || parsed.outputModel.table) {
-                return parsed.outputModel;
-              } else {
-                // 否则是字段映射格式，提取字段名作为输出字段，并保留原始映射关系
-                const fields = Object.keys(parsed.outputModel);
-                return {
-                  tableName: '',
-                  fields: fields,
-                  relation: parsed.outputModel, // 保留原始的字段映射关系
-                };
-              }
-            }
-          }
-          // 否则继续向上追溯
+          const normalized = parseOutputModel(parsed, upstreamTask);
+          if (normalized) return normalized;
           return findUpstreamOutput(upstreamTaskId, visited);
         }
       } else {
@@ -1002,6 +1126,17 @@ function computeUpstreamOutputModel(currentTaskId) {
 
   return findUpstreamOutput(currentTaskId);
 }
+
+// 当连线或当前选中任务变化时，重新计算上游输出（避免「先打开 Sink 抽屉再连线」时仍显示未连接）
+watch(
+  [() => edges.value, selectedTask],
+  () => {
+    if (selectedTask.value?.taskId) {
+      upstreamOutputModelForDrawer.value = computeUpstreamOutputModel(selectedTask.value.taskId);
+    }
+  },
+  { deep: true },
+);
 
 // 打开属性配置弹框
 // 双击节点处理函数：已存在任务先拉取详情并更新 connectorConfig，再打开弹框，避免第一次打开时输出模型「正在加载字段...」
