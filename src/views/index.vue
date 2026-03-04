@@ -59,7 +59,7 @@ const features = ref([
     {
             icon: 'Share',
             title: '数据集成',
-            description: '正在努力开发中',
+            description: '基于Seatunnel的拖拽式的可视化任务配置',
         },
 ]);
 
