@@ -335,7 +335,13 @@ export const constantRoutes = [
         component: () => import('@/views/dig/job/index'),
         name: 'DigJob',
         meta: { title: '任务定义', icon: 'document' },
-      },
+      }, {
+            path: 'job/expert/',
+            component: () => import('@/views/dig/expert/index'),
+            name: 'DigJobExpert',
+            meta: { title: '任务设计器', activeMenu: '/dig/job' },
+            hidden: true,
+        },
       {
         path: 'job/designer/',
         component: () => import('@/views/dig/designer/index'),

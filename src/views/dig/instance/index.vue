@@ -19,7 +19,6 @@
     </el-form>
 
     <el-table v-loading="loading" :data="instanceList">
-      <el-table-column label="实例ID" align="center" prop="instanceId" width="100" />
       <el-table-column label="实例名称" align="center" prop="instanceName" :show-overflow-tooltip="true" />
       <el-table-column label="任务名称" align="center" prop="jobName" :show-overflow-tooltip="true" />
       <el-table-column label="状态" align="center" prop="status">
@@ -29,11 +28,21 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="创建时间" align="center" prop="createTime" width="180">
+      <el-table-column label="创建时间" align="center" prop="createTime" width="150" show-overflow-tooltip>
         <template #default="scope">
           <span>{{ parseTime(scope.row.createTime) }}</span>
         </template>
       </el-table-column>
+        <el-table-column label="开始时间" align="center" prop="startTime" width="150" show-overflow-tooltip>
+            <template #default="scope">
+                <span>{{ parseTime(scope.row.startTime) }}</span>
+            </template>
+        </el-table-column>
+        <el-table-column label="结束时间" align="center" prop="endTime" width="150" show-overflow-tooltip>
+            <template #default="scope">
+                <span>{{ parseTime(scope.row.endTime) }}</span>
+            </template>
+        </el-table-column>
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button link type="primary" icon="View" @click="handleDetail(scope.row)">详情</el-button>
