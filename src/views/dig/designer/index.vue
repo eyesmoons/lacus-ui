@@ -895,10 +895,6 @@ function performDagSave(options = {}) {
   });
 }
 
-function saveJob() {
-  engineConfigVisible.value = true;
-}
-
 function handleEngineConfigConfirm(engineConfig) {
   performDagSave({ silent: false, ...engineConfig });
 }
@@ -978,6 +974,10 @@ async function previewConfig() {
     ElMessage.error(`获取预览配置失败: ${error.message || '网络错误'}`);
   }
 }
+function saveJob() {
+  engineConfigVisible.value = true;
+}
+
 function goBack() {
   router.push('/dig/job');
 }

@@ -195,18 +195,16 @@
           <el-row :gutter="24">
             <el-col :span="10" :push="2">
               <el-form-item label="master：" prop="jobManager">
-                <el-select v-model="form.jobManager" placeholder="请选择" clearable>
-                  <el-option :value="1" label="1GB" :key="1" />
-                  <el-option :value="2" label="2GB" :key="2" />
-                </el-select>
+                <el-input v-model.number="form.jobManager" placeholder="请输入内存大小" type="number" :min="1" clearable>
+                  <template #append>GB</template>
+                </el-input>
               </el-form-item>
             </el-col>
             <el-col :span="10" :push="2">
               <el-form-item label="worker：" prop="taskManager">
-                <el-select v-model="form.taskManager" placeholder="请选择" clearable>
-                  <el-option :value="1" label="1GB" :key="1" />
-                  <el-option :value="2" label="2GB" :key="2" />
-                </el-select>
+                <el-input v-model.number="form.taskManager" placeholder="请输入内存大小" type="number" :min="1" clearable>
+                  <template #append>GB</template>
+                </el-input>
               </el-form-item>
             </el-col>
           </el-row>
@@ -390,8 +388,14 @@ function next() {
  * 预检查
  */
 function preCheck() {
+  // 验证是否所有输出表都已选择
   for (let i = 0; i < sinkTableRef.value.data.length; i++) {
     let item = sinkTableRef.value.data[i];
+    if (!item.tableName) {
+      proxy.$message({ message: '请为所有输入表选择对应的输出表', type: 'warning' });
+      active.value = 2; // 停留在第二步
+      return;
+    }
     item.sourceTableName = sourceTableRef.value.data[i].sourceTableName;
     item.sinkTableName = sinkTableRef.value.data[i].tableName;
   }
@@ -563,6 +567,12 @@ function sourceTableRightChange(data) {
  * @param row
  */
 function columnMappingConf(index, row) {
+  // 验证是否选择了输出表
+  if (!row.tableName) {
+    proxy.$message({ message: '请先选择输出表', type: 'warning' });
+    return;
+  }
+
   columnMappingDialog.value = true;
   let sourceTableName = sourceTableRight.value[index].sourceTableName;
   // 解析出源表的数据库名和表名
@@ -616,23 +626,45 @@ function columnMappingConf(index, row) {
         };
 
         jobApi.listMappedColumn(query).then((response) => {
-          // 如果有已保存的映射关系就用映射关系,否则创建空的映射关系
-          mappedColumn.value = {
-            mappedSourceColumns: formattedSourceColumns,
-            mappedSinkColumns: formattedSourceColumns.map(() => ({
-              columnName: '',
-              comment: '',
-              dataType: '',
-              columnLength: '',
-              tableName: row.tableName,
-              dbName: form.value.sinkDbName,
-              datasourceId: form.value.sinkDatasourceId,
-            })),
-          };
+          // 编辑任务时，如果有已保存的映射关系，则使用已保存的值
+          if (jobId.value && response.mappedSinkColumns?.length) {
+            mappedColumn.value = {
+              mappedSourceColumns: formattedSourceColumns,
+              mappedSinkColumns: response.mappedSinkColumns,
+            };
+          } else {
+            // 新建任务时，自动映射字段名相同的字段
+            const autoMappedSinkColumns = formattedSourceColumns.map((sourceCol) => {
+              const matchedSinkCol = sinkColumns.value.find(
+                (sinkCol) => sinkCol.columnName === sourceCol.columnName
+              );
+              if (matchedSinkCol) {
+                return {
+                  columnName: matchedSinkCol.columnName,
+                  comment: matchedSinkCol.comment,
+                  dataType: matchedSinkCol.dataType,
+                  columnLength: matchedSinkCol.columnLength,
+                  tableName: matchedSinkCol.tableName,
+                  dbName: matchedSinkCol.dbName,
+                  datasourceId: matchedSinkCol.datasourceId,
+                };
+              }
+              // 没有匹配到，返回空映射
+              return {
+                columnName: '',
+                comment: '',
+                dataType: '',
+                columnLength: '',
+                tableName: row.tableName,
+                dbName: form.value.sinkDbName,
+                datasourceId: form.value.sinkDatasourceId,
+              };
+            });
 
-          // 如果有已保存的映射关系，则填充已保存的值
-          if (response.mappedSinkColumns?.length) {
-            mappedColumn.value.mappedSinkColumns = response.mappedSinkColumns;
+            mappedColumn.value = {
+              mappedSourceColumns: formattedSourceColumns,
+              mappedSinkColumns: autoMappedSinkColumns,
+            };
           }
         });
       });

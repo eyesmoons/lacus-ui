@@ -37,6 +37,12 @@
     <el-table v-loading="loading" :data="jobList" stripe border @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="任务名称" prop="jobName" min-width="150" show-overflow-tooltip />
+      <el-table-column label="任务类型" prop="jobType" min-width="100" show-overflow-tooltip>
+            <template #default="scope">
+                {{ parseJobType(scope.row.jobType) }}
+            </template>
+      </el-table-column>
+      <el-table-column label="引擎" prop="engineName" min-width="150" show-overflow-tooltip />
       <el-table-column label="描述" prop="description" min-width="200" show-overflow-tooltip />
       <el-table-column label="状态" prop="status" width="100" align="center">
         <template #default="scope">
@@ -45,13 +51,12 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="创建人" prop="createBy" width="120" />
-      <el-table-column label="创建时间" prop="createTime" width="180" align="center">
+      <el-table-column label="创建时间" prop="createTime" width="150" align="center" show-overflow-tooltip>
         <template #default="scope">
           <span>{{ parseTime(scope.row.createTime) }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="更新时间" prop="updateTime" width="180" align="center">
+      <el-table-column label="更新时间" prop="updateTime" width="150" align="center" show-overflow-tooltip>
         <template #default="scope">
           <span>{{ parseTime(scope.row.updateTime) }}</span>
         </template>
@@ -130,6 +135,12 @@
         <el-form-item label="任务名称" prop="jobName">
           <el-input v-model="createForm.jobName" placeholder="请输入任务名称" maxlength="50" show-word-limit />
         </el-form-item>
+        <el-form-item label="任务类型" prop="jobType">
+          <el-radio-group v-model="createForm.jobType">
+            <el-radio :label="1">普通模式</el-radio>
+            <el-radio :label="2">专家模式</el-radio>
+          </el-radio-group>
+        </el-form-item>
         <el-form-item label="任务描述" prop="description">
           <el-input
             v-model="createForm.description"
@@ -204,6 +215,7 @@ const createLoading = ref(false);
 const createFormRef = ref(null);
 const createForm = reactive({
   jobName: '',
+  jobType: 1, // 1: 普通模式, 2: 专家模式
   description: '',
 });
 
@@ -223,6 +235,7 @@ const createRules = {
     { required: true, message: '请输入任务名称', trigger: 'blur' },
     { min: 2, max: 50, message: '任务名称长度在 2 到 50 个字符', trigger: 'blur' },
   ],
+  jobType: [{ required: true, message: '请选择任务类型', trigger: 'change' }],
   description: [{ max: 200, message: '任务描述长度不能超过 200 个字符', trigger: 'blur' }],
 };
 
@@ -295,6 +308,7 @@ const createNewJob = () => {
 // 重置新建表单
 const resetCreateForm = () => {
   createForm.jobName = '';
+  createForm.jobType = 1;
   createForm.description = '';
   createFormRef.value?.resetFields();
 };
@@ -323,7 +337,13 @@ const submitCreateForm = async () => {
 
 // 设计任务
 const designJob = (row) => {
-  router.push(`/dig/job/designer?jobId=${row.jobId}`);
+  // 专家模式跳转到专家模式编辑器
+  if (row.jobType === 2) {
+    router.push(`/dig/job/expert?jobId=${row.jobId}&jobName=${encodeURIComponent(row.jobName)}`);
+  } else {
+    // 普通模式跳转到可视化设计器
+    router.push(`/dig/job/designer?jobId=${row.jobId}`);
+  }
 };
 
 // 编辑任务
@@ -487,6 +507,14 @@ const getStatusText = (status) => {
   };
   return statusMap[status] || '未知';
 };
+
+const parseJobType = (jobType) => {
+    const statusMap = {
+        1: '普通模式',
+        2: '专家模式',
+    };
+    return statusMap[jobType] || '未知';
+}
 
 onMounted(() => {
   getJobList();
