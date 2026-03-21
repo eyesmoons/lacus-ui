@@ -325,6 +325,42 @@ export const constantRoutes = [
     ],
   },
   {
+    path: '/dataquality',
+    component: Layout,
+    hidden: true,
+    meta: { title: '数据质量', icon: 'shield' },
+    children: [
+      {
+        path: 'rule',
+        name: 'DqRule',
+        component: () => import('@/views/dataquality/rule/index'),
+        meta: { title: '规则管理', icon: 'document' },
+        hidden: true
+      },
+      {
+        path: 'result',
+        name: 'DqResult',
+        component: () => import('@/views/dataquality/result/index'),
+        meta: { title: '执行记录', icon: 'monitor' },
+        hidden: true
+      },
+      {
+        path: 'rule/add',
+        name: 'DqRuleAdd',
+        component: () => import('@/views/dataquality/rule/form'),
+        meta: { title: '新建规则', activeMenu: '/dataquality/rule' },
+        hidden: true,
+      },
+      {
+        path: 'rule/edit/:id',
+        name: 'DqRuleEdit',
+        component: () => import('@/views/dataquality/rule/form'),
+        meta: { title: '编辑规则', activeMenu: '/dataquality/rule' },
+        hidden: true,
+      },
+    ],
+  },
+  {
     path: '/dig',
     component: Layout,
     hidden: true,
