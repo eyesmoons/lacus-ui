@@ -85,7 +85,7 @@
       <el-table-column label="结束时间" prop="endTime" width="160" align="center" show-overflow-tooltip>
         <template #default="scope">{{ parseTime(scope.row.endTime) || '—' }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="220" align="center" fixed="right">
+      <el-table-column label="操作" width="260" align="center" fixed="right">
         <template #default="scope">
           <el-button-group>
             <el-tooltip content="执行详情" placement="top">
@@ -93,6 +93,14 @@
                 type="primary"
                 icon="InfoFilled"
                 @click="handleViewDetail(scope.row)"
+              />
+            </el-tooltip>
+            <el-tooltip content="查看日志" placement="top">
+              <el-button
+                type="info"
+                icon="Document"
+                :disabled="!scope.row.logInfo"
+                @click="handleViewLog(scope.row)"
               />
             </el-tooltip>
             <el-tooltip content="任务配置" placement="top">
@@ -158,74 +166,108 @@
           </el-descriptions-item>
         </el-descriptions>
 
-        <!-- Tab 切换 -->
-        <el-tabs v-model="detailActiveTab" @tab-change="onTabChange">
-          <!-- 错误日志 Tab -->
-          <el-tab-pane label="日志" name="errorLog">
-            <el-input
-              type="textarea"
-              :value="currentLog.logInfo || '（无日志）'"
-              :rows="16"
-              readonly
-              class="log-textarea log-error"
-            />
-          </el-tab-pane>
-
-          <!-- 检测明细 Tab -->
-          <el-tab-pane label="检测明细" name="checkResult">
-            <div v-loading="checkResultLoading">
-              <el-empty v-if="!checkResultLoading && checkResultList.length === 0" description="暂无检测明细数据" :image-size="60" style="padding: 20px 0" />
-              <el-table v-else :data="checkResultList" border stripe size="small" max-height="360">
-                <el-table-column label="规则模板" prop="templateName" min-width="120" show-overflow-tooltip>
-                  <template #default="scope">{{ scope.row.templateName || scope.row.templateCode || '—' }}</template>
-                </el-table-column>
-                <el-table-column label="实际值" prop="actualValue" width="100" align="right">
-                  <template #default="scope">{{ scope.row.actualValue ?? '—' }}</template>
-                </el-table-column>
-                <el-table-column label="期望值" prop="expectedValue" width="100" align="right">
-                  <template #default="scope">{{ scope.row.expectedValue ?? '—' }}</template>
-                </el-table-column>
-                <el-table-column label="期望类型" prop="expectedTypeLabel" width="110" align="center">
-                  <template #default="scope">{{ scope.row.expectedTypeLabel || scope.row.expectedType || '—' }}</template>
-                </el-table-column>
-                <el-table-column label="校验方式" prop="checkMethodLabel" width="120" align="center">
-                  <template #default="scope">{{ scope.row.checkMethodLabel || scope.row.checkMethod || '—' }}</template>
-                </el-table-column>
-                <el-table-column label="操作符" prop="operator" width="80" align="center">
-                  <template #default="scope">{{ scope.row.operator || '—' }}</template>
-                </el-table-column>
-                <el-table-column label="是否通过" prop="passFlag" width="100" align="center">
-                  <template #default="scope">
-                    <el-tag v-if="scope.row.passFlag !== null && scope.row.passFlag !== undefined"
-                      :type="scope.row.passFlag ? 'success' : 'danger'" size="small">
-                      {{ scope.row.passFlag ? '通过' : '不通过' }}
-                    </el-tag>
-                    <span v-else>—</span>
-                  </template>
-                </el-table-column>
-                <el-table-column label="写入时间" prop="createTime" width="160" align="center">
-                  <template #default="scope">{{ parseTime(scope.row.createTime) || '—' }}</template>
-                </el-table-column>
-              </el-table>
-            </div>
-          </el-tab-pane>
-        </el-tabs>
+        <!-- 检测明细（单行展示） -->
+        <div v-if="checkResultList.length > 0" style="margin-top: 16px">
+          <el-card shadow="never">
+            <template #header>
+              <span style="font-weight: bold; font-size: 14px">检测结果</span>
+            </template>
+            <el-row :gutter="16">
+              <el-col :span="6">
+                <div style="text-align: center">
+                  <div style="font-size: 12px; color: #909399; margin-bottom: 8px">规则模板</div>
+                  <div style="font-size: 16px; font-weight: bold; color: #303133">
+                    {{ checkResultList[0].templateName || checkResultList[0].templateCode || '—' }}
+                  </div>
+                </div>
+              </el-col>
+              <el-col :span="6">
+                <div style="text-align: center">
+                  <div style="font-size: 12px; color: #909399; margin-bottom: 8px">实际值</div>
+                  <div style="font-size: 20px; font-weight: bold; color: #303133">
+                    {{ checkResultList[0].actualValue ?? '—' }}
+                  </div>
+                </div>
+              </el-col>
+              <el-col :span="6">
+                <div style="text-align: center">
+                  <div style="font-size: 12px; color: #909399; margin-bottom: 8px">期望值</div>
+                  <div style="font-size: 20px; font-weight: bold; color: #303133">
+                    {{ checkResultList[0].expectedValue ?? '—' }}
+                  </div>
+                </div>
+              </el-col>
+              <el-col :span="6">
+                <div style="text-align: center">
+                  <div style="font-size: 12px; color: #909399; margin-bottom: 8px">检测结果</div>
+                  <el-tag v-if="checkResultList[0].passFlag !== null && checkResultList[0].passFlag !== undefined"
+                    :type="checkResultList[0].passFlag === 1 ? 'success' : 'danger'" size="small" style="margin-top: 4px">
+                    {{ checkResultList[0].passFlag === 1 ? '通过' : '不通过' }}
+                  </el-tag>
+                  <span v-else style="color: #909399">—</span>
+                </div>
+              </el-col>
+            </el-row>
+            <el-divider style="margin: 16px 0" />
+            <el-row :gutter="16">
+              <el-col :span="8">
+                <div style="text-align: center">
+                  <div style="font-size: 12px; color: #909399; margin-bottom: 8px">校验方式</div>
+                  <div style="font-size: 14px; color: #303133">
+                    {{ checkResultList[0].checkMethodLabel || checkResultList[0].checkMethod || '—' }}
+                  </div>
+                </div>
+              </el-col>
+              <el-col :span="8">
+                <div style="text-align: center">
+                  <div style="font-size: 12px; color: #909399; margin-bottom: 8px">操作符</div>
+                  <div style="font-size: 14px; color: #303133">
+                    {{ checkResultList[0].operator || '—' }}
+                  </div>
+                </div>
+              </el-col>
+              <el-col :span="8">
+                <div style="text-align: center">
+                  <div style="font-size: 12px; color: #909399; margin-bottom: 8px">期望类型</div>
+                  <div style="font-size: 14px; color: #303133">
+                    {{ checkResultList[0].expectedTypeLabel || checkResultList[0].expectedType || '—' }}
+                  </div>
+                </div>
+              </el-col>
+            </el-row>
+          </el-card>
+        </div>
+        <el-empty v-else description="暂无检测明细数据" :image-size="60" style="padding: 40px 0" />
       </div>
       <template #footer>
         <el-button @click="errorLogVisible = false">关闭</el-button>
-        <el-button v-if="detailActiveTab === 'errorLog' && currentLog?.logInfo" type="danger" plain @click="copyText(currentLog.logInfo)">复制日志</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 完整日志弹窗 -->
+    <el-dialog v-model="fullLogVisible" title="执行日志" width="900px" :close-on-click-modal="false" top="5vh">
+      <monaco-editor
+        ref="fullLogEditorRef"
+        v-model="logContent"
+        language="shell"
+        height="600px"
+        :readonly="true"
+      />
+      <template #footer>
+        <el-button @click="fullLogVisible = false">关闭</el-button>
+        <el-button type="primary" @click="copyText(currentLog.logInfo)">复制日志</el-button>
       </template>
     </el-dialog>
 
     <!-- 任务配置弹窗 -->
     <el-dialog v-model="taskConfigVisible" title="Spark 任务配置（JSON 快照）" width="900px" :close-on-click-modal="false" top="5vh">
       <div v-if="currentLog">
-        <el-input
-          type="textarea"
-          :value="formattedTaskConfig"
-          :rows="28"
-          readonly
-          class="log-textarea"
+        <monaco-editor
+          ref="taskConfigEditorRef"
+          v-model="formattedTaskConfig"
+          language="json"
+          height="500px"
+          :readonly="true"
         />
       </div>
       <template #footer>
@@ -242,6 +284,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { parseTime } from '@/utils/dateUtil';
 import * as resultApi from '@/api/dataquality/resultApi';
 import * as taskApi from '@/api/dataquality/taskApi';
+import MonacoEditor from '@/components/MonacoEditor/index.vue';
 
 const loading = ref(false);
 const total = ref(0);
@@ -255,7 +298,11 @@ const errorLogVisible = ref(false);
 const detailActiveTab = ref('errorLog');
 // 任务配置弹窗
 const taskConfigVisible = ref(false);
+// 完整日志弹窗
+const fullLogVisible = ref(false);
 const currentLog = ref(null);
+const formattedTaskConfig = ref(''); // 格式化后的 JSON 配置（供 Monaco Editor 使用）
+const logContent = ref(''); // 日志内容（供 Monaco Editor 使用）
 
 // 检测明细
 const checkResultList = ref([]);
@@ -267,43 +314,46 @@ const loadCheckResult = async (logId) => {
   try {
     const res = await resultApi.getCheckResultList(logId);
     checkResultList.value = Array.isArray(res) ? res : [];
-  } catch {
+    console.log('检测结果数据:', checkResultList.value); // 调试输出
+  } catch (err) {
+    console.error('加载检测明细失败:', err);
     ElMessage.error('加载检测明细失败');
   } finally {
     checkResultLoading.value = false;
   }
 };
 
-const onTabChange = (tab) => {
-  if (tab === 'checkResult' && currentLog.value) {
-    loadCheckResult(currentLog.value.id);
-  }
-};
-
-const formattedTaskConfig = computed(() => {
-  if (!currentLog.value?.taskConfig) return '';
-  try {
-    return JSON.stringify(JSON.parse(currentLog.value.taskConfig), null, 2);
-  } catch {
-    return currentLog.value.taskConfig;
-  }
-});
+// formattedTaskConfig 已在上面定义为 ref
 
 const handleViewDetail = (row) => {
   currentLog.value = row;
-  // 失败时默认看错误日志，其他状态默认看检测明细
-  detailActiveTab.value = row.status === 'FAILED' ? 'errorLog' : 'checkResult';
   checkResultList.value = [];
   errorLogVisible.value = true;
-  // 非错误日志 Tab 时立即加载检测明细
-  if (detailActiveTab.value === 'checkResult') {
-    loadCheckResult(row.id);
-  }
+  // 初始化日志内容
+  logContent.value = row.logInfo || '（无日志）';
+  // 加载检测明细
+  loadCheckResult(row.id);
 };
 
 const handleViewTaskConfig = (row) => {
   currentLog.value = row;
+  // 格式化 JSON 配置
+  if (row.taskConfig) {
+    try {
+      formattedTaskConfig.value = JSON.stringify(JSON.parse(row.taskConfig), null, 2);
+    } catch {
+      formattedTaskConfig.value = row.taskConfig;
+    }
+  } else {
+    formattedTaskConfig.value = '';
+  }
   taskConfigVisible.value = true;
+};
+
+const handleViewLog = (row) => {
+  currentLog.value = row;
+  logContent.value = row.logInfo || '（无日志）';
+  fullLogVisible.value = true;
 };
 
 const queryParams = reactive({

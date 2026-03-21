@@ -42,7 +42,7 @@ onMounted(() => {
     value: props.modelValue,
     language: props.language,
     theme: 'vs-dark',
-    fontSize: 16,
+    fontSize: 14,
     automaticLayout: true,
     scrollBeyondLastLine: false,
     minimap: {
