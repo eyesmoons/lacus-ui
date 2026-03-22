@@ -43,14 +43,20 @@ const features = ref([
   },
   {
     icon: 'Menu',
-    title: '统一API',
-    description: '只需配好SQL，即可快速发布API供外部调用',
+    title: '统一 API',
+    description: '只需配好 SQL，即可快速发布 API 供外部调用',
     path: '/oneapi/oneapi',
+  },
+  {
+    icon: 'Odometer',
+    title: '数据质量',
+    description: '基于 Spark 的多维度数据质量检测',
+    path: '/dataquality/dataquality/rule',
   },
   {
     icon: 'Monitor',
     title: 'Flink开发',
-    description: '支持Flink sql和自定义jar包的实时开发',
+    description: '支持 Flink sql 和自定义 jar 包的实时开发',
     path: '/flink/flink',
   },
   {
