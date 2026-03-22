@@ -51,7 +51,7 @@ const features = ref([
     icon: 'Odometer',
     title: '数据质量',
     description: '基于 Spark 的多维度数据质量检测',
-    path: '/dataquality/rule',
+    path: '/dataquality/dataquality/rule',
   },
   {
     icon: 'Monitor',
