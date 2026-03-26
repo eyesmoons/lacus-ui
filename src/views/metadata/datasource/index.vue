@@ -81,7 +81,7 @@
           <span>{{ parseTime(scope.row.createTime) }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" align="center" width="200px" fixed="right">
+      <el-table-column label="操作" align="center" width="300px" fixed="right">
         <template #default="scope">
           <el-button-group class="ml-4">
             <el-tooltip content="测试数据源" placement="top" v-if="scope.row.status === 1">
@@ -98,6 +98,22 @@
                 icon="Refresh"
                 @click="handleSync(scope.row)"
                 v-hasPermission="['metadata:datasource:edit']"
+              />
+            </el-tooltip>
+            <el-tooltip content="定时同步" placement="top" v-if="scope.row.status === 1">
+              <el-button
+                type="info"
+                icon="Timer"
+                @click="handleScheduleSync(scope.row)"
+                v-hasPermission="['metadata:datasource:edit']"
+              />
+            </el-tooltip>
+            <el-tooltip content="同步日志" placement="top" v-if="scope.row.status === 1">
+              <el-button
+                type="primary"
+                icon="Document"
+                @click="handleViewSyncLogs(scope.row)"
+                v-hasPermission="['metadata:datasource:query']"
               />
             </el-tooltip>
             <el-tooltip content="编辑" placement="top" v-if="scope.row.status === 1">
@@ -269,6 +285,21 @@
         <el-button @click="connectionDetailsDialogVisible = false">关闭</el-button>
       </template>
     </el-dialog>
+
+    <!-- 定时同步配置对话框 -->
+    <SyncJobDialog
+      v-model="syncJobDialogVisible"
+      :datasourceId="currentDatasourceId"
+      :jobData="currentSyncJob"
+      @success="handleSyncJobSuccess"
+    />
+
+    <!-- 同步日志对话框 -->
+    <SyncLogsDialog
+      v-model="syncLogsDialogVisible"
+      :datasourceId="currentDatasourceId"
+      :datasourceName="currentDatasourceName"
+    />
   </div>
 </template>
 
@@ -276,7 +307,10 @@
 import * as datasourceApi from '@/api/metadata/datasourceApi';
 import * as schemaApi from '@/api/metadata/schemaApi';
 import * as datasourcePluginApi from '@/api/metadata/datasourcePluginApi';
-import { ref } from 'vue';
+import * as datasourceSyncJobApi from '@/api/metadata/datasourceSyncJobApi';
+import { ref, getCurrentInstance, reactive, toRefs } from 'vue';
+import SyncJobDialog from './components/SyncJobDialog.vue';
+import SyncLogsDialog from './components/SyncLogsDialog.vue';
 
 const { proxy } = getCurrentInstance();
 const { datasource_status } = proxy.useDict('datasource_status');
@@ -308,6 +342,11 @@ const datasourceTypeOption = ref([]);
 const connectionParamsFields = ref([]);
 const connectionDetailsDialogVisible = ref(false);
 const parsedConnectionDetails = ref([]);
+const syncJobDialogVisible = ref(false);
+const currentDatasourceId = ref(null);
+const currentSyncJob = ref(null);
+const syncLogsDialogVisible = ref(false);
+const currentDatasourceName = ref('');
 
 const data = reactive({
   form: {
@@ -628,6 +667,34 @@ function showConnectionDetails(details) {
     parsedConnectionDetails.value = [{ key: '错误', value: '无法解析连接信息' }];
   }
   connectionDetailsDialogVisible.value = true;
+}
+
+/** 打开定时同步配置对话框 */
+async function handleScheduleSync(row) {
+  currentDatasourceId.value = row.datasourceId;
+
+  try {
+    // 查询是否已有定时任务
+    const response = await datasourceSyncJobApi.getSyncJobInfo(row.datasourceId);
+    currentSyncJob.value = response;
+    syncJobDialogVisible.value = true;
+  } catch (error) {
+    console.error('查询定时任务失败:', error);
+    proxy.$modal.msgError('查询定时任务失败');
+  }
+}
+
+/** 定时同步任务操作成功回调 */
+function handleSyncJobSuccess() {
+  proxy.$modal.msgSuccess('操作成功');
+  getList();
+}
+
+/** 查看同步日志 */
+function handleViewSyncLogs(row) {
+  currentDatasourceId.value = row.datasourceId;
+  currentDatasourceName.value = row.datasourceName;
+  syncLogsDialogVisible.value = true;
 }
 
 getList();
