@@ -21,3 +21,8 @@ selenium-debug.log
 
 package-lock.json
 yarn.lock
+# >>> Comet managed project state >>>
+!/.comet/
+/.comet/*
+!/.comet/config.yaml
+# <<< Comet managed project state <<<

@@ -24,19 +24,6 @@
       </el-row>
 
       <el-row :gutter="20">
-        <el-col :span="12">
-          <el-form-item label="部署模式" prop="deployMode">
-            <el-select v-model="form.deployMode" placeholder="请选择部署模式">
-              <el-option label="Local" value="Local" />
-              <el-option label="Standalone" value="Standalone" />
-              <el-option label="Yarn-per-job" value="Yarn-per-job" />
-              <el-option label="Yarn-application" value="Yarn-application" />
-            </el-select>
-          </el-form-item>
-        </el-col>
-      </el-row>
-
-      <el-row :gutter="20">
         <el-col :span="24">
           <el-form-item label="任务说明" prop="remark">
             <el-input v-model="form.remark" type="textarea" placeholder="请输入任务说明" />
@@ -206,6 +193,52 @@ const rules = {
   mainClassName: [{ required: true, message: '请输入主类名', trigger: 'blur' }],
 };
 
+// 后端以资源 id 关联主JAR包，数据库中的 id 为字符串，需转为数字以匹配树节点的 value
+const toResourceId = (val) => {
+  if (val === null || val === undefined || val === '') return undefined;
+  const id = Number(val);
+  return Number.isNaN(id) ? val : id;
+};
+
+// 扩展JAR包在数据库中按逗号分隔的字符串保存，树选择器需要数组
+const toResourceIdArray = (val) => {
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string' && val.trim() !== '') {
+    return val
+      .split(',')
+      .map((item) => Number(item.trim()))
+      .filter((item) => !Number.isNaN(item));
+  }
+  return [];
+};
+
+// 根据文件路径构建目录树，叶子节点 value 使用资源 id
+const buildJarTree = (files) => {
+  const root = [];
+  const dirNodes = new Map();
+
+  const getDirNode = (path) => {
+    if (!path) return null;
+    if (dirNodes.has(path)) return dirNodes.get(path);
+    const parts = path.split('/').filter(Boolean);
+    const node = { value: `dir:${path}`, label: parts[parts.length - 1], children: [] };
+    dirNodes.set(path, node);
+    const parentPath = parts.length > 1 ? `/${parts.slice(0, -1).join('/')}` : '';
+    const parent = getDirNode(parentPath);
+    (parent ? parent.children : root).push(node);
+    return node;
+  };
+
+  files.forEach((file) => {
+    const filePath = file.filePath || '';
+    const parentPath = filePath.substring(0, filePath.lastIndexOf('/'));
+    const parent = getDirNode(parentPath);
+    (parent ? parent.children : root).push({ value: file.id, label: file.fileName });
+  });
+
+  return root;
+};
+
 // 获取JAR包树形列表
 const getJarTreeData = async () => {
   try {
@@ -213,31 +246,13 @@ const getJarTreeData = async () => {
       fileName: '.jar', // 只查询jar文件
     });
 
-    // 构建树形结构
-    const buildTree = (items, parentId) => {
-      const result = [];
+    // 响应拦截器已解包，res 即为资源数组
+    const resources = Array.isArray(res) ? res : [];
+    const jarFiles = resources.filter(
+      (item) => item.isDirectory === 0 && item.fileName && item.fileName.endsWith('.jar'),
+    );
 
-      items.forEach((item) => {
-        if (item.pid === parentId) {
-          const node = {
-            value: item.path, // 文件路径作为选择值
-            label: item.name,
-            children: buildTree(items, item.id),
-          };
-
-          // 如果是文件且是jar包,则不需要children属性
-          if (item.type === 'FILE' && item.name.endsWith('.jar')) {
-            delete node.children;
-          }
-
-          result.push(node);
-        }
-      });
-
-      return result;
-    };
-
-    jarTreeData.value = buildTree(res.data, 0);
+    jarTreeData.value = buildJarTree(jarFiles);
   } catch (error) {
     console.error('获取JAR包列表失败:', error);
   }
@@ -248,7 +263,12 @@ watch(
   () => props.jobInfo,
   (val) => {
     if (val && Object.keys(val).length > 0) {
-      form.value = { ...val };
+      form.value = {
+        ...form.value,
+        ...val,
+        mainJarPath: toResourceId(val.mainJarPath),
+        extJarPath: toResourceIdArray(val.extJarPath),
+      };
     }
   },
   { deep: true, immediate: true },
@@ -257,10 +277,17 @@ watch(
 // 提交表单
 const submitForm = async () => {
   try {
+    const submitData = {
+      ...form.value,
+      // 扩展JAR包按逗号分隔的字符串提交，避免后端 String 字段收到数组
+      extJarPath: Array.isArray(form.value.extJarPath)
+        ? form.value.extJarPath.join(',')
+        : form.value.extJarPath,
+    };
     if (props.isEdit) {
-      await jobApi.editJarJob(form.value);
+      await jobApi.editJarJob(submitData);
     } else {
-      await jobApi.addJarJob(form.value);
+      await jobApi.addJarJob(submitData);
     }
     router.push('/flink/job');
   } catch (error) {
