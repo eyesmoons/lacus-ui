@@ -220,13 +220,13 @@ const getJarTreeData = async () => {
       items.forEach((item) => {
         if (item.pid === parentId) {
           const node = {
-            value: item.path, // 文件路径作为选择值
-            label: item.name,
+            value: item.filePath, // 文件路径作为选择值，与后端 mainJarPath 匹配
+            label: item.fileName,
             children: buildTree(items, item.id),
           };
 
           // 如果是文件且是jar包,则不需要children属性
-          if (item.type === 'FILE' && item.name.endsWith('.jar')) {
+          if (item.isDirectory === 0 && item.fileName.endsWith('.jar')) {
             delete node.children;
           }
 
@@ -237,7 +237,7 @@ const getJarTreeData = async () => {
       return result;
     };
 
-    jarTreeData.value = buildTree(res.data, 0);
+    jarTreeData.value = buildTree(res, 0);
   } catch (error) {
     console.error('获取JAR包列表失败:', error);
   }
@@ -248,7 +248,13 @@ watch(
   () => props.jobInfo,
   (val) => {
     if (val && Object.keys(val).length > 0) {
-      form.value = { ...val };
+      form.value = {
+        ...val,
+        // 后端返回逗号分隔字符串，转换为数组供 tree-select 使用
+        extJarPath: typeof val.extJarPath === 'string' && val.extJarPath
+          ? val.extJarPath.split(',')
+          : [],
+      };
     }
   },
   { deep: true, immediate: true },
@@ -257,10 +263,17 @@ watch(
 // 提交表单
 const submitForm = async () => {
   try {
+    const submitData = {
+      ...form.value,
+      // 将扩展JAR包路径数组转换为逗号分隔的字符串；空数组转为空字符串
+      extJarPath: Array.isArray(form.value.extJarPath) && form.value.extJarPath.length > 0
+        ? form.value.extJarPath.join(',')
+        : '',
+    };
     if (props.isEdit) {
-      await jobApi.editJarJob(form.value);
+      await jobApi.editJarJob(submitData);
     } else {
-      await jobApi.addJarJob(form.value);
+      await jobApi.addJarJob(submitData);
     }
     router.push('/flink/job');
   } catch (error) {
