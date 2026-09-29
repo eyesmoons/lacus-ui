@@ -1,8 +1,0 @@
-{
-  "openspec_proposal": "openspec/changes/data-quality-rule/proposal.md",
-  "openspec_design": "openspec/changes/data-quality-rule/design.md",
-  "openspec_tasks": "openspec/changes/data-quality-rule/tasks.md",
-  "openspec_delta_spec": "openspec/changes/data-quality-rule/specs/dataquality-domain/spec.md",
-  "handoff_context": "openspec/changes/data-quality-rule/.comet/handoff/design-context.json",
-  "handoff_markdown": "openspec/changes/data-quality-rule/.comet/handoff/design-context.md"
-}
