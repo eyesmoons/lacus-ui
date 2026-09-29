@@ -1,0 +1,6 @@
+{
+  "id": "classic-archive:alert-center-and-dq-schedule",
+  "stepId": "full.archive.execute",
+  "type": "checkpoint",
+  "ref": "alert-center-and-dq-schedule"
+}

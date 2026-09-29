@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-ssr/
+coverage/
+.worktrees/
+.codegraph/
+.qoder/
+.superpowers/
+.claude/
+public/

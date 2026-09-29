@@ -1,0 +1,65 @@
+// base color
+$blue: #409eff;
+$light-blue: #3a71a8;
+$red: #ff4444;
+$pink: #e65d6e;
+$green: #30b08f;
+$tiffany: #33b5e5;
+$yellow: #ffbb33;
+$panGreen: #30bb8f;
+
+// 默认菜单主题风格（theme-dark 深海军蓝）
+$base-menu-color: rgba(255, 255, 255, 0.65);
+$base-menu-color-active: #ffffff;
+$base-menu-background: #0b1b33;
+$base-logo-title-color: #ffffff;
+
+$base-menu-light-color: rgba(0, 0, 0, 0.623);
+$base-menu-light-background: #ffffff;
+$base-logo-light-title-color: #001529;
+
+$base-sub-menu-background: #10264a;
+$base-sub-menu-hover: #16305f;
+
+// 自定义暗色菜单风格
+/**
+$base-menu-color:hsla(0,0%,100%,.65);
+$base-menu-color-active:#fff;
+$base-menu-background:#001529;
+$base-logo-title-color: #ffffff;
+
+$base-menu-light-color:rgba(0,0,0,.70);
+$base-menu-light-background:#ffffff;
+$base-logo-light-title-color: #001529;
+
+$base-sub-menu-background:#000c17;
+$base-sub-menu-hover:#001528;
+*/
+
+$--color-primary: #2563eb;
+$--color-success: #16a34a;
+$--color-warning: #d97706;
+$--color-danger: #dc2626;
+$--color-info: #86909c;
+
+$base-sidebar-width: 200px;
+
+// the :export directive is the magic sauce for webpack
+// https://www.bluematador.com/blog/how-to-share-variables-between-js-and-sass
+:export {
+  menuColor: $base-menu-color;
+  menuLightColor: $base-menu-light-color;
+  menuColorActive: $base-menu-color-active;
+  menuBackground: $base-menu-background;
+  menuLightBackground: $base-menu-light-background;
+  subMenuBackground: $base-sub-menu-background;
+  subMenuHover: $base-sub-menu-hover;
+  sideBarWidth: $base-sidebar-width;
+  logoTitleColor: $base-logo-title-color;
+  logoLightTitleColor: $base-logo-light-title-color;
+  primaryColor: $--color-primary;
+  successColor: $--color-success;
+  dangerColor: $--color-danger;
+  infoColor: $--color-info;
+  warningColor: $--color-warning;
+}

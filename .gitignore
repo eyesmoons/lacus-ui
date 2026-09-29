@@ -1,0 +1,47 @@
+# >>> Comet managed project state >>>
+!/.comet/
+/.comet/*
+!/.comet/config.yaml
+# <<< Comet managed project state <<<
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Local env overrides
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Local tool state (regenerable / machine-specific)
+.worktrees/
+.codegraph/
+.superpowers/
+.qoder/
+.claude/skills/
+.claude/settings.local.json
+
+# Data dumps (may contain session tokens / job payloads)
+*.rdb
+dump.rdb
+
+# Runtime / cache
+*.tsbuildinfo
+.vite/
+coverage/
