@@ -19,6 +19,11 @@ export default defineConfig(({mode, command}) => {
                 '~': path.resolve(__dirname, './'),
                 // 设置路径别名
                 '@': path.resolve(__dirname, './src'),
+                // element-plus exports 字段不暴露 locale 子路径，需要别名绕过
+                'element-plus/lib/locale/lang/zh-cn': path.resolve(
+                    __dirname,
+                    'node_modules/element-plus/lib/locale/lang/zh-cn.js'
+                ),
             },
             // https://cn.vitejs.dev/config/#resolve-extensions
             extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue'],
