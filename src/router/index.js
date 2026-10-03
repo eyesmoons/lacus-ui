@@ -466,6 +466,57 @@ export const constantRoutes = [
       // }
     ],
   },
+  {
+    path: '/lake-intelligence',
+    component: Layout,
+    redirect: '/lake-intelligence/dataset/list',
+    name: 'LakeIntelligence',
+    meta: { title: '湖智', icon: 'cpu' },
+    children: [
+      {
+        path: 'dataset/list',
+        component: () => import('@/views/lakeintelligence/DatasetList.vue'),
+        name: 'DatasetList',
+        meta: { title: '数据集管理' },
+      },
+      {
+        path: 'dataset/upload',
+        component: () => import('@/views/lakeintelligence/DatasetUpload.vue'),
+        name: 'DatasetUpload',
+        meta: { title: '上传图片库' },
+      },
+      {
+        path: 'training/new',
+        component: () => import('@/views/lakeintelligence/TrainingNew.vue'),
+        name: 'TrainingNew',
+        meta: { title: '训练配置' },
+      },
+      {
+        path: 'training/:id',
+        component: () => import('@/views/lakeintelligence/TrainingProgress.vue'),
+        name: 'TrainingProgress',
+        meta: { title: '训练进度' },
+      },
+      {
+        path: 'vector/build',
+        component: () => import('@/views/lakeintelligence/VectorBuild.vue'),
+        name: 'VectorBuild',
+        meta: { title: '向量构建' },
+      },
+      {
+        path: 'search',
+        component: () => import('@/views/lakeintelligence/SimilaritySearch.vue'),
+        name: 'SimilaritySearch',
+        meta: { title: '相似检索' },
+      },
+      {
+        path: 'models',
+        component: () => import('@/views/lakeintelligence/ModelManager.vue'),
+        name: 'ModelManager',
+        meta: { title: '模型管理' },
+      },
+    ],
+  },
 ];
 
 const router = createRouter({
