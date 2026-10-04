@@ -472,7 +472,7 @@ export const constantRoutes = [
     hidden: true,
     redirect: '/lake-intelligence/similarity/dataset/list',
     name: 'LakeIntelligence',
-    meta: { title: '湖智平台', icon: 'cpu' },
+    meta: { title: '湖智AI', icon: 'cpu' },
     children: [
       {
         path: 'similarity',
