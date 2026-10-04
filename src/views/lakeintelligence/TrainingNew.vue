@@ -171,7 +171,9 @@ async function handleSubmit() {
         const result = await startTraining(payload);
         ElMessage.success('训练任务已启动！');
         setTimeout(() => {
-            router.push(`/lake-intelligence/training/${result.taskId || result}`);
+            // 根据任务类型路由到对应的训练进度页
+            const basePath = form.taskType === 'CLASSIFICATION' ? '/lake-intelligence/classification' : '/lake-intelligence/similarity';
+            router.push(`${basePath}/training/${result.taskId || result}`);
         }, 1000);
     } catch (err) {
         ElMessage.error('启动失败：' + err.message);
@@ -181,6 +183,15 @@ async function handleSubmit() {
 }
 
 onMounted(() => {
+    // 从 URL 路径推断任务类型
+    const path = router.currentRoute.value.path || '';
+    if (path.includes('/classification')) {
+        form.taskType = 'CLASSIFICATION';
+        form.trainerType = 'classifier';
+    } else {
+        form.taskType = 'IMAGE_SIMILARITY';
+        form.trainerType = 'similarity';
+    }
     loadDatasets();
 });
 </script>
