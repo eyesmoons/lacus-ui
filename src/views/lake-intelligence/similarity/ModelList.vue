@@ -86,8 +86,8 @@ import { onMounted, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { parseTime } from '@/utils/dateUtil';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { deleteModel, downloadModel, listModels, startTraining } from '@/api/lakeintelligence/model';
-import { getHyperparamSchema } from '@/api/lakeintelligence/train';
+import { deleteModel, downloadModel, listModels } from '@/api/lakeintelligence/model';
+import { getHyperparamSchema, startTraining } from '@/api/lakeintelligence/train';
 import ModelConfigDialog from '../components/ModelConfigDialog.vue';
 
 const router = useRouter();
