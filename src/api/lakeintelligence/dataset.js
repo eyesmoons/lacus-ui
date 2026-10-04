@@ -5,7 +5,7 @@ import request from '@/utils/request';
 // 创建数据集
 export function createDataset(data) {
   return request({
-    url: '/lake-intelligence/datasets',
+    url: '/api/lake-intelligence/datasets',
     method: 'post',
     data: data,
   });
@@ -14,7 +14,7 @@ export function createDataset(data) {
 // 数据源探测
 export function probeSource(uri) {
   return request({
-    url: '/lake-intelligence/datasets/probe-source',
+    url: '/api/lake-intelligence/datasets/probe-source',
     method: 'post',
     params: { uri: uri },
   });
@@ -23,7 +23,7 @@ export function probeSource(uri) {
 // 查询数据集列表（分页）
 export function listDatasets(query) {
   return request({
-    url: '/lake-intelligence/datasets',
+    url: '/api/lake-intelligence/datasets',
     method: 'get',
     params: query,
   });

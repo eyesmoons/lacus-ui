@@ -5,7 +5,7 @@ import request from '@/utils/request';
 // 启动训练
 export function startTraining(data) {
   return request({
-    url: '/lake-intelligence/tasks',
+    url: '/api/lake-intelligence/tasks',
     method: 'post',
     data: data,
   });
@@ -30,7 +30,7 @@ export function cancelTraining(id) {
 // 查询训练任务列表
 export function listTasks(query) {
   return request({
-    url: '/lake-intelligence/tasks',
+    url: '/api/lake-intelligence/tasks',
     method: 'get',
     params: query,
   });
@@ -39,7 +39,7 @@ export function listTasks(query) {
 // 获取任务类型对应的默认超参配置
 export function getHyperparamSchema(taskType) {
   return request({
-    url: '/lake-intelligence/tasks/hyperparam-schema',
+    url: '/api/lake-intelligence/tasks/hyperparam-schema',
     method: 'get',
     params: { taskType: taskType },
   });

@@ -3,7 +3,7 @@ import request from '@/utils/request';
 // 启动训练
 export function startTraining(data) {
   return request({
-    url: '/lake-intelligence/tasks',
+    url: '/api/lake-intelligence/tasks',
     method: 'post',
     data: data,
   });

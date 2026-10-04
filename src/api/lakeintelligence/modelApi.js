@@ -3,7 +3,7 @@ import request from '@/utils/request';
 // 模型列表（分页）
 export function listModels(query) {
   return request({
-    url: '/lake-intelligence/models',
+    url: '/api/lake-intelligence/models',
     method: 'get',
     params: query,
   });
