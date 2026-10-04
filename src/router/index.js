@@ -466,6 +466,43 @@ export const constantRoutes = [
       // }
     ],
   },
+  {
+    path: '/lake-intelligence',
+    component: Layout,
+    hidden: true,
+    redirect: '/lake-intelligence/similarity/dataset/list',
+    name: 'LakeIntelligence',
+    meta: { title: '湖智平台', icon: 'cpu' },
+    children: [
+      {
+        path: 'similarity',
+        component: () => import('@/views/lakeintelligence/wrapper/index.vue'),
+        name: 'LakeSimilarity',
+        redirect: '/lake-intelligence/similarity/dataset/list',
+        meta: { title: '以图搜图' },
+        children: [
+          { path: 'dataset/list', component: () => import('@/views/lakeintelligence/similarity/DatasetList.vue'), name: 'SimilarityDatasetList', meta: { title: '数据集管理', activeMenu: '/lake-intelligence/similarity/dataset/list' } },
+          { path: 'dataset/upload', component: () => import('@/views/lakeintelligence/similarity/DatasetUpload.vue'), name: 'SimilarityDatasetUpload', meta: { title: '上传图片库', activeMenu: '/lake-intelligence/similarity/dataset/list' } },
+          { path: 'model/list', component: () => import('@/views/lakeintelligence/similarity/ModelList.vue'), name: 'SimilarityModelList', meta: { title: '模型管理', activeMenu: '/lake-intelligence/similarity/model/list' } },
+          { path: 'vector/build', component: () => import('@/views/lakeintelligence/similarity/VectorBuild.vue'), name: 'SimilarityVectorBuild', meta: { title: '向量构建', activeMenu: '/lake-intelligence/similarity/vector/build' } },
+          { path: 'search', component: () => import('@/views/lakeintelligence/similarity/SimilaritySearch.vue'), name: 'SimilaritySearch', meta: { title: '相似检索', activeMenu: '/lake-intelligence/similarity/search' } },
+        ],
+      },
+      {
+        path: 'classification',
+        component: () => import('@/views/lakeintelligence/wrapper/index.vue'),
+        name: 'LakeClassification',
+        redirect: '/lake-intelligence/classification/dataset/list',
+        meta: { title: '图片分类' },
+        children: [
+          { path: 'dataset/list', component: () => import('@/views/lakeintelligence/classification/DatasetList.vue'), name: 'ClassificationDatasetList', meta: { title: '数据集管理', activeMenu: '/lake-intelligence/classification/dataset/list' } },
+          { path: 'dataset/upload', component: () => import('@/views/lakeintelligence/classification/DatasetUpload.vue'), name: 'ClassificationDatasetUpload', meta: { title: '上传数据集', activeMenu: '/lake-intelligence/classification/dataset/list' } },
+          { path: 'model/list', component: () => import('@/views/lakeintelligence/classification/ModelList.vue'), name: 'ClassificationModelList', meta: { title: '模型管理', activeMenu: '/lake-intelligence/classification/model/list' } },
+          { path: 'classify', component: () => import('@/views/lakeintelligence/classification/ImageClassify.vue'), name: 'ClassificationClassify', meta: { title: '图片分类', activeMenu: '/lake-intelligence/classification/classify' } },
+        ],
+      },
+    ],
+  },
 ];
 
 const router = createRouter({
