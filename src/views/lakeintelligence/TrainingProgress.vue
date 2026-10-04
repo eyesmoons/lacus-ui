@@ -104,7 +104,7 @@ import { computed, onMounted, onUnmounted, ref, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import * as echarts from 'echarts';
-import { getProgress, cancelTraining } from '@/api/lakeintelligence/trainApi';
+import { getProgress, cancelTraining } from '@/api/lakeintelligence/train';
 
 const route = useRoute();
 const router = useRouter();

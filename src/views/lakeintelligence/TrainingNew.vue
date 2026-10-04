@@ -94,8 +94,8 @@
 import { computed, onMounted, reactive, ref, getCurrentInstance } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { startTraining } from '@/api/lakeintelligence/trainApi';
-import { listDatasets } from '@/api/lakeintelligence/datasetApi';
+import { startTraining } from '@/api/lakeintelligence/train';
+import { listDatasets } from '@/api/lakeintelligence/dataset';
 
 const route = useRoute();
 const router = useRouter();

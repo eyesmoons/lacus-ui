@@ -78,7 +78,7 @@ import { onMounted, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { parseTime } from '@/utils/dateUtil';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { deleteModel, downloadModel, listModels } from '@/api/lakeintelligence/modelApi';
+import { deleteModel, downloadModel, listModels } from '@/api/lakeintelligence/model';
 
 const router = useRouter();
 

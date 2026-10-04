@@ -137,7 +137,7 @@
 import { ref, reactive, getCurrentInstance } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { createDataset, probeSource } from '@/api/lakeintelligence/datasetApi';
+import { createDataset, probeSource } from '@/api/lakeintelligence/dataset';
 import { UploadFilled } from '@element-plus/icons-vue';
 
 const router = useRouter();

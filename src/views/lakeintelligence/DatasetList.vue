@@ -103,7 +103,7 @@ import { onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { parseTime } from '@/utils/dateUtil';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { deleteDataset, listDatasets } from '@/api/lakeintelligence/datasetApi';
+import { deleteDataset, listDatasets } from '@/api/lakeintelligence/dataset';
 
 const router = useRouter();
 

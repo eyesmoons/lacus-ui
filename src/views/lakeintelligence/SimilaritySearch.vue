@@ -90,7 +90,7 @@
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { UploadFilled, Loading } from '@element-plus/icons-vue';
-import { searchSimilar } from '@/api/lakeintelligence/searchApi';
+import { searchSimilar } from '@/api/lakeintelligence/search';
 
 const router = useRouter();
 

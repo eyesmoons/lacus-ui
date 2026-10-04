@@ -100,9 +100,9 @@
 <script setup>
 import { onMounted, reactive, ref, computed, getCurrentInstance } from 'vue';
 import { ElMessage } from 'element-plus';
-import { buildVectors, getBuildProgress } from '@/api/lakeintelligence/vectorApi';
-import { listDatasets } from '@/api/lakeintelligence/datasetApi';
-import { listModels } from '@/api/lakeintelligence/modelApi';
+import { buildVectors, getBuildProgress } from '@/api/lakeintelligence/search';
+import { listDatasets } from '@/api/lakeintelligence/dataset';
+import { listModels } from '@/api/lakeintelligence/model';
 
 const router = useRouter();
 const { proxy } = getCurrentInstance();
