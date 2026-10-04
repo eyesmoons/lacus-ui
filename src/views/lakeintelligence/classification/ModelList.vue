@@ -20,7 +20,7 @@
 
         <el-row :gutter="10" class="mb8">
             <el-col :span="1.5">
-                <el-button type="primary" plain icon="Plus" @click="handleAdd">新建训练</el-button>
+                <el-button type="primary" plain icon="Plus" @click="handleAdd">添加模型</el-button>
             </el-col>
             <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
         </el-row>
@@ -72,6 +72,12 @@
             v-model:limit="queryParams.pageSize"
             @pagination="getList"
         />
+        <!-- 模型配置弹窗 -->
+        <ModelConfigDialog
+            v-model="configDialogVisible"
+            task-type="IMAGE_CLASSIFICATION"
+            @success="handleTrainingSuccess"
+        />
     </div>
 </template>
 
@@ -81,6 +87,7 @@ import { useRouter } from 'vue-router';
 import { parseTime } from '@/utils/dateUtil';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { deleteModel, downloadModel, listModels } from '@/api/lakeintelligence/model';
+import ModelConfigDialog from '../components/ModelConfigDialog.vue';
 
 const router = useRouter();
 
@@ -88,6 +95,7 @@ const loading = ref(false);
 const showSearch = ref(true);
 const total = ref(0);
 const modelList = ref([]);
+const configDialogVisible = ref(false);
 
 const queryParams = reactive({
     pageNum: 1,
@@ -120,7 +128,13 @@ function resetQuery() {
 }
 
 function handleAdd() {
-    router.push('/lake-intelligence/classification/training/new');
+    configDialogVisible.value = true;
+}
+
+function handleTrainingSuccess(taskId) {
+    configDialogVisible.value = false;
+    ElMessage.success('训练任务已启动');
+    router.push(`/lake-intelligence/classification/training/${taskId}`);
 }
 
 function formatFileSize(bytes) {

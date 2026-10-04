@@ -157,11 +157,11 @@ function handleAdd() {
 }
 
 function handleTrain() {
-    router.push('/lake-intelligence/classification/training/new');
+    // removed training/new route;
 }
 
 function handleTrainRow(row) {
-    router.push(`/lake-intelligence/classification/training/new?datasetId=${row.datasetId}`);
+    // removed training/new route;
 }
 
 function handleClassify(row) {

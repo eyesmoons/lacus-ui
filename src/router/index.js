@@ -494,12 +494,6 @@ export const constantRoutes = [
             meta: { title: '上传图片库', activeMenu: '/lake-intelligence/similarity/dataset/list' },
           },
           {
-            path: 'training/new',
-            component: () => import('@/views/lakeintelligence/TrainingNew.vue'),
-            name: 'SimilarityTrainingNew',
-            meta: { title: '训练配置', activeMenu: '/lake-intelligence/similarity/dataset/list' },
-          },
-          {
             path: 'training/:id',
             component: () => import('@/views/lakeintelligence/TrainingProgress.vue'),
             name: 'SimilarityTrainingProgress',
@@ -544,12 +538,6 @@ export const constantRoutes = [
             component: () => import('@/views/lakeintelligence/classification/DatasetUpload.vue'),
             name: 'ClassificationDatasetUpload',
             meta: { title: '上传数据集', activeMenu: '/lake-intelligence/classification/dataset/list' },
-          },
-          {
-            path: 'training/new',
-            component: () => import('@/views/lakeintelligence/TrainingNew.vue'),
-            name: 'ClassificationTrainingNew',
-            meta: { title: '训练配置', activeMenu: '/lake-intelligence/classification/dataset/list' },
           },
           {
             path: 'training/:id',

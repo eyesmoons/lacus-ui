@@ -7,7 +7,7 @@
                         <div class="card-header">
                             <span><i class="el-icon-s-data"></i> 训练进度</span>
                             <div>
-                                <el-button text @click="$router.push('/lake-intelligence/training/new')">
+                                <el-button text @click="$router.push('/lake-intelligence/similarity/dataset/list')">
                                     <i class="el-icon-back"></i> 返回配置
                                 </el-button>
                                 <el-button

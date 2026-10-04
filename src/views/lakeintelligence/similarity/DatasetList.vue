@@ -159,11 +159,11 @@ function handleAdd() {
 }
 
 function handleTrain() {
-    router.push('/lake-intelligence/similarity/training/new');
+    // removed training/new route;
 }
 
 function handleTrainRow(row) {
-    router.push(`/lake-intelligence/similarity/training/new?datasetId=${row.datasetId}`);
+    // removed training/new route;
 }
 
 function handleBuildVector(row) {

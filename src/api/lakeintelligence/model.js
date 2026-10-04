@@ -5,7 +5,7 @@ import request from '@/utils/request';
 // 模型列表（分页）
 export function listModels(query) {
   return request({
-    url: '/api/lake-intelligence/models',
+    url: '/lake-intelligence/models',
     method: 'get',
     params: query,
   });
@@ -39,7 +39,7 @@ export function deleteModel(id) {
 // 获取模型架构列表（用于配置表单）
 export function listModelArchitectures(taskType) {
   return request({
-    url: '/api/lake-intelligence/models/architectures',
+    url: '/lake-intelligence/models/architectures',
     method: 'get',
     params: { taskType: taskType },
   });

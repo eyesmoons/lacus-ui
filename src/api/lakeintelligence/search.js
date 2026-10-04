@@ -5,7 +5,7 @@ import request from '@/utils/request';
 // 相似检索（支持图片上传）
 export function searchSimilar(data) {
   return request({
-    url: '/api/lake-intelligence/search',
+    url: '/lake-intelligence/search',
     method: 'post',
     data: data,
     headers: { 'Content-Type': 'multipart/form-data' },
@@ -15,7 +15,7 @@ export function searchSimilar(data) {
 // 通过 image_id 检索
 export function searchByImageId(imageId, topK, collectionName) {
   return request({
-    url: '/api/lake-intelligence/search',
+    url: '/lake-intelligence/search',
     method: 'post',
     params: {
       image_id: imageId,
@@ -28,7 +28,7 @@ export function searchByImageId(imageId, topK, collectionName) {
 // 获取向量库列表
 export function listCollections() {
   return request({
-    url: '/api/lake-intelligence/vectors/collections',
+    url: '/lake-intelligence/vectors/collections',
     method: 'get',
   });
 }
@@ -36,7 +36,7 @@ export function listCollections() {
 // 构建向量库
 export function buildVectors(data) {
   return request({
-    url: '/api/lake-intelligence/vectors/build',
+    url: '/lake-intelligence/vectors/build',
     method: 'post',
     data: data,
   });
