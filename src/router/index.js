@@ -501,6 +501,12 @@ export const constantRoutes = [
           { path: 'classify', component: () => import('@/views/lake-intelligence/classification/ImageClassify.vue'), name: 'ClassificationClassify', meta: { title: '图片分类', activeMenu: '/lake-intelligence/classification/classify' } },
         ],
       },
+      {
+        path: 'tasks',
+        component: () => import('@/views/lake-intelligence/tasks/TaskList.vue'),
+        name: 'LakeIntelligenceTasks',
+        meta: { title: '任务管理', icon: 'list' },
+      },
     ],
   },
 ];
