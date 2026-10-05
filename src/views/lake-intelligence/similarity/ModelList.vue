@@ -55,11 +55,14 @@
                     {{ parseTime(scope.row.createTime) }}
                 </template>
             </el-table-column>
-            <el-table-column label="操作" align="center" fixed="right" width="180">
+            <el-table-column label="操作" align="center" fixed="right" width="200">
                 <template #default="scope">
                     <el-button-group class="ml-4">
+                        <el-tooltip content="训练" placement="top">
+                            <el-button type="primary" icon="VideoPlay" @click="handleTrain(scope.row)" />
+                        </el-tooltip>
                         <el-tooltip content="下载" placement="top">
-                            <el-button type="primary" icon="Download" @click="handleDownload(scope.row)" />
+                            <el-button type="success" icon="Download" @click="handleDownload(scope.row)" />
                         </el-tooltip>
                         <el-tooltip content="删除" placement="top">
                             <el-button type="danger" icon="Delete" @click="handleDelete(scope.row)" />
@@ -83,6 +86,8 @@
             task-type="SIMILARITY"
             @success="handleTrainingSuccess"
         />
+        <!-- 训练配置弹窗 -->
+        <TrainingConfigDialog ref="trainDialogRef" v-model="trainDialogVisible" task-type="SIMILARITY" @success="getList" />
     </div>
 </template>
 
@@ -94,6 +99,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { deleteModel, downloadModel, listModels } from '@/api/lakeintelligence/model';
 import { getHyperparamSchema, startTraining } from '@/api/lakeintelligence/train';
 import ModelConfigDialog from '../components/ModelConfigDialog.vue';
+import TrainingConfigDialog from '../components/TrainingConfigDialog.vue';
 
 const router = useRouter();
 
@@ -102,6 +108,8 @@ const showSearch = ref(true);
 const total = ref(0);
 const modelList = ref([]);
 const configDialogVisible = ref(false);
+const trainDialogRef = ref(null);
+const trainDialogVisible = ref(false);
 
 const queryParams = reactive({
     pageNum: 1,
@@ -135,6 +143,13 @@ function resetQuery() {
 
 function handleAdd() {
     configDialogVisible.value = true;
+}
+
+function handleTrain(row) {
+    trainDialogRef.value?.open();
+    // 设置当前选中的模型
+    trainDialogRef.value.modelId = row.modelId;
+    trainDialogRef.value.modelName = row.modelName;
 }
 
 function handleTrainingSuccess(taskId) {
