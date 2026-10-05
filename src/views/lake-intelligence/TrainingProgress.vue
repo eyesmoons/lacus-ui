@@ -77,6 +77,21 @@
                         <div ref="chartRef" style="height: 300px; width: 100%;"></div>
                     </el-card>
 
+                    <!-- 训练完成结果 -->
+                    <el-card v-if="isCompleted" shadow="never" class="mt-3">
+                        <template #header>
+                            <span><i class="el-icon-trophy"></i> 训练结果</span>
+                        </template>
+                        <el-descriptions :column="2" border>
+                            <el-descriptions-item label="模型ID">{{ modelId || '-' }}</el-descriptions-item>
+                            <el-descriptions-item label="模型名称">{{ modelName || '-' }}</el-descriptions-item>
+                            <el-descriptions-item label="最终损失">{{ finalLossDisplay }}</el-descriptions-item>
+                            <el-descriptions-item label="训练轮数">{{ trainingEpochs || '-' }}</el-descriptions-item>
+                            <el-descriptions-item label="模型大小">{{ modelSizeDisplay }}</el-descriptions-item>
+                            <el-descriptions-item label="模型路径">{{ modelPath || '-' }}</el-descriptions-item>
+                        </el-descriptions>
+                    </el-card>
+
                     <!-- 训练完成操作 -->
                     <el-alert
                         v-if="isCompleted"
@@ -90,6 +105,9 @@
                         <template #default>
                             <el-button type="success" @click="$router.push('/lake-intelligence/vector/build')">
                                 <i class="el-icon-data-analysis"></i> 构建向量库
+                            </el-button>
+                            <el-button type="primary" @click="$router.push('/lake-intelligence/similarity/model/list')">
+                                <i class="el-icon-back"></i> 返回模型列表
                             </el-button>
                         </template>
                     </el-alert>
@@ -120,6 +138,12 @@ const trainLoss = ref(null);
 const valLoss = ref(null);
 const progressMessage = ref('');
 const lossHistory = ref([]);
+const modelId = ref(null);
+const modelName = ref(null);
+const modelPath = ref(null);
+const finalLoss = ref(null);
+const trainingEpochs = ref(null);
+const modelSizeBytes = ref(null);
 
 const statusMap = {
     training: { text: '训练中', type: 'primary' },
@@ -136,6 +160,18 @@ const statusText = computed(() => statusMap[taskStatus.value]?.text || taskStatu
 const statusTagType = computed(() => statusMap[taskStatus.value]?.type || 'info');
 const trainLossDisplay = computed(() => (trainLoss.value != null ? trainLoss.value.toFixed(4) : '-'));
 const valLossDisplay = computed(() => (valLoss.value != null ? valLoss.value.toFixed(4) : '-'));
+const finalLossDisplay = computed(() => (finalLoss.value != null ? Number(finalLoss.value).toFixed(4) : '-'));
+const modelSizeDisplay = computed(() => {
+    if (!modelSizeBytes.value) return '-';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let i = 0;
+    let size = modelSizeBytes.value;
+    while (size >= 1024 && i < units.length - 1) {
+        size /= 1024;
+        i++;
+    }
+    return size.toFixed(size < 10 && i > 0 ? 1 : 0) + ' ' + units[i];
+});
 
 const progressPct = computed(() => {
     if (!totalEpochs.value) return 0;
@@ -206,6 +242,16 @@ async function pollProgress() {
         if (data.trainLoss != null) trainLoss.value = data.trainLoss;
         if (data.valLoss != null) valLoss.value = data.valLoss;
         if (data.message) progressMessage.value = data.message;
+
+        // 训练完成时，获取模型结果
+        if (data.modelId) {
+            modelId.value = data.modelId;
+            modelName.value = data.modelName;
+            modelPath.value = data.modelPath;
+            finalLoss.value = data.finalLoss;
+            trainingEpochs.value = data.trainingEpochs;
+            modelSizeBytes.value = data.modelSizeBytes;
+        }
 
         if (data.lossHistory) {
             let history = data.lossHistory;
