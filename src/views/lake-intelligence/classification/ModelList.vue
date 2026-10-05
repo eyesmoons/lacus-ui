@@ -33,6 +33,11 @@
                     <code>{{ scope.row.modelArch || '-' }}</code>
                 </template>
             </el-table-column>
+            <el-table-column label="数据集" align="center" prop="datasetName" width="150">
+                <template #default="scope">
+                    {{ scope.row.datasetName || '-' }}
+                </template>
+            </el-table-column>
             <el-table-column label="类别数" align="center" prop="numClasses" width="90" />
             <el-table-column label="训练轮数" align="center" prop="trainingEpochs" width="100" />
             <el-table-column label="验证准确率" align="center" prop="valAccuracy" width="120">
