@@ -60,3 +60,11 @@ export function getDatasetClassStats(id) {
     method: 'get',
   });
 }
+
+// 解析数据集（统计图片数量）
+export function parseDataset(id) {
+  return request({
+    url: `/lake-intelligence/datasets/${id}/parse`,
+    method: 'post',
+  });
+}

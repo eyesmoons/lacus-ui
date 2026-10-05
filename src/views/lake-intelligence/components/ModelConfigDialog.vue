@@ -5,6 +5,7 @@
         width="600px"
         :close-on-click-modal="false"
         append-to-body
+        @open="loadDatasets"
     >
         <el-form ref="configFormRef" :model="form" :rules="rules" label-width="120px">
             <!-- 任务基本信息 -->
@@ -13,11 +14,11 @@
                 <el-input v-model="form.taskName" placeholder="例如：产品图片相似度训练" />
             </el-form-item>
             <el-form-item label="选择数据集" prop="datasetId">
-                <el-select v-model="form.datasetId" placeholder="请选择数据集" style="width: 100%">
+                <el-select v-model="form.datasetId" placeholder="请选择数据集" style="width: 100%" :key="datasetOptions.length">
                     <el-option
                         v-for="ds in datasetOptions"
                         :key="ds.datasetId"
-                        :label="`${ds.datasetName} (${ds.imageCount || 0} 张)`"
+                        :label="ds.datasetName + ' (' + (ds.imageCount || 0) + ' 张)'"
                         :value="ds.datasetId"
                     />
                 </el-select>
@@ -109,6 +110,10 @@ import { listDatasets } from '@/api/lakeintelligence/dataset';
 const { proxy } = getCurrentInstance();
 
 const props = defineProps({
+    modelValue: {
+        type: Boolean,
+        default: false,
+    },
     taskType: {
         type: String,
         default: 'SIMILARITY',
@@ -116,9 +121,12 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['submit-success']);
+const emit = defineEmits(['update:modelValue', 'success']);
 
-const dialogVisible = ref(false);
+const dialogVisible = computed({
+    get: () => props.modelValue,
+    set: (val) => emit('update:modelValue', val),
+});
 const configFormRef = ref(null);
 const submitLoading = ref(false);
 const datasetOptions = ref([]);
@@ -237,6 +245,10 @@ function resetForm() {
     }
 }
 
+watch(dialogVisible, (val) => {
+    if (val) loadDatasets();
+});
+
 function open(datasetId) {
     resetForm();
     if (datasetId) {
@@ -247,10 +259,15 @@ function open(datasetId) {
 }
 
 function loadDatasets() {
+    console.log('[ModelConfigDialog] loadDatasets called, taskType:', props.taskType);
     listDatasets({ pageNum: 1, pageSize: 100, taskType: props.taskType }).then((response) => {
+        console.log('[ModelConfigDialog] API response:', response);
         const list = response.rows || response.list || response || [];
-        datasetOptions.value = list.filter((ds) => ds.status === 'READY');
-    }).catch(() => {
+        console.log('[ModelConfigDialog] parsed list:', list);
+        datasetOptions.value = list.filter((ds) => ['READY', 'PROCESSING'].includes(ds.status));
+        console.log('[ModelConfigDialog] filtered datasetOptions:', datasetOptions.value);
+    }).catch((err) => {
+        console.error('[ModelConfigDialog] loadDatasets error:', err);
         ElMessage.error('加载数据集列表失败');
     });
 }
@@ -279,7 +296,7 @@ async function handleConfirm() {
         const result = await startTraining(payload);
         ElMessage.success('训练任务已启动！');
         dialogVisible.value = false;
-        emit('submit-success', result);
+        emit('success', result);
     } catch (err) {
         ElMessage.error('启动失败：' + err.message);
     } finally {

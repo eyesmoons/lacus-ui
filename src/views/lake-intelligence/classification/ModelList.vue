@@ -80,7 +80,7 @@
         <!-- 模型配置弹窗 -->
         <ModelConfigDialog
             v-model="configDialogVisible"
-            task-type="IMAGE_CLASSIFICATION"
+            task-type="CLASSIFICATION"
             @success="handleTrainingSuccess"
         />
     </div>

@@ -24,7 +24,6 @@
                 <el-button type="primary" plain icon="Plus" @click="handleAdd">上传分类数据集</el-button>
             </el-col>
             <el-col :span="1.5">
-                <el-button type="success" plain icon="Cpu" @click="handleTrain">启动训练</el-button>
             </el-col>
             <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
         </el-row>
@@ -76,8 +75,8 @@
             <el-table-column label="操作" align="center" fixed="right" width="200">
                 <template #default="scope">
                     <el-button-group class="ml-4">
-                        <el-tooltip content="训练" placement="top" v-if="scope.row.status === 'READY'">
-                            <el-button type="success" icon="Cpu" @click="handleTrainRow(scope.row)" />
+                        <el-tooltip content="解析" placement="top" v-if="scope.row.status === 'PROCESSING'">
+                            <el-button type="primary" icon="Refresh" @click="handleParse(scope.row)" :loading="scope.row.parsing" />
                         </el-tooltip>
                         <el-tooltip content="分类推理" placement="top" v-if="scope.row.status === 'READY'">
                             <el-button type="primary" icon="Picture" @click="handleClassify(scope.row)" />
@@ -106,7 +105,7 @@ import { onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { parseTime } from '@/utils/dateUtil';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { deleteDataset, listDatasets } from '@/api/lakeintelligence/dataset';
+import { deleteDataset, listDatasets, parseDataset } from '@/api/lakeintelligence/dataset';
 
 const router = useRouter();
 
@@ -156,16 +155,20 @@ function handleAdd() {
     router.push('/lake-intelligence/classification/dataset/upload');
 }
 
-function handleTrain() {
-    // removed training/new route;
-}
-
-function handleTrainRow(row) {
-    // removed training/new route;
-}
-
 function handleClassify(row) {
     router.push(`/lake-intelligence/classification/predict?datasetId=${row.datasetId}`);
+}
+
+function handleParse(row) {
+    row.parsing = true;
+    parseDataset(row.datasetId).then(() => {
+        ElMessage.success('数据集解析成功');
+        getList();
+    }).catch(() => {
+        ElMessage.error('数据集解析失败');
+    }).finally(() => {
+        row.parsing = false;
+    });
 }
 
 function handleDelete(row) {

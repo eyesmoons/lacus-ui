@@ -80,7 +80,7 @@
         <!-- 模型配置弹窗 -->
         <ModelConfigDialog
             v-model="configDialogVisible"
-            task-type="IMAGE_SIMILARITY"
+            task-type="SIMILARITY"
             @success="handleTrainingSuccess"
         />
     </div>

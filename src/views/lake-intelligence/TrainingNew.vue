@@ -31,7 +31,7 @@
                         </el-form-item>
                         <el-form-item label="任务类型">
                             <el-select v-model="form.taskType" style="width: 100%">
-                                <el-option label="图像相似度 (IMAGE_SIMILARITY)" value="IMAGE_SIMILARITY" />
+                                <el-option label="图像相似度 (SIMILARITY)" value="SIMILARITY" />
                             </el-select>
                         </el-form-item>
                         <el-form-item label="训练器类型">
@@ -107,7 +107,7 @@ const datasetOptions = ref([]);
 
 const form = reactive({
     taskName: '',
-    taskType: 'IMAGE_SIMILARITY',
+    taskType: 'SIMILARITY',
     datasetId: null,
     trainerType: 'similarity',
     epochs: 30,
@@ -189,7 +189,7 @@ onMounted(() => {
         form.taskType = 'CLASSIFICATION';
         form.trainerType = 'classifier';
     } else {
-        form.taskType = 'IMAGE_SIMILARITY';
+        form.taskType = 'SIMILARITY';
         form.trainerType = 'similarity';
     }
     loadDatasets();
