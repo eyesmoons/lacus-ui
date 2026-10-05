@@ -40,6 +40,11 @@
                     {{ scope.row.valAccuracy != null ? (scope.row.valAccuracy * 100).toFixed(1) + '%' : '-' }}
                 </template>
             </el-table-column>
+            <el-table-column label="模型状态" align="center" prop="status" width="120">
+                <template #default="scope">
+                    <el-tag :type="getStatusType(scope.row.status)">{{ getStatusText(scope.row.status) }}</el-tag>
+                </template>
+            </el-table-column>
             <el-table-column label="文件大小" align="center" prop="modelSizeBytes" width="100">
                 <template #default="scope">
                     {{ formatFileSize(scope.row.modelSizeBytes) }}
@@ -135,6 +140,24 @@ function handleTrainingSuccess(taskId) {
     configDialogVisible.value = false;
     ElMessage.success('训练任务已启动');
     router.push(`/lake-intelligence/classification/training/${taskId}`);
+}
+
+function getStatusType(status) {
+    switch (status) {
+        case 'TRAINING_COMPLETED': return 'success';
+        case 'TRAINING_FAILED': return 'danger';
+        case 'TRAINING':
+        default: return 'warning';
+    }
+}
+
+function getStatusText(status) {
+    switch (status) {
+        case 'TRAINING_COMPLETED': return '训练完成';
+        case 'TRAINING_FAILED': return '训练失败';
+        case 'TRAINING':
+        default: return '训练中';
+    }
 }
 
 function formatFileSize(bytes) {
