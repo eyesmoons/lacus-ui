@@ -507,6 +507,18 @@ export const constantRoutes = [
         name: 'LakeIntelligenceTasks',
         meta: { title: '任务管理', icon: 'list' },
       },
+      {
+        path: 'training/new',
+        component: () => import('@/views/lake-intelligence/TrainingNew.vue'),
+        name: 'LakeIntelligenceTrainingNew',
+        meta: { title: '新建训练', activeMenu: '/lake-intelligence/tasks' },
+      },
+      {
+        path: 'training/:id',
+        component: () => import('@/views/lake-intelligence/TrainingProgress.vue'),
+        name: 'LakeIntelligenceTrainingProgress',
+        meta: { title: '训练进度', activeMenu: '/lake-intelligence/tasks' },
+      },
     ],
   },
 ];

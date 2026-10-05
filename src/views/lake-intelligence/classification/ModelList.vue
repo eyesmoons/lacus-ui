@@ -60,9 +60,12 @@
                     {{ parseTime(scope.row.createTime) }}
                 </template>
             </el-table-column>
-            <el-table-column label="操作" align="center" fixed="right" width="200">
+            <el-table-column label="操作" align="center" fixed="right" width="260">
                 <template #default="scope">
                     <el-button-group class="ml-4">
+                        <el-tooltip content="训练" placement="top">
+                            <el-button type="warning" icon="VideoPlay" @click="handleTrain(scope.row)" :disabled="scope.row.status !== 'PENDING'" />
+                        </el-tooltip>
                         <el-tooltip content="编辑" placement="top">
                             <el-button type="primary" icon="Edit" @click="handleEdit(scope.row)" />
                         </el-tooltip>
@@ -87,6 +90,8 @@
         />
         <!-- 模型配置弹窗 -->
         <ModelConfigDialog ref="configDialogRef" v-model="configDialogVisible" :model="editingModel" @success="getList" />
+        <!-- 训练参数弹窗 -->
+        <TrainDialog ref="trainDialogRef" v-model="trainDialogVisible" :model="trainingModel" @success="getList" />
     </div>
 </template>
 
@@ -96,6 +101,7 @@ import { parseTime } from '@/utils/dateUtil';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { deleteModel, downloadModel, listModels } from '@/api/lakeintelligence/model';
 import ModelConfigDialog from '../components/ModelConfigDialog.vue';
+import TrainDialog from '../components/TrainDialog.vue';
 
 const loading = ref(false);
 const showSearch = ref(true);
@@ -104,6 +110,9 @@ const modelList = ref([]);
 const configDialogVisible = ref(false);
 const configDialogRef = ref(null);
 const editingModel = ref(null);
+const trainDialogVisible = ref(false);
+const trainDialogRef = ref(null);
+const trainingModel = ref(null);
 
 const queryParams = reactive({
     pageNum: 1,
@@ -145,12 +154,18 @@ function handleEdit(row) {
     configDialogVisible.value = true;
 }
 
+function handleTrain(row) {
+    trainingModel.value = row;
+    trainDialogVisible.value = true;
+}
+
 function getStatusType(status) {
     switch (status) {
         case 'TRAINING_COMPLETED': return 'success';
         case 'TRAINING_FAILED': return 'danger';
-        case 'TRAINING':
-        default: return 'warning';
+        case 'TRAINING': return 'warning';
+        case 'PENDING': return 'info';
+        default: return 'info';
     }
 }
 
@@ -158,8 +173,9 @@ function getStatusText(status) {
     switch (status) {
         case 'TRAINING_COMPLETED': return '训练完成';
         case 'TRAINING_FAILED': return '训练失败';
-        case 'TRAINING':
-        default: return '训练中';
+        case 'TRAINING': return '训练中';
+        case 'PENDING': return '待训练';
+        default: return status;
     }
 }
 

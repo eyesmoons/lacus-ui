@@ -62,3 +62,12 @@ export function listModelArchitectures(taskType) {
     params: { taskType: taskType },
   });
 }
+
+// 启动模型训练
+export function trainModel(id, data) {
+  return request({
+    url: `/lake-intelligence/models/${id}/train`,
+    method: 'post',
+    data,
+  });
+}
