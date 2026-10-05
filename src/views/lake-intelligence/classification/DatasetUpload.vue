@@ -354,6 +354,7 @@ async function handleSubmit() {
             storageSource: form.storageSource,
             sourceConfig: JSON.stringify(sourceConfig),
             taskType: 'CLASSIFICATION',
+            status: localPath ? 'READY' : 'PROCESSING',
             labelFile: csvFile.value ? csvFile.value.name : undefined,
             creatorId: 'current-user',
         };

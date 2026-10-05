@@ -320,6 +320,7 @@ async function handleSubmit() {
             storageSource: form.storageSource,
             sourceConfig: JSON.stringify(sourceConfig),
             taskType: 'SIMILARITY',
+            status: localPath ? 'READY' : 'PROCESSING',
             creatorId: 'current-user',
         };
         const result = await createDataset(payload);
