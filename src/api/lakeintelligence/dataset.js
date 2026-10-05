@@ -68,3 +68,16 @@ export function parseDataset(id) {
     method: 'post',
   });
 }
+
+// 上传数据集文件
+export function uploadDatasetFile(file, onProgress) {
+  const formData = new FormData();
+  formData.append('file', file);
+  return request({
+    url: '/lake-intelligence/datasets/upload',
+    method: 'post',
+    data: formData,
+    headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress: onProgress,
+  });
+}

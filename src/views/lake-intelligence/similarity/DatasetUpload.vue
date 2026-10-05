@@ -137,7 +137,7 @@
 import { ref, reactive, getCurrentInstance } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { createDataset, probeSource } from '@/api/lakeintelligence/dataset';
+import { createDataset, probeSource, uploadDatasetFile } from '@/api/lakeintelligence/dataset';
 import { UploadFilled } from '@element-plus/icons-vue';
 
 const router = useRouter();
@@ -281,6 +281,11 @@ async function handleSubmit() {
         return;
     }
 
+    if (form.storageSource === 'LOCAL' && !selectedFile.value) {
+        ElMessage.warning('请选择要上传的文件');
+        return;
+    }
+
     const uri = getUri();
     if (!uri) {
         ElMessage.warning('请先选择文件或填写数据源地址');
@@ -289,11 +294,31 @@ async function handleSubmit() {
 
     submitLoading.value = true;
     try {
+        let localPath = null;
+        let imageCount = 0;
+
+        // 本地上传：先上传文件
+        if (form.storageSource === 'LOCAL' && selectedFile.value) {
+            const uploadRes = await uploadDatasetFile(selectedFile.value, (progressEvent) => {
+                if (progressEvent.total) {
+                    const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    ElMessage.success(`上传进度：${percent}%`);
+                }
+            });
+            localPath = uploadRes.localPath || uploadRes.data?.localPath;
+            imageCount = uploadRes.imageCount || uploadRes.data?.imageCount || 0;
+        }
+
+        // 创建数据集
+        const sourceConfig = JSON.parse(JSON.stringify(getSourceConfig()));
+        if (localPath) {
+            sourceConfig.localPath = localPath;
+        }
         const payload = {
             datasetName: form.datasetName,
             description: form.description,
             storageSource: form.storageSource,
-            sourceConfig: JSON.stringify(getSourceConfig()),
+            sourceConfig: JSON.stringify(sourceConfig),
             taskType: 'SIMILARITY',
             creatorId: 'current-user',
         };
