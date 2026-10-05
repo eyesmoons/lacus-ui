@@ -58,8 +58,8 @@
             <el-table-column label="操作" align="center" fixed="right" width="200">
                 <template #default="scope">
                     <el-button-group class="ml-4">
-                        <el-tooltip content="训练" placement="top">
-                            <el-button type="primary" icon="VideoPlay" @click="handleTrain(scope.row)" />
+                        <el-tooltip content="编辑" placement="top">
+                            <el-button type="primary" icon="Edit" @click="handleEdit(scope.row)" />
                         </el-tooltip>
                         <el-tooltip content="下载" placement="top">
                             <el-button type="success" icon="Download" @click="handleDownload(scope.row)" />
@@ -81,35 +81,24 @@
             @pagination="getList"
         />
         <!-- 模型配置弹窗 -->
-        <ModelConfigDialog
-            v-model="configDialogVisible"
-            task-type="SIMILARITY"
-            @success="handleTrainingSuccess"
-        />
-        <!-- 训练配置弹窗 -->
-        <TrainingConfigDialog ref="trainDialogRef" v-model="trainDialogVisible" task-type="SIMILARITY" @success="getList" />
+        <ModelConfigDialog ref="configDialogRef" v-model="configDialogVisible" :model="editingModel" @success="getList" />
     </div>
 </template>
 
 <script setup>
 import { onMounted, reactive, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
 import { parseTime } from '@/utils/dateUtil';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { deleteModel, downloadModel, listModels } from '@/api/lakeintelligence/model';
-import { getHyperparamSchema, startTraining } from '@/api/lakeintelligence/train';
 import ModelConfigDialog from '../components/ModelConfigDialog.vue';
-import TrainingConfigDialog from '../components/TrainingConfigDialog.vue';
-
-const router = useRouter();
 
 const loading = ref(false);
 const showSearch = ref(true);
 const total = ref(0);
 const modelList = ref([]);
 const configDialogVisible = ref(false);
-const trainDialogRef = ref(null);
-const trainDialogVisible = ref(false);
+const configDialogRef = ref(null);
+const editingModel = ref(null);
 
 const queryParams = reactive({
     pageNum: 1,
@@ -142,21 +131,13 @@ function resetQuery() {
 }
 
 function handleAdd() {
+    editingModel.value = null;
     configDialogVisible.value = true;
 }
 
-function handleTrain(row) {
-    trainDialogRef.value?.open();
-    // 设置当前选中的模型
-    trainDialogRef.value.modelId = row.modelId;
-    trainDialogRef.value.modelName = row.modelName;
-}
-
-function handleTrainingSuccess(taskId) {
-    configDialogVisible.value = false;
-    ElMessage.success('训练任务已启动');
-    // 跳转到训练进度页
-    router.push(`/lake-intelligence/similarity/training/${taskId}`);
+function handleEdit(row) {
+    editingModel.value = row;
+    configDialogVisible.value = true;
 }
 
 function getStatusType(status) {
@@ -217,6 +198,15 @@ function handleDelete(row) {
         })
         .catch(() => {});
 }
+
+watch(
+    () => configDialogVisible,
+    (val) => {
+        if (!val) {
+            editingModel.value = null;
+        }
+    }
+);
 
 watch(
     () => queryParams.pageSize,

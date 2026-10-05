@@ -19,6 +19,24 @@ export function getModel(id) {
   });
 }
 
+// 创建模型
+export function createModel(data) {
+  return request({
+    url: '/lake-intelligence/models',
+    method: 'post',
+    data,
+  });
+}
+
+// 更新模型
+export function updateModel(data) {
+  return request({
+    url: `/lake-intelligence/models/${data.modelId}`,
+    method: 'put',
+    data,
+  });
+}
+
 // 下载模型
 export function downloadModel(id) {
   return request({
