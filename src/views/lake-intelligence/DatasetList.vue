@@ -75,9 +75,6 @@
                         <el-tooltip content="解析" placement="top" v-if="scope.row.status === 'PROCESSING'">
                             <el-button type="primary" icon="Refresh" @click="handleParse(scope.row)" :loading="scope.row.parsing" />
                         </el-tooltip>
-                        <el-tooltip content="构建向量" placement="top" v-if="scope.row.status === 'READY'">
-                            <el-button type="primary" icon="DataAnalysis" @click="handleBuildVector(scope.row)" />
-                        </el-tooltip>
                         <el-tooltip content="删除" placement="top">
                             <el-button type="danger" icon="Delete" @click="handleDelete(scope.row)" />
                         </el-tooltip>
@@ -141,10 +138,6 @@ function resetQuery() {
 
 function handleAdd() {
     router.push('/lake-intelligence/dataset/upload');
-}
-
-function handleBuildVector(row) {
-    router.push(`/lake-intelligence/similarity/vector/build?datasetId=${row.datasetId}`);
 }
 
 function handleParse(row) {
