@@ -1,8 +1,8 @@
 <template>
     <div class="app-container">
         <el-radio-group v-model="queryParams.taskType" @change="handleTaskTypeChange" class="mb8">
-            <el-radio-button label="SIMILARITY">以图搜图</el-radio-button>
-            <el-radio-button label="CLASSIFICATION">图片分类</el-radio-button>
+            <el-radio label="SIMILARITY">以图搜图</el-radio>
+            <el-radio label="CLASSIFICATION">图片分类</el-radio>
         </el-radio-group>
 
         <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="90px">
