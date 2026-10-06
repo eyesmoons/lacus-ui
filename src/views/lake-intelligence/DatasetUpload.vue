@@ -149,8 +149,7 @@ const rules = {
 };
 
 function handleFileChange(file) {
-    uploadRef.value.clearFiles();
-    uploadRef.value.handleStart(file.raw);
+    // 文件已选中，无需额外操作
 }
 
 function handleExceed() {
