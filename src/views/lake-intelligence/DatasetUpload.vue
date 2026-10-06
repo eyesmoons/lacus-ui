@@ -195,6 +195,7 @@ async function handleSubmit() {
                 localPath: result.localPath,
                 fileName: result.fileName,
             });
+            payload.imageCount = result.imageCount;
             payload.status = 'READY';
         } else if (form.storageSource === 'HDFS') {
             payload.sourceConfig = JSON.stringify({
