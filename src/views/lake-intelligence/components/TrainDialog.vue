@@ -46,6 +46,10 @@ import { trainModel } from '@/api/lakeintelligence/model';
 const props = defineProps({
     modelValue: Boolean,
     model: Object,
+    taskType: {
+        type: String,
+        default: 'SIMILARITY',
+    },
 });
 
 const emit = defineEmits(['update:modelValue', 'success']);
@@ -95,9 +99,9 @@ async function handleSubmit() {
     try {
         await trainModel(props.model.modelId, {
             taskName: form.taskName,
-            taskType: 'SIMILARITY',
+            taskType: props.taskType,
             datasetId: props.model.datasetId,
-            trainerType: 'similarity',
+            trainerType: props.taskType === 'CLASSIFICATION' ? 'classifier' : 'similarity',
             epochs: form.epochs,
             batchSize: form.batchSize,
             learningRate: Math.pow(10, form.lrLog),

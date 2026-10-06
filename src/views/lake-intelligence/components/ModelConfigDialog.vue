@@ -23,6 +23,10 @@
                     />
                 </el-select>
             </el-form-item>
+            <el-form-item label="CSV 标签文件" prop="labelFilePath" v-if="props.taskType === 'CLASSIFICATION'">
+                <el-input v-model="form.labelFilePath" placeholder="请输入 CSV 标签文件路径" />
+                <div class="form-tip">CSV 格式：filename, label（第一行为表头）</div>
+            </el-form-item>
         </el-form>
         <template #footer>
             <el-button @click="dialogVisible = false">取消</el-button>
@@ -63,6 +67,7 @@ const form = reactive({
     modelName: '',
     description: '',
     datasetId: null,
+    labelFilePath: '',
 });
 
 const rules = {
