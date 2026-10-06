@@ -52,11 +52,14 @@
                     {{ parseTime(scope.row.createTime) }}
                 </template>
             </el-table-column>
-            <el-table-column label="操作" align="center" fixed="right" width="260">
+            <el-table-column label="操作" align="center" fixed="right" width="320">
                 <template #default="scope">
                     <el-button-group class="ml-4">
                         <el-tooltip content="训练" placement="top">
                             <el-button type="warning" icon="VideoPlay" @click="handleTrain(scope.row)" />
+                        </el-tooltip>
+                        <el-tooltip content="训练历史" placement="top">
+                            <el-button type="info" icon="Clock" @click="handleViewHistory(scope.row)" />
                         </el-tooltip>
                         <el-tooltip content="编辑" placement="top">
                             <el-button type="primary" icon="Edit" @click="handleEdit(scope.row)" />
@@ -86,11 +89,14 @@
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { parseTime } from '@/utils/dateUtil';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { deleteModel, downloadModel, listModels } from '@/api/lakeintelligence/model';
 import ModelConfigDialog from './components/ModelConfigDialog.vue';
 import TrainDialog from './components/TrainDialog.vue';
+
+const router = useRouter();
 
 const loading = ref(false);
 const showSearch = ref(true);
@@ -149,6 +155,10 @@ function handleEdit(row) {
 function handleTrain(row) {
     trainingModel.value = row;
     trainDialogVisible.value = true;
+}
+
+function handleViewHistory(row) {
+    router.push(`/lake-intelligence/tasks?modelId=${row.modelId}`);
 }
 
 function getStatusType(status) {
