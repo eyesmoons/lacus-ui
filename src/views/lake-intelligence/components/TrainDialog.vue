@@ -30,6 +30,10 @@
                     <el-option label="CUDA (GPU)" value="cuda" />
                 </el-select>
             </el-form-item>
+            <el-form-item label="标签文件">
+                <el-input v-model="form.labelFilePath" placeholder="CSV 标签文件路径（可选）" />
+                <div class="form-tip">CSV 格式：filename, label（第一行为表头）。留空则按目录结构自动标注。</div>
+            </el-form-item>
         </el-form>
         <template #footer>
             <el-button @click="dialogVisible = false">取消</el-button>
@@ -68,6 +72,7 @@ const form = reactive({
     lrLog: -3,
     batchSize: 32,
     device: 'cpu',
+    labelFilePath: '',
 });
 
 const rules = {
@@ -99,13 +104,14 @@ async function handleSubmit() {
     try {
         await trainModel(props.model.modelId, {
             taskName: form.taskName,
-            taskType: props.taskType,
+            taskType: 'SIMILARITY',
             datasetId: props.model.datasetId,
-            trainerType: props.taskType === 'CLASSIFICATION' ? 'classifier' : 'similarity',
+            trainerType: 'similarity',
             epochs: form.epochs,
             batchSize: form.batchSize,
             learningRate: Math.pow(10, form.lrLog),
             device: form.device,
+            labelFilePath: form.labelFilePath || undefined,
         });
         ElMessage.success('训练任务已启动');
         dialogVisible.value = false;

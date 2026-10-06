@@ -1,10 +1,5 @@
 <template>
     <div class="app-container">
-        <el-radio-group v-model="queryParams.taskType" @change="handleTaskTypeChange" class="mb8">
-            <el-radio label="SIMILARITY">以图搜图</el-radio>
-            <el-radio label="CLASSIFICATION">图片分类</el-radio>
-        </el-radio-group>
-
         <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="90px">
             <el-form-item label="模型名称" prop="modelName">
                 <el-input v-model="queryParams.modelName" placeholder="搜索模型名称..." clearable @keyup.enter="handleQuery" />
@@ -30,9 +25,9 @@
                     {{ scope.row.datasetName || '-' }}
                 </template>
             </el-table-column>
-            <el-table-column label="Embedding 维度" align="center" prop="embeddingDim" width="130" v-if="queryParams.taskType === 'SIMILARITY'" />
+            <el-table-column label="Embedding 维度" align="center" prop="embeddingDim" width="130" />
             <el-table-column label="训练轮数" align="center" prop="trainingEpochs" width="100" />
-            <el-table-column label="最终损失" align="center" prop="finalLoss" width="100" v-if="queryParams.taskType === 'SIMILARITY'">
+            <el-table-column label="最终损失" align="center" prop="finalLoss" width="100">
                 <template #default="scope">
                     {{ scope.row.finalLoss != null ? Number(scope.row.finalLoss).toFixed(4) : '-' }}
                 </template>
@@ -82,8 +77,8 @@
             v-model:limit="queryParams.pageSize"
             @pagination="getList"
         />
-        <ModelConfigDialog ref="configDialogRef" v-model="configDialogVisible" :model="editingModel" :task-type="queryParams.taskType" @success="getList" />
-        <TrainDialog ref="trainDialogRef" v-model="trainDialogVisible" :model="trainingModel" :task-type="queryParams.taskType" @success="getList" />
+        <ModelConfigDialog ref="configDialogRef" v-model="configDialogVisible" :model="editingModel" @success="getList" />
+        <TrainDialog ref="trainDialogRef" v-model="trainDialogVisible" :model="trainingModel" @success="getList" />
     </div>
 </template>
 
@@ -113,7 +108,6 @@ const queryParams = reactive({
     pageNum: 1,
     pageSize: 10,
     modelName: undefined,
-    taskType: 'SIMILARITY',
 });
 
 function getList() {
@@ -125,11 +119,6 @@ function getList() {
     }).catch(() => {
         loading.value = false;
     });
-}
-
-function handleTaskTypeChange() {
-    queryParams.pageNum = 1;
-    getList();
 }
 
 function handleQuery() {
