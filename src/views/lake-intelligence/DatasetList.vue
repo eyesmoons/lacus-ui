@@ -1,10 +1,5 @@
 <template>
     <div class="app-container">
-        <el-radio-group v-model="queryParams.taskType" @change="handleTaskTypeChange" class="mb8">
-            <el-radio label="SIMILARITY">以图搜图</el-radio>
-            <el-radio label="CLASSIFICATION">图片分类</el-radio>
-        </el-radio-group>
-
         <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="90px">
             <el-form-item label="数据集名称" prop="datasetName">
                 <el-input v-model="queryParams.datasetName" placeholder="请输入数据集名称" clearable @keyup.enter="handleQuery" />
@@ -44,7 +39,7 @@
             <el-table-column label="ID" align="center" prop="datasetId" width="80" />
             <el-table-column label="数据集名称" align="left" prop="datasetName" />
             <el-table-column label="描述" align="left" prop="description" show-overflow-tooltip />
-            <el-table-column label="数据源" align="center" prop="storageSource" width="100" v-if="queryParams.taskType === 'SIMILARITY'">
+            <el-table-column label="数据源" align="center" prop="storageSource" width="100">
                 <template #default="scope">
                     <el-tag v-if="scope.row.storageSource === 'LOCAL'">本地</el-tag>
                     <el-tag v-else-if="scope.row.storageSource === 'HDFS'" type="warning">HDFS</el-tag>
@@ -80,7 +75,7 @@
                         <el-tooltip content="解析" placement="top" v-if="scope.row.status === 'PROCESSING'">
                             <el-button type="primary" icon="Refresh" @click="handleParse(scope.row)" :loading="scope.row.parsing" />
                         </el-tooltip>
-                        <el-tooltip content="构建向量" placement="top" v-if="scope.row.status === 'READY' && queryParams.taskType === 'SIMILARITY'">
+                        <el-tooltip content="构建向量" placement="top" v-if="scope.row.status === 'READY'">
                             <el-button type="primary" icon="DataAnalysis" @click="handleBuildVector(scope.row)" />
                         </el-tooltip>
                         <el-tooltip content="删除" placement="top">
@@ -121,7 +116,6 @@ const queryParams = reactive({
     datasetName: undefined,
     storageSource: undefined,
     status: undefined,
-    taskType: 'SIMILARITY',
 });
 
 function getList() {
@@ -131,12 +125,6 @@ function getList() {
         total.value = response.total;
         loading.value = false;
     });
-}
-
-function handleTaskTypeChange() {
-    queryParams.pageNum = 1;
-    queryParams.storageSource = undefined;
-    getList();
 }
 
 function handleQuery() {

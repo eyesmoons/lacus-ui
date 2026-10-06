@@ -15,12 +15,6 @@
 
                     <el-form ref="datasetFormRef" :model="form" :rules="rules" label-width="120px">
                         <el-divider content-position="left">基本信息</el-divider>
-                        <el-form-item label="任务类型" prop="taskType">
-                            <el-radio-group v-model="form.taskType">
-                                <el-radio label="SIMILARITY">以图搜图</el-radio>
-                                <el-radio label="CLASSIFICATION">图片分类</el-radio>
-                            </el-radio-group>
-                        </el-form-item>
                         <el-form-item label="数据集名称" prop="datasetName">
                             <el-input v-model="form.datasetName" placeholder="例如：产品图片库" />
                         </el-form-item>
@@ -136,7 +130,6 @@ const submitting = ref(false);
 const testing = ref(false);
 
 const form = reactive({
-    taskType: 'SIMILARITY',
     datasetName: '',
     description: '',
     storageSource: 'LOCAL',
@@ -187,7 +180,6 @@ async function handleSubmit() {
             datasetName: form.datasetName,
             description: form.description,
             storageSource: form.storageSource,
-            taskType: form.taskType,
             status: 'PROCESSING',
         };
 
