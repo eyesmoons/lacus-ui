@@ -50,6 +50,13 @@
                     {{ parseTime(scope.row.createTime) }}
                 </template>
             </el-table-column>
+            <el-table-column label="操作" align="center" width="120" fixed="right">
+                <template #default="scope">
+                    <el-button type="primary" link @click="handleViewProgress(scope.row)">
+                        <i class="el-icon-data-line"></i> 查看进度
+                    </el-button>
+                </template>
+            </el-table-column>
         </el-table>
 
         <pagination
@@ -64,8 +71,11 @@
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { parseTime } from '@/utils/dateUtil';
 import { listTasks } from '@/api/lakeintelligence/task';
+
+const router = useRouter();
 
 const loading = ref(false);
 const showSearch = ref(true);
@@ -101,6 +111,10 @@ function resetQuery() {
     queryParams.status = undefined;
     queryParams.taskType = undefined;
     handleQuery();
+}
+
+function handleViewProgress(row) {
+    router.push(`/lake-intelligence/training/${row.taskId}`);
 }
 
 function getStatusType(status) {
