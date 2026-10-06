@@ -49,7 +49,7 @@
                     <el-tag v-else>{{ scope.row.storageSource }}</el-tag>
                 </template>
             </el-table-column>
-            <el-table-column label="图片数量" align="center" prop="imageCount" width="100">
+            <el-table-column label="数据集大小" align="center" prop="imageCount" width="100">
                 <template #default="scope">
                     {{ scope.row.imageCount || 0 }}
                 </template>
