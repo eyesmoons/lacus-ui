@@ -28,11 +28,6 @@
         <el-table v-loading="loading" :data="modelList" stripe border>
             <el-table-column label="ID" align="center" prop="modelId" width="80" />
             <el-table-column label="模型名称" align="left" prop="modelName" />
-            <el-table-column label="架构" align="left" prop="modelArch">
-                <template #default="scope">
-                    <code>{{ scope.row.modelArch || '-' }}</code>
-                </template>
-            </el-table-column>
             <el-table-column label="数据集" align="center" prop="datasetName" width="150">
                 <template #default="scope">
                     {{ scope.row.datasetName || '-' }}
@@ -64,7 +59,7 @@
                 <template #default="scope">
                     <el-button-group class="ml-4">
                         <el-tooltip content="训练" placement="top">
-                            <el-button type="warning" icon="VideoPlay" @click="handleTrain(scope.row)" :disabled="scope.row.status !== 'PENDING'" />
+                            <el-button type="warning" icon="VideoPlay" @click="handleTrain(scope.row)" />
                         </el-tooltip>
                         <el-tooltip content="编辑" placement="top">
                             <el-button type="primary" icon="Edit" @click="handleEdit(scope.row)" />
