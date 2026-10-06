@@ -7,8 +7,8 @@
                         <div class="card-header">
                             <span><i class="el-icon-s-data"></i> 训练进度</span>
                             <div>
-                                <el-button text @click="$router.push('/lake-intelligence/similarity/dataset/list')">
-                                    <i class="el-icon-back"></i> 返回配置
+                                <el-button text @click="$router.push('/lake-intelligence/tasks')">
+                                    <i class="el-icon-back"></i> 返回任务列表
                                 </el-button>
                                 <el-button
                                     type="danger"
@@ -21,7 +21,6 @@
                             </div>
                         </div>
                     </template>
-                    <p class="text-muted mb-4">实时监控模型训练状态与损失曲线</p>
 
                     <!-- 状态卡片 -->
                     <el-row :gutter="20" class="status-row">
@@ -69,15 +68,7 @@
                         <div class="text-muted small mt-2">{{ progressMessage }}</div>
                     </el-card>
 
-                    <!-- 损失曲线 -->
-                    <el-card shadow="never" class="mt-3">
-                        <template #header>
-                            <span><i class="el-icon-data-line"></i> 损失曲线</span>
-                        </template>
-                        <div ref="chartRef" style="height: 300px; width: 100%;"></div>
-                    </el-card>
-
-                    <!-- 训练完成结果 -->
+                    <!-- 训练结果 -->
                     <el-card v-if="isCompleted" shadow="never" class="mt-3">
                         <template #header>
                             <span><i class="el-icon-trophy"></i> 训练结果</span>
@@ -103,10 +94,10 @@
                         class="mt-3"
                     >
                         <template #default>
-                            <el-button type="success" @click="$router.push('/lake-intelligence/vector/build')">
+                            <el-button type="success" @click="$router.push('/lake-intelligence/similarity/vector/build')">
                                 <i class="el-icon-data-analysis"></i> 构建向量库
                             </el-button>
-                            <el-button type="primary" @click="$router.push('/lake-intelligence/similarity/model/list')">
+                            <el-button type="primary" @click="$router.push('/lake-intelligence/model/list')">
                                 <i class="el-icon-back"></i> 返回模型列表
                             </el-button>
                         </template>
@@ -118,10 +109,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref, nextTick } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import * as echarts from 'echarts';
 import { getProgress, cancelTraining } from '@/api/lakeintelligence/train';
 
 const route = useRoute();
@@ -129,15 +119,12 @@ const router = useRouter();
 
 const taskId = ref(null);
 const pollTimer = ref(null);
-const chartRef = ref(null);
-const chartInstance = ref(null);
 const taskStatus = ref('PENDING');
 const currentEpoch = ref(0);
 const totalEpochs = ref(0);
 const trainLoss = ref(null);
 const valLoss = ref(null);
 const progressMessage = ref('');
-const lossHistory = ref([]);
 const modelId = ref(null);
 const modelName = ref(null);
 const modelPath = ref(null);
@@ -193,45 +180,6 @@ const isCompleted = computed(() => {
     return taskStatus.value === 'completed' || taskStatus.value === 'COMPLETED';
 });
 
-function initChart() {
-    if (!chartRef.value) return;
-    chartInstance.value = echarts.init(chartRef.value);
-    updateChart();
-}
-
-function updateChart() {
-    if (!chartInstance.value) return;
-    chartInstance.value.setOption({
-        tooltip: { trigger: 'axis' },
-        legend: { data: ['训练损失', '验证损失'] },
-        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-        xAxis: {
-            type: 'category',
-            name: '轮次',
-            data: lossHistory.value.map((_, i) => i + 1),
-        },
-        yAxis: { type: 'value', name: '损失值' },
-        series: [
-            {
-                name: '训练损失',
-                type: 'line',
-                data: lossHistory.value.map((item) => item.trainLoss),
-                smooth: true,
-                itemStyle: { color: '#409EFF' },
-                areaStyle: { color: 'rgba(64, 158, 255, 0.1)' },
-            },
-            {
-                name: '验证损失',
-                type: 'line',
-                data: lossHistory.value.map((item) => item.valLoss),
-                smooth: true,
-                itemStyle: { color: '#E6A23C' },
-                areaStyle: { color: 'rgba(230, 162, 60, 0.1)' },
-            },
-        ],
-    });
-}
-
 async function pollProgress() {
     if (!taskId.value) return;
     try {
@@ -243,7 +191,6 @@ async function pollProgress() {
         if (data.valLoss != null) valLoss.value = data.valLoss;
         if (data.message) progressMessage.value = data.message;
 
-        // 训练完成时，获取模型结果
         if (data.modelId) {
             modelId.value = data.modelId;
             modelName.value = data.modelName;
@@ -251,17 +198,6 @@ async function pollProgress() {
             finalLoss.value = data.finalLoss;
             trainingEpochs.value = data.trainingEpochs;
             modelSizeBytes.value = data.modelSizeBytes;
-        }
-
-        if (data.lossHistory) {
-            let history = data.lossHistory;
-            if (typeof history === 'string') {
-                try { history = JSON.parse(history); } catch (e) { history = []; }
-            }
-            if (Array.isArray(history)) {
-                lossHistory.value = history;
-                updateChart();
-            }
         }
 
         if (['training', 'PENDING'].includes(data.status)) {
@@ -291,27 +227,12 @@ function handleCancel() {
 onMounted(() => {
     taskId.value = route.params.id;
     if (taskId.value) {
-        nextTick(() => {
-            initChart();
-        });
         pollProgress();
     }
-    window.addEventListener('resize', handleResize);
 });
-
-function handleResize() {
-    if (chartInstance.value) {
-        chartInstance.value.resize();
-    }
-}
 
 onUnmounted(() => {
     if (pollTimer.value) clearTimeout(pollTimer.value);
-    if (chartInstance.value) {
-        chartInstance.value.dispose();
-        chartInstance.value = null;
-    }
-    window.removeEventListener('resize', handleResize);
 });
 </script>
 
@@ -324,10 +245,6 @@ onUnmounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-}
-
-.text-muted {
-    color: #909399;
 }
 
 .mb-4 {
@@ -377,5 +294,9 @@ onUnmounted(() => {
 
 .small {
     font-size: 12px;
+}
+
+.text-muted {
+    color: #909399;
 }
 </style>
