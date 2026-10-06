@@ -128,6 +128,7 @@ const datasetFormRef = ref(null);
 const uploadRef = ref(null);
 const submitting = ref(false);
 const testing = ref(false);
+const selectedFile = ref(null);
 
 const form = reactive({
     datasetName: '',
@@ -149,7 +150,7 @@ const rules = {
 };
 
 function handleFileChange(file) {
-    // 文件已选中，无需额外操作
+    selectedFile.value = file.raw;
 }
 
 function handleExceed() {
@@ -183,7 +184,7 @@ async function handleSubmit() {
         };
 
         if (form.storageSource === 'LOCAL') {
-            const file = uploadRef.value.uploadFiles[0]?.raw;
+            const file = selectedFile.value;
             if (!file) {
                 ElMessage.error('请选择要上传的文件');
                 submitting.value = false;
