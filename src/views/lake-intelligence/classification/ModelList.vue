@@ -4,14 +4,6 @@
             <el-form-item label="模型名称" prop="modelName">
                 <el-input v-model="queryParams.modelName" placeholder="搜索模型名称..." clearable @keyup.enter="handleQuery" />
             </el-form-item>
-            <el-form-item label="架构" prop="modelArch">
-                <el-select v-model="queryParams.modelArch" placeholder="请选择架构" clearable>
-                    <el-option label="全部" value="" />
-                    <el-option label="ResNet18" value="ResNet18" />
-                    <el-option label="ResNet50" value="ResNet50" />
-                    <el-option label="MobileNetV2" value="MobileNetV2" />
-                </el-select>
-            </el-form-item>
             <el-form-item>
                 <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
                 <el-button icon="Refresh" @click="resetQuery">重置</el-button>
@@ -113,7 +105,6 @@ const queryParams = reactive({
     pageNum: 1,
     pageSize: 10,
     modelName: undefined,
-    modelArch: undefined,
     taskType: 'CLASSIFICATION',
 });
 
@@ -135,7 +126,6 @@ function handleQuery() {
 
 function resetQuery() {
     queryParams.modelName = undefined;
-    queryParams.modelArch = undefined;
     handleQuery();
 }
 
