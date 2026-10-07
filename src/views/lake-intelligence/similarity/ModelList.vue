@@ -126,8 +126,12 @@ function handleQuery() {
 
 function resetQuery() {
     queryParams.modelName = undefined;
-    queryParams.modelArch = undefined;
     handleQuery();
+}
+
+function handleTrain(row) {
+    trainingModel.value = row;
+    trainDialogVisible.value = true;
 }
 
 function handleAdd() {
@@ -138,11 +142,6 @@ function handleAdd() {
 function handleEdit(row) {
     editingModel.value = row;
     configDialogVisible.value = true;
-}
-
-function handleTrain(row) {
-    trainingModel.value = row;
-    trainDialogVisible.value = true;
 }
 
 function getStatusType(status) {
