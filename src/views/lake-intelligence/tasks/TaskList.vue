@@ -71,10 +71,11 @@
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { parseTime } from '@/utils/dateUtil';
 import { listTasks } from '@/api/lakeintelligence/task';
 
+const route = useRoute();
 const router = useRouter();
 
 const loading = ref(false);
@@ -88,6 +89,7 @@ const queryParams = reactive({
     taskName: undefined,
     status: undefined,
     taskType: undefined,
+    modelId: undefined,
 });
 
 function getList() {
@@ -139,6 +141,10 @@ function getStatusText(status) {
 }
 
 onMounted(() => {
+    // 从模型列表"训练历史"跳转而来时，按模型过滤
+    if (route.query.modelId) {
+        queryParams.modelId = route.query.modelId;
+    }
     getList();
 });
 </script>

@@ -28,6 +28,7 @@
                 <el-select v-model="form.device" style="width: 100%">
                     <el-option label="CPU" value="cpu" />
                     <el-option label="CUDA (GPU)" value="cuda" />
+                    <el-option label="MPS (Apple GPU)" value="mps" />
                 </el-select>
             </el-form-item>
             <el-form-item label="标签文件">

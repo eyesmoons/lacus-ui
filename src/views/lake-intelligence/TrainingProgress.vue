@@ -68,6 +68,14 @@
                         <div class="text-muted small mt-2">{{ progressMessage }}</div>
                     </el-card>
 
+                    <!-- 损失曲线 -->
+                    <el-card v-if="lossPoints.length > 1" shadow="never" class="mt-3">
+                        <template #header>
+                            <span><i class="el-icon-data-line"></i> 损失曲线</span>
+                        </template>
+                        <div ref="chartRef" style="height: 320px;"></div>
+                    </el-card>
+
                     <!-- 训练结果 -->
                     <el-card v-if="isCompleted" shadow="never" class="mt-3">
                         <template #header>
@@ -109,13 +117,13 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import * as echarts from 'echarts';
 import { getProgress, cancelTraining } from '@/api/lakeintelligence/train';
 
 const route = useRoute();
-const router = useRouter();
 
 const taskId = ref(null);
 const pollTimer = ref(null);
@@ -131,6 +139,32 @@ const modelPath = ref(null);
 const finalLoss = ref(null);
 const trainingEpochs = ref(null);
 const modelSizeBytes = ref(null);
+const lossPoints = ref([]);
+const chartRef = ref(null);
+let chart = null;
+
+function renderChart() {
+    if (!chartRef.value) return;
+    if (!chart) {
+        chart = echarts.init(chartRef.value);
+    }
+    const epochs = lossPoints.value.map((p) => p.epoch);
+    chart.setOption({
+        tooltip: { trigger: 'axis' },
+        legend: { data: ['训练损失', '验证损失'] },
+        grid: { left: 50, right: 20, top: 40, bottom: 30 },
+        xAxis: { type: 'category', name: 'epoch', boundaryGap: false, data: epochs },
+        yAxis: { type: 'value', name: 'loss' },
+        series: [
+            { name: '训练损失', type: 'line', smooth: true, showSymbol: false, data: lossPoints.value.map((p) => p.trainLoss) },
+            { name: '验证损失', type: 'line', smooth: true, showSymbol: false, data: lossPoints.value.map((p) => p.valLoss) },
+        ],
+    });
+}
+
+watch(lossPoints, () => {
+    nextTick(renderChart);
+}, { deep: true });
 
 const statusMap = {
     training: { text: '训练中', type: 'primary' },
@@ -162,7 +196,8 @@ const modelSizeDisplay = computed(() => {
 
 const progressPct = computed(() => {
     if (!totalEpochs.value) return 0;
-    return Math.round((currentEpoch.value / totalEpochs.value) * 100);
+    // 防御：轮次可能短暂越界，进度封顶 100%
+    return Math.min(100, Math.round((currentEpoch.value / totalEpochs.value) * 100));
 });
 
 const progressStatus = computed(() => {
@@ -190,6 +225,7 @@ async function pollProgress() {
         if (data.trainLoss != null) trainLoss.value = data.trainLoss;
         if (data.valLoss != null) valLoss.value = data.valLoss;
         if (data.message) progressMessage.value = data.message;
+        if (Array.isArray(data.lossHistory)) lossPoints.value = data.lossHistory;
 
         if (data.modelId) {
             modelId.value = data.modelId;
@@ -233,6 +269,10 @@ onMounted(() => {
 
 onUnmounted(() => {
     if (pollTimer.value) clearTimeout(pollTimer.value);
+    if (chart) {
+        chart.dispose();
+        chart = null;
+    }
 });
 </script>
 

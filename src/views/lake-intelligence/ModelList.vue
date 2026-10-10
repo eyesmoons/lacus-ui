@@ -59,8 +59,8 @@
                         <el-tooltip content="编辑" placement="top">
                             <el-button type="primary" icon="Edit" @click="handleEdit(scope.row)" />
                         </el-tooltip>
-                        <el-tooltip content="下载" placement="top">
-                            <el-button type="success" icon="Download" @click="handleDownload(scope.row)" />
+                        <el-tooltip :content="scope.row.status === 'TRAINING_COMPLETED' ? '下载' : '训练完成后可下载'" placement="top">
+                            <el-button type="success" icon="Download" :disabled="scope.row.status !== 'TRAINING_COMPLETED'" @click="handleDownload(scope.row)" />
                         </el-tooltip>
                         <el-tooltip content="删除" placement="top">
                             <el-button type="danger" icon="Delete" @click="handleDelete(scope.row)" />

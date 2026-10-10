@@ -29,6 +29,7 @@
                 <el-radio-group v-model="form.device">
                     <el-radio-button label="cpu">CPU</el-radio-button>
                     <el-radio-button label="cuda">CUDA (GPU)</el-radio-button>
+                    <el-radio-button label="mps">MPS (Apple GPU)</el-radio-button>
                 </el-radio-group>
             </el-form-item>
         </el-form>

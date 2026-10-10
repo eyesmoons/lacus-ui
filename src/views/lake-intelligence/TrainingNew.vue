@@ -65,6 +65,7 @@
                             <el-select v-model="form.device" style="width: 100%">
                                 <el-option label="CPU" value="cpu" />
                                 <el-option label="CUDA (GPU)" value="cuda" />
+                                <el-option label="MPS (Apple GPU)" value="mps" />
                             </el-select>
                         </el-form-item>
 
@@ -127,7 +128,9 @@ const learningRateDisplay = computed(() => {
 });
 
 const deviceDisplay = computed(() => {
-    return form.device === 'cuda' ? 'CUDA (GPU)' : 'CPU';
+    if (form.device === 'cuda') return 'CUDA (GPU)';
+    if (form.device === 'mps') return 'MPS (Apple GPU)';
+    return 'CPU';
 });
 
 function loadDatasets() {

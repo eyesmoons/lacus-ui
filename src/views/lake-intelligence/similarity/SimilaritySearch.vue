@@ -29,8 +29,13 @@
                             <el-slider v-model="topK" :min="1" :max="20" show-input />
                         </el-form-item>
                         <el-form-item label="向量库">
-                            <el-select v-model="collectionName" placeholder="默认向量库" style="width: 100%">
-                                <el-option label="默认向量库 (image_collection)" value="image_collection" />
+                            <el-select v-model="collectionName" placeholder="请选择向量库" style="width: 100%">
+                                <el-option
+                                    v-for="c in collectionOptions"
+                                    :key="c.indexId"
+                                    :label="c.indexName"
+                                    :value="c.collectionName"
+                                />
                             </el-select>
                         </el-form-item>
                     </el-form>
@@ -71,7 +76,7 @@
                             shadow="hover"
                             class="result-item"
                         >
-                            <img :src="`/api/lake-intelligence/image/${item.id}`" class="result-image" alt="结果" />
+                            <img :src="`${apiBase}/lake-intelligence/image/${item.id}`" class="result-image" alt="结果" />
                             <div class="result-info">
                                 <el-tag :type="similarityTagType(item.similarity)" size="small">
                                     {{ similarityPct(item.similarity) }}%
@@ -87,17 +92,40 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { UploadFilled, Loading } from '@element-plus/icons-vue';
-import { searchSimilar } from '@/api/lakeintelligence/search';
+import { searchSimilar, listCollections } from '@/api/lakeintelligence/search';
 
+const route = useRoute();
+const apiBase = import.meta.env.VITE_APP_BASE_API;
 const selectedFile = ref(null);
 const previewUrl = ref('');
 const topK = ref(5);
-const collectionName = ref('image_collection');
+const collectionName = ref('');
+const collectionOptions = ref([]);
 const searching = ref(false);
 const results = ref([]);
+
+function loadCollections() {
+    listCollections().then((res) => {
+        collectionOptions.value = res || [];
+        const preselect = route.query.collection;
+        if (preselect && collectionOptions.value.some((c) => c.collectionName === preselect)) {
+            collectionName.value = preselect;
+        } else if (!collectionName.value && collectionOptions.value.length) {
+            collectionName.value = collectionOptions.value[0].collectionName;
+        }
+    }).catch(() => {});
+}
+
+// 组件被 keep-alive 缓存时不会重新挂载，需监听 query 变化以应用预选
+watch(() => route.query.collection, (val) => {
+    if (val && collectionOptions.value.some((c) => c.collectionName === val)) {
+        collectionName.value = val;
+    }
+});
 
 function handleImageChange(file) {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/bmp'];
@@ -148,7 +176,8 @@ async function performSearch() {
         const result = await searchSimilar(formData);
         results.value = (result.results || []).map((r) => ({
             id: r.id,
-            similarity: r.distance != null ? 1 - r.distance : r.similarity,
+            // 余弦距离 d∈[0,2] → 余弦相似度 = 1-d，负值(反向)截断为 0
+            similarity: r.distance != null ? Math.max(0, 1 - r.distance) : r.similarity,
         }));
     } catch (err) {
         ElMessage.error('检索失败：' + err.message);
@@ -156,6 +185,10 @@ async function performSearch() {
         searching.value = false;
     }
 }
+
+onMounted(() => {
+    loadCollections();
+});
 </script>
 
 <style scoped>

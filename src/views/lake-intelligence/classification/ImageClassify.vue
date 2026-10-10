@@ -26,14 +26,14 @@
 
                     <el-form label-width="100px" class="mt-3">
                         <el-form-item label="使用模型">
-                            <el-select v-model="modelId" placeholder="选择分类模型" style="width: 100%">
-                                <el-option
-                                    v-for="m in modelOptions"
-                                    :key="m.modelId"
-                                    :label="m.modelName"
-                                    :value="m.modelId"
-                                />
-                            </el-select>
+                            <el-cascader
+                                v-model="taskId"
+                                :options="modelTreeOptions"
+                                :props="{ emitPath: false, expandTrigger: 'hover' }"
+                                placeholder="模型 / 训练任务"
+                                style="width: 100%"
+                                clearable
+                            />
                         </el-form-item>
                     </el-form>
 
@@ -41,7 +41,7 @@
                         type="primary"
                         @click="performClassify"
                         :loading="classifying"
-                        :disabled="!selectedFile || !modelId"
+                        :disabled="!selectedFile || !taskId"
                         style="width: 100%"
                     >
                         <i class="el-icon-cpu"></i> 开始分类
@@ -104,20 +104,17 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { UploadFilled, Loading } from '@element-plus/icons-vue';
 import { classifyImage } from '@/api/lakeintelligence/classify';
-import { listModels } from '@/api/lakeintelligence/model';
-
-const route = useRoute();
+import { getModelTree } from '@/api/lakeintelligence/model';
 
 const selectedFile = ref(null);
 const previewUrl = ref('');
-const modelId = ref(null);
+const taskId = ref(null);
 const classifying = ref(false);
 const result = ref(null);
-const modelOptions = ref([]);
+const modelTreeOptions = ref([]);
 
 function handleImageChange(file) {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/bmp'];
@@ -148,7 +145,7 @@ async function performClassify() {
         ElMessage.warning('请先上传图片');
         return;
     }
-    if (!modelId.value) {
+    if (!taskId.value) {
         ElMessage.warning('请选择分类模型');
         return;
     }
@@ -159,7 +156,7 @@ async function performClassify() {
     try {
         const formData = new FormData();
         formData.append('image', selectedFile.value);
-        formData.append('model_id', modelId.value);
+        formData.append('task_id', taskId.value);
 
         const res = await classifyImage(formData);
         result.value = {
@@ -176,20 +173,24 @@ async function performClassify() {
     }
 }
 
-function loadModels() {
-    listModels({ pageNum: 1, pageSize: 100, taskType: 'CLASSIFICATION' }).then((response) => {
-        const list = response.rows || response.list || response || [];
-        modelOptions.value = list;
-        if (list.length > 0 && !modelId.value) {
-            modelId.value = list[0].modelId;
-        }
+function loadModelTree() {
+    getModelTree('CLASSIFICATION').then((res) => {
+        const list = res || [];
+        modelTreeOptions.value = list.map((m) => ({
+            value: m.modelId,
+            label: m.modelName,
+            children: (m.tasks || []).map((t) => ({
+                value: t.taskId,
+                label: t.status ? `${t.taskName} (${t.status})` : t.taskName,
+            })),
+        }));
     }).catch(() => {
         ElMessage.error('加载模型列表失败');
     });
 }
 
 onMounted(() => {
-    loadModels();
+    loadModelTree();
 });
 </script>
 

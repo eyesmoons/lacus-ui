@@ -71,3 +71,12 @@ export function trainModel(id, data) {
     data,
   });
 }
+
+// 模型→任务 级联数据（用于按"模型 / 训练任务"选择）
+export function getModelTree(taskType) {
+  return request({
+    url: '/lake-intelligence/models/tree',
+    method: 'get',
+    params: taskType ? { taskType } : {},
+  });
+}
